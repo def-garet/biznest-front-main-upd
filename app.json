@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "BIZNest",
+    "slug": "BIZNest",
+    "scheme": "BIZNest",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "assets/imgs/biznest-new.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "assets/imgs/biznest-new.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#172d55"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff",
+        "softwareKeyboardLayoutMode": "pan",
+      "windowSoftInputMode": "adjustResize"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ]
+  }
+}

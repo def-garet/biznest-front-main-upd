@@ -3,7 +3,7 @@ import TabNavigator from './Biznest'
 import CustomerLogin from './customerlogin';
 import { AuthProvider } from '../auth/AuthContext';
 import CustomerSignup from './CustomerSignup';
-import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat} from '../screens';
+import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat, Chatbot} from '../screens';
 import { MyAddress,EditProfile, PurchaseHistory, CustomerService, OrderTracking } from '../screens/settings';
 import { StartSelling, SellerDashboard, SellerOrderManagement, ProductManagement, SalesReports } from '../screens/SellerSide';
 import { ChatConversation } from '../screens/HomeScreen/component';
@@ -51,6 +51,7 @@ export default function App() {
         <Stack.Screen name="ViewShop" component={ViewShop} options={{headerShown:false}} />
         <Stack.Screen name="SearchResults" component={SearchResults} options={{headerShown:false}} />
         <Stack.Screen name="DinagyangProducts" component={DinagyangProducts} options={{headerShown:false}} />
+        <Stack.Screen name="Chatbot" component={Chatbot} options={{headerShown:false}} /> 
         
       </Stack.Navigator>
 

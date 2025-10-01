@@ -11,6 +11,7 @@ import UserLike from "./UserLike"
 import Checkout from "./Checkout"
 import Notifications from "./Notifications" 
 import Chat from "./Chat"
+import Chatbot from "./Chatbot"
 
 export {
     Home,
@@ -26,5 +27,6 @@ export {
     Notifications,
     Checkout,
     Chat,
+    Chatbot,
 
 }

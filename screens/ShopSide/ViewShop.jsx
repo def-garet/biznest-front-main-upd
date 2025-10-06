@@ -12,6 +12,8 @@ import {
   SafeAreaView
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
+import axios from 'axios';
+import API_URL from '../../api/api_urls';
 
 const PRIMARY_COLOR = '#172d55';
 const SECONDARY_COLOR = '#f39c12';
@@ -25,7 +27,9 @@ const CARD_SHADOW = {
 
 const ViewShop = ({ navigation, route }) => {
   const { seller_id } = route.params;
-  const [shopDetails] = useState({
+  
+  const [shopDetails,setShopDetails] = useState(
+    {
     shop_name: "Iloilo Handicrafts Haven",
     shop_logo: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
     rating: 4.8,
@@ -34,19 +38,22 @@ const ViewShop = ({ navigation, route }) => {
     description: "Proudly showcasing the finest handmade crafts from Iloilo's talented local artisans. We specialize in traditional woven products (hablon), pottery, shell crafts, and other unique Ilonggo handicrafts. Each piece tells a story of our rich cultural heritage.",
     joined_date: "2018",
     response_rate: "99%"
-  });
+  }
+);
   
-  const [categories] = useState([
-    { id: 'all', name: 'All Products' },
+  const [categories,setCategories] = useState(
+    [
+    { id: 0, name: 'All Products' },
     { id: 'woven', name: 'Woven Products' },
     { id: 'pottery', name: 'Pottery' },
     { id: 'shell', name: 'Shell Crafts' },
     { id: 'clothing', name: 'Clothing' }
-  ]);
+  ]
+);
   
   const [activeCategory, setActiveCategory] = useState('all');
   
-  const [products] = useState([
+  const [products,setProductDetail] = useState([
     {
       id: 1,
       name: "Hablon Tote Bag",
@@ -93,6 +100,49 @@ const ViewShop = ({ navigation, route }) => {
   
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [isLoading] = useState(false);
+  
+  const fetchShopDetails = async () => {
+    try {
+      console.log("Fetching shop details for seller_id:", `${API_URL}/api/v1/View Shop/view_shop/${seller_id}`);
+      const response = await axios.get(`${API_URL}/api/v1/View Shop/view_shop/${seller_id}`);
+      
+      // Assuming 'response.data' contains your shop data
+      const products = response.data.products || [];
+
+      // Compute total reviews and total rating
+      let totalReviews = 0;
+      let totalRatingSum = 0;
+
+      products.forEach((product) => {
+        totalReviews += product.total_reviews || 0;
+        totalRatingSum += product.total_rating || 0;
+      });
+
+      // Compute average rating (avoid dividing by zero)
+      const averageRating = totalReviews > 0 ? (totalRatingSum / totalReviews).toFixed(1) : 0;
+
+      const shopData = { 
+        shop_name: response.data.shop_name || "Noname Shop",
+        shop_logo: response.data.owner_info.profile_pic || "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
+        rating: averageRating,        // ✅ computed average rating
+        review_count: totalReviews,   // ✅ computed total reviews
+        location: response.data.register_address || "Unknown Location",
+        description: "Proudly showcasing the finest handmade crafts from Iloilo's talented local artisans.",
+        joined_date: "2018",
+        response_rate: "99%"
+      };
+      setShopDetails(shopData);
+      setCategories([{ id: 0, name: "All" }, ...response.data.category_info]);
+    } catch (error) {
+      console.error("Error fetching shop details", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchShopDetails();
+  }, []);
 
   useEffect(() => {
     if (activeCategory === 'all') {

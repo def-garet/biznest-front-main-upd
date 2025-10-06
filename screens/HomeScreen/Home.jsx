@@ -534,15 +534,15 @@ const Home = () => {
   hasFreeShipping: true,
 };
 
-  const categories_list = [
-    { id: 1, name: "All" },
-    { id: 2, name: "Food" },
-    { id: 3, name: "Beverage" },
-    { id: 4, name: "Pasalubong" },
-    { id: 5, name: "Handicrafts" },
-    { id: 6, name: "Home Decor" },
-    { id: 7, name: "Fashion" }
-  ];
+  // const categories_list = [
+  //   { id: 1, name: "All" },
+  //   { id: 2, name: "Food" },
+  //   { id: 3, name: "Beverage" },
+  //   { id: 4, name: "Pasalubong" },
+  //   { id: 5, name: "Handicrafts" },
+  //   { id: 6, name: "Home Decor" },
+  //   { id: 7, name: "Fashion" }
+  // ];
 
   const fetchProduct = async () => {
     try {
@@ -733,7 +733,7 @@ const Home = () => {
          
 
             {/* All Products Grid */}
-            <View style={styles.productsGrid}>
+        <View style={styles.productsGrid}>
               {filteredProducts.map((product) => (
                 
       <TouchableOpacity 
@@ -813,7 +813,7 @@ const Home = () => {
           <View style={styles_idea.ratingContainer}>
             <View style={styles_idea.ratingWrapper}>
               <Ionicons name="star" size={14} color={COLORS_idea.rating} />
-              <Text style={styles_idea.ratingText}>{item.rating}</Text>
+              <Text style={styles_idea.ratingText}>{product.rating}</Text>
             </View>
             <Text style={styles_idea.soldText}>{product.sold}</Text>
           </View>
@@ -824,6 +824,7 @@ const Home = () => {
             <Text style={styles_idea.locationText}>{item.location}</Text>
           </View>
         </View>
+        
       </TouchableOpacity>
 
                 // <TouchableOpacity 

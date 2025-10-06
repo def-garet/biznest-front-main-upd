@@ -18,6 +18,8 @@ import {
 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../style/theme';
+import axios from 'axios';
+import N8NAPI_URL from '../api/n8n_api';
 
 const Chatbot = () => {
   const navigation = useNavigation();
@@ -63,6 +65,20 @@ const Chatbot = () => {
       }, 100);
     }
   }, [messages, keyboardHeight]);
+
+  
+const fetchMessage = async () => {
+    try {
+      const response = await axios.get(
+        `${N8NAPI_URL}/api/v1/Product Reviews/product_reviews/${Buyer_id}`
+      );
+      setComments(response.data);
+    } catch (error) {
+      console.error("Error fetching product details:", error);
+    }
+  }
+
+
 
   const handleSend = async () => {
     if (inputText.trim() === '') return;

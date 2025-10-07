@@ -376,11 +376,10 @@ import { COLORS } from "../../style/theme";
 import style from "../../style/home.style";
 import API_URL from "../../api/api_urls";
 import { Categories, Slider, SRPMonitoring } from "./component";
-import { ProductStyle, ProductsTitle } from "../Global";
+import { StaticProductStyle,CategoryModal } from "../Global";
 import { AuthContext } from "../../auth/AuthContext";
 import { useContext, useEffect } from "react";
 import  axiosInstance  from "../../api/axiosInstance"; 
-
 const API_Like = `${API_URL}/api/v1/Buyer Likes/buyer_like`;
 
 const { width } = Dimensions.get('window');
@@ -396,6 +395,7 @@ const Home = () => {
   const { userToken, ProtectedNavigation } = useContext(AuthContext);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [likedItems, setLikedItems] = useState({});
+  const [filteredProducts, setFilteredProducts] = useState([]);
 
   const [wishlist, setWishlist] = useState([]);
 
@@ -556,6 +556,10 @@ const Home = () => {
   };
 
 
+
+
+
+
   const fetchCategory = async () => {
   try {
     const response = await axios.get(`${API_URL}/api/v1/Category/biznest_api`);
@@ -605,6 +609,30 @@ const Home = () => {
     }
   };
 
+
+const handleCategoryPress = (category) => {
+  setActiveCategory(category.name);
+  setShowFilterModal(false);
+
+  if (category.name === "All") {
+    setFilteredProducts(productsample);
+  } else {
+    const filtered = productsample.filter(
+      (item) => item.category?.toLowerCase() === category.name.toLowerCase()
+    );
+    setFilteredProducts(filtered);
+  }
+};
+
+
+useEffect(() => {
+  if (productsample.length > 0) {
+    setFilteredProducts(productsample);
+  }
+}, [productsample]);
+
+
+
   React.useEffect(() => {
     if (isFocused) {
       fetchProduct();
@@ -620,14 +648,14 @@ const Home = () => {
     navigation.navigate("ProductDetails", { product_id: product.id });
   };
 
-  const handleCategoryPress = (category) => {
-    setActiveCategory(category.name);
-    setShowFilterModal(false);
-  };
+  // const handleCategoryPress = (category) => {
+  //   setActiveCategory(category.name);
+  //   setShowFilterModal(false);
+  // };
 
-  const filteredProducts = activeCategory === "All" 
-    ? productsample 
-    : productsample.filter(product => product.category === activeCategory);
+  // const filteredProducts = activeCategory === "All" 
+  //   ? productsample 
+  //   : productsample.filter(product => product.category === activeCategory);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.primary }} edges={['top']}>
@@ -733,128 +761,10 @@ const Home = () => {
          
 
             {/* All Products Grid */}
-        <View style={styles.productsGrid}>
-              {filteredProducts.map((product) => (
-                
-      <TouchableOpacity 
-        onPress={() => handleProductPress(product)}
-        activeOpacity={0.8}
-      style={[styles_idea.productItem, { opacity: fadeAnim }]}
-      >
-        {/* Product Image with Badges */}
-        <View style={styles_idea.imageContainer}>
-          <Image source={{ uri: product.image }} style={styles_idea.productImage} />
-          
-          {/* Top Left Badges */}
-          <View style={styles_idea.topBadges}>
-            {item.isNew && (
-              <View style={[styles_idea.badge, styles_idea.newBadge]}>
-                <Text style={styles_idea.badgeText}>NEW</Text>
-              </View>
-            )}
-            {item.isTrending && (
-              <View style={[styles_idea.badge, styles_idea.trendingBadge]}>
-                <Text style={styles_idea.badgeText}>TRENDING</Text>
-              </View>
-            )}
-          </View>
-          
-          {/* Free Shipping Badge */}
-          {item.hasFreeShipping && (
-            <View style={[styles_idea.badge, styles_idea.freeShippingBadge]}>
-              <Text style={styles_idea.badgeText}>FREE SHIPPING</Text>
-            </View>
-          )}
-          
-          {/* Wishlist Button */}
-          <TouchableOpacity 
-            style={styles_idea.wishlistButton}
-            onPress={(e) => {
-                if (!userToken) {
-                      navigation.navigate("CustomerLogin");
-                    } else {
-                      e.stopPropagation();
-                      toggleLike(product.id); 
-                    }
-                
-            }}
-          >
-            <Ionicons 
-            name={likedItems[product.id] ? "heart" : "heart-outline"} 
-            size={20}
-            color={likedItems[product.id] ? COLORS_idea.highlight : COLORS_idea.white}
-            />
-          </TouchableOpacity>
-        </View>
+       <View style={styles.productsGrid}>
+  <StaticProductStyle data={filteredProducts} />
+</View>
 
-        {/* Product Details */}
-        <View style={styles_idea.productDetails}>
-          {/* Shop and Preferred Badge */}
-          <View style={styles_idea.shopContainer}>
-            {item.isPreferred && (
-              <View style={styles_idea.preferredBadge}>
-                <Text style={styles_idea.preferredText}>Preferred</Text>
-              </View>
-            )}
-            <Text style={styles_idea.productShop} numberOfLines={1}>{product.store}</Text>
-          </View>
-
-          {/* Product Name */}
-          <Text style={styles_idea.productName} numberOfLines={2}>{product.product}</Text>
-
-          {/* Price */}
-          <View style={styles_idea.priceContainer}>
-            <Text style={styles_idea.currentPrice}>{product.price}</Text>
-            <Text style={styles_idea.originalPrice}>{product.originalPrice}</Text>
-            <Text style={styles_idea.discount}>{item.discount}</Text>
-          </View>
-
-          {/* Rating */}
-          <View style={styles_idea.ratingContainer}>
-            <View style={styles_idea.ratingWrapper}>
-              <Ionicons name="star" size={14} color={COLORS_idea.rating} />
-              <Text style={styles_idea.ratingText}>{product.rating}</Text>
-            </View>
-            <Text style={styles_idea.soldText}>{product.sold}</Text>
-          </View>
-
-          {/* Location */}
-          <View style={styles_idea.locationContainer}>
-            <Ionicons name="location-outline" size={12} color={COLORS_idea.text} />
-            <Text style={styles_idea.locationText}>{item.location}</Text>
-          </View>
-        </View>
-        
-      </TouchableOpacity>
-
-                // <TouchableOpacity 
-                //   key={product.id}
-                //   style={styles.productCard}
-                //   onPress={() => handleProductPress(product)}
-                //   activeOpacity={0.8}
-                // >
-                //   <Image 
-                //     source={{ uri: product.image }} 
-                //     style={styles.productImage}
-                //     resizeMode="cover"
-                //   />
-                //   <View style={styles.productInfo}>
-                //     <Text style={styles.storeName}>{product.store}</Text>
-                //     <Text style={styles.productName} numberOfLines={1}>{product.product}</Text>
-                //     <View style={styles.priceContainer}>
-                //       <Text style={styles.discountedPrice}>P{product.price}</Text>
-                //       <Text style={styles.originalPrice}>P{product.originalPrice}</Text>
-                //     </View>
-                //     <View style={styles.ratingContainer}>
-                //       {[...Array(product.rating)].map((_, i) => (
-                //         <Ionicons key={i} name="star" size={14} color="gold" />
-                //       ))}
-                //       <Text style={styles.soldText}>{product.sold.toLocaleString()}+ sold</Text>
-                //     </View>
-                //   </View>
-                // </TouchableOpacity>
-              ))}
-            </View>
 
             {/* Additional Sections */}
             <Animatable.View animation="fadeIn" delay={300}>
@@ -868,48 +778,13 @@ const Home = () => {
       </ScrollView>
 
       {/* Filter Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showFilterModal}
-        onRequestClose={() => setShowFilterModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Filter by Category</Text>
-            <ScrollView>
-              {categories.map((category) => (
-                <Pressable
-                  key={category.id}
-                  style={[
-                    styles.categoryItem,
-                    activeCategory === category.name && styles.activeCategoryItem
-                  ]}
-                  onPress={() => handleCategoryPress(category)}
-                >
-                  <Text 
-                    style={[
-                      styles.categoryText,
-                      activeCategory === category.name && styles.activeCategoryText
-                    ]}
-                  >
-                    {category.name}
-                  </Text>
-                  {activeCategory === category.name && (
-                    <Ionicons name="checkmark" size={18} color={COLORS.primary} />
-                  )}
-                </Pressable>
-              ))}
-            </ScrollView>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowFilterModal(false)}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+    <CategoryModal
+  visible={showFilterModal}
+  categories={categories}
+  activeCategory={activeCategory}
+  onClose={() => setShowFilterModal(false)}
+  onSelectCategory={handleCategoryPress}
+/>
     </SafeAreaView>
   );
 };

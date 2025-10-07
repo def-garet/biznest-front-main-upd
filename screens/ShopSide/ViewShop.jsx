@@ -14,6 +14,7 @@ import {
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import axios from 'axios';
 import API_URL from '../../api/api_urls';
+import StaticProductStyle from '../Global/StaticProductStyle';
 
 const PRIMARY_COLOR = '#172d55';
 const SECONDARY_COLOR = '#f39c12';
@@ -42,16 +43,16 @@ const ViewShop = ({ navigation, route }) => {
 );
   
   const [categories,setCategories] = useState(
-    [
-    { id: 0, name: 'All Products' },
-    { id: 'woven', name: 'Woven Products' },
-    { id: 'pottery', name: 'Pottery' },
-    { id: 'shell', name: 'Shell Crafts' },
-    { id: 'clothing', name: 'Clothing' }
-  ]
+  //   [
+  //   { id: 0, name: 'All Products' },
+  //   { id: 'woven', name: 'Woven Products' },
+  //   { id: 'pottery', name: 'Pottery' },
+  //   { id: 'shell', name: 'Shell Crafts' },
+  //   { id: 'clothing', name: 'Clothing' }
+  // ]
 );
   
-  const [activeCategory, setActiveCategory] = useState('all');
+const [activeCategory, setActiveCategory] = useState(0); 
   
   const [products,setProductDetail] = useState([
     {
@@ -132,7 +133,8 @@ const ViewShop = ({ navigation, route }) => {
         response_rate: "99%"
       };
       setShopDetails(shopData);
-      setCategories([{ id: 0, name: "All" }, ...response.data.category_info]);
+      setCategories([{ id: 0, name: "All Products" }, ...response.data.category_info]);
+      setProductDetail(response.data.products || []);
     } catch (error) {
       console.error("Error fetching shop details", error);
     } finally {
@@ -144,13 +146,24 @@ const ViewShop = ({ navigation, route }) => {
     fetchShopDetails();
   }, []);
 
-  useEffect(() => {
-    if (activeCategory === 'all') {
-      setFilteredProducts(products);
-    } else {
-      setFilteredProducts(products.filter(product => product.category === activeCategory));
-    }
-  }, [activeCategory, products]);
+useEffect(() => {
+  if (!products || !categories) return;
+
+  if (activeCategory === 0) {
+    setFilteredProducts(products);
+  } else {
+    // Get selected category name
+    const selectedCategory = categories.find(cat => cat.id === activeCategory)?.name;
+    setFilteredProducts(
+      products.filter(p => p.category === selectedCategory)
+    );
+  }
+}, [activeCategory, products, categories]);
+
+
+
+
+
 
   const renderProductItem = ({ item }) => (
     <TouchableOpacity 
@@ -274,13 +287,14 @@ const ViewShop = ({ navigation, route }) => {
           
           {/* Categories */}
           <FlatList
-            data={categories}
-            renderItem={renderCategoryItem}
-            keyExtractor={item => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesContainer}
-          />
+          data={categories}
+          renderItem={renderCategoryItem}
+          keyExtractor={(item) => item.id.toString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContainer}
+        />
+
           
           {filteredProducts.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -288,15 +302,17 @@ const ViewShop = ({ navigation, route }) => {
               <Text style={styles.noProductsText}>No products in this category</Text>
             </View>
           ) : (
-            <FlatList
-              data={filteredProducts}
-              renderItem={renderProductItem}
-              keyExtractor={item => item.id.toString()}
-              numColumns={2}
-              columnWrapperStyle={styles.productsRow}
-              contentContainerStyle={styles.productsList}
-              scrollEnabled={false}
-            />
+              <StaticProductStyle data={filteredProducts} />
+
+            // <FlatList
+            //   data={filteredProducts}
+            //   renderItem={renderProductItem}
+            //   keyExtractor={item => item.id.toString()}
+            //   numColumns={2}
+            //   columnWrapperStyle={styles.productsRow}
+            //   contentContainerStyle={styles.productsList}
+            //   scrollEnabled={false}
+            // />
           )}
         </View>
       </ScrollView>

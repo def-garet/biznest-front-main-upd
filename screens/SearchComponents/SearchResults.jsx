@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { 
   View, 
   Text, 
@@ -13,6 +13,9 @@ import {
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import axiosInstance from "../../api/axiosInstance";
+import N8NAPI_URL from "../../api/n8n_api";
+import { StaticProductStyle } from "../Global";
 
 const COLORS_idea = {
   primary: '#172d55',
@@ -31,78 +34,13 @@ const COLORS_idea = {
 const { width } = Dimensions.get('window');
 const itemWidth = (width - 36) / 2;
 
-const hablonProducts = [
-  {
-    id: 1,
-    name: "HABLON Barong Filipiniana Blazer",
-    shop: "HABLON Barong & Filipiniana",
-    originalPrice: "₱2,790",
-    price: "₱2,045",
-    discount: "10% off",
-    rating: "4.9",
-    sold: "426 sold",
-    shipping: "3-6 Days",
-    location: "Antique",
-    image: "https://down-ph.img.susercontent.com/file/ph-11134207-7r98s-lvfodscvt9e9a5",
-    isPreferred: true,
-    hasFreeShipping: true,
-    isNew: true,
-    isTrending: true
-  },
-  {
-    id: 2,
-    name: "HABLON  Mules with Coco Coir Footbed",
-    shop: "Roots Collective PH",
-    originalPrice: "₱1,200",
-    price: "₱854",
-    discount: "15% off",
-    rating: "4.9",
-    sold: "2K+ sold",
-    shipping: "3-6 Days",
-    location: "Oton, Iloilo",
-    image: "https://down-ph.img.susercontent.com/file/sg-11134201-7rbky-llt1dke4e2v980.webp",
-    isPreferred: true,
-    hasFreeShipping: true,
-    isTrending: true
-  },
-  {
-    id: 3,
-    name: "HABLON Blanket Shawl with Fringe",
-    shop: "Roots Collective PH",
-    originalPrice: "₱799",
-    price: "₱719",
-    discount: "10% off",
-    rating: "4.8",
-    sold: "1.5K sold",
-    shipping: "3-6 Days",
-    location: "Oton, Iloilo",
-    image: "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcSoW3sMvbaUYRNmZmvYehNH6BSE16NoLBp61pCPyg2zpmy_E22rJLbPERiKtK_SbYG7cDj9N3R9aIavApvH-_8BZzt0YiPfcifpiihQuOnwqgYe5uzN67WF",
-    isPreferred: true,
-    hasFreeShipping: false,
-    isNew: true
-  },
-  {
-    id: 4,
-    name: "HABLON Premium Barong Tagalog",
-    shop: "HABLON Barong & Filipiniana",
-    originalPrice: "₱1099",
-    price: "₱989",
-    discount: "10% off",
-    rating: "4.9",
-    sold: "800 sold",
-    shipping: "3-6 Days",
-    location: "Iloilo City",
-    image: "https://down-ph.img.susercontent.com/file/ph-11134207-7r98o-lzqcvjj2ym4a53",
-    isPreferred: false,
-    hasFreeShipping: true
-  },
-];
 
 const SearchResults = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { searchTerm } = route.params;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const [product, setProduct] = useState([]);
   
   // State for active filter
   const [activeFilter, setActiveFilter] = useState('Latest');
@@ -113,6 +51,10 @@ const SearchResults = () => {
   // State for selected sort option
   const [selectedSort, setSelectedSort] = useState('Recommended');
 
+ useEffect(() => {
+    fetchProduct();
+  }, []);
+
   React.useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -122,6 +64,10 @@ const SearchResults = () => {
     }).start();
   }, [fadeAnim]);
 
+
+
+
+
   // Toggle wishlist status for a product
   const toggleWishlist = (productId) => {
     if (wishlist.includes(productId)) {
@@ -130,6 +76,16 @@ const SearchResults = () => {
       setWishlist([...wishlist, productId]);
     }
   };
+
+
+    const fetchProduct = async () => {
+      try {
+        const response = await axiosInstance.get(`${N8NAPI_URL}/webhook/656fcfbc-2d51-4b39-94b5-6fbb71629571/Search_product/${searchTerm}`);
+        setProduct(response.data.output);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
 
   // Handle filter selection
   const handleFilterSelect = (filter) => {
@@ -146,10 +102,14 @@ const SearchResults = () => {
     console.log(`Sorting by: ${sortOption}`);
   };
 
+    const handleProductPress = (product) => {
+    navigation.navigate("ProductDetails", { product_id: product.id });
+  };
+
   const renderProductItem = ({ item }) => (
     <Animated.View style={[styles_idea.productItem, { opacity: fadeAnim }]}>
       <TouchableOpacity 
-        onPress={() => navigation.navigate('ProductDetails', { product: item })}
+           onPress={() => handleProductPress(item)}
         activeOpacity={0.8}
       >
         {/* Product Image with Badges */}
@@ -295,16 +255,8 @@ const SearchResults = () => {
         </View>
 
         {/* Product Grid */}
-        <FlatList
-          data={hablonProducts}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderProductItem}
-          numColumns={2}
-          columnWrapperStyle={styles_idea.row}
-          contentContainerStyle={styles_idea.productList}
-          scrollEnabled={false}
-          showsVerticalScrollIndicator={false}
-        />
+       <StaticProductStyle data={product} />
+     
       </ScrollView>
 
       {/* Sort Modal */}
@@ -650,3 +602,73 @@ const styles_idea = StyleSheet.create({
 });
 
 export default SearchResults;
+
+
+
+
+// const hablonProducts = [
+//   {
+//     id: 1,
+//     name: "HABLON Barong Filipiniana Blazer",
+//     shop: "HABLON Barong & Filipiniana",
+//     originalPrice: "₱2,790",
+//     price: "₱2,045",
+//     discount: "10% off",
+//     rating: "4.9",
+//     sold: "426 sold",
+//     shipping: "3-6 Days",
+//     location: "Antique",
+//     image: "https://down-ph.img.susercontent.com/file/ph-11134207-7r98s-lvfodscvt9e9a5",
+//     isPreferred: true,
+//     hasFreeShipping: true,
+//     isNew: true,
+//     isTrending: true
+//   },
+//   {
+//     id: 2,
+//     name: "HABLON  Mules with Coco Coir Footbed",
+//     shop: "Roots Collective PH",
+//     originalPrice: "₱1,200",
+//     price: "₱854",
+//     discount: "15% off",
+//     rating: "4.9",
+//     sold: "2K+ sold",
+//     shipping: "3-6 Days",
+//     location: "Oton, Iloilo",
+//     image: "https://down-ph.img.susercontent.com/file/sg-11134201-7rbky-llt1dke4e2v980.webp",
+//     isPreferred: true,
+//     hasFreeShipping: true,
+//     isTrending: true
+//   },
+//   {
+//     id: 3,
+//     name: "HABLON Blanket Shawl with Fringe",
+//     shop: "Roots Collective PH",
+//     originalPrice: "₱799",
+//     price: "₱719",
+//     discount: "10% off",
+//     rating: "4.8",
+//     sold: "1.5K sold",
+//     shipping: "3-6 Days",
+//     location: "Oton, Iloilo",
+//     image: "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcSoW3sMvbaUYRNmZmvYehNH6BSE16NoLBp61pCPyg2zpmy_E22rJLbPERiKtK_SbYG7cDj9N3R9aIavApvH-_8BZzt0YiPfcifpiihQuOnwqgYe5uzN67WF",
+//     isPreferred: true,
+//     hasFreeShipping: false,
+//     isNew: true
+//   },
+//   {
+//     id: 4,
+//     name: "HABLON Premium Barong Tagalog",
+//     shop: "HABLON Barong & Filipiniana",
+//     originalPrice: "₱1099",
+//     price: "₱989",
+//     discount: "10% off",
+//     rating: "4.9",
+//     sold: "800 sold",
+//     shipping: "3-6 Days",
+//     location: "Iloilo City",
+//     image: "https://down-ph.img.susercontent.com/file/ph-11134207-7r98o-lzqcvjj2ym4a53",
+//     isPreferred: false,
+//     hasFreeShipping: true
+//   },
+// ];

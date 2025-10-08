@@ -24,6 +24,8 @@ const Home = () => {
   useEffect(() => {
     fetchProduct();
   }, []);
+
+
   const fetchProduct = async () => {
     try {
       const response = await axiosInstance.get(`/api/v1/Product/product_api`);
@@ -32,6 +34,8 @@ const Home = () => {
       console.error("Error fetching data:", error);
     }
   };
+
+  
   const navigation = useNavigation();
   return (
     <SafeAreaView>

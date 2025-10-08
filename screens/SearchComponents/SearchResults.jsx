@@ -41,7 +41,8 @@ const SearchResults = () => {
   const { searchTerm } = route.params;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [product, setProduct] = useState([]);
-  
+  const [allProducts, setAllProducts] = useState([]); // all fetched products
+
   // State for active filter
   const [activeFilter, setActiveFilter] = useState('Latest');
   // State for wishlist items
@@ -82,17 +83,45 @@ const SearchResults = () => {
       try {
         const response = await axiosInstance.get(`${N8NAPI_URL}/webhook/656fcfbc-2d51-4b39-94b5-6fbb71629571/Search_product/${searchTerm}`);
         setProduct(response.data.output);
+        setAllProducts(response.data.output); // Store all products
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
 
-  // Handle filter selection
-  const handleFilterSelect = (filter) => {
-    setActiveFilter(filter);
-    // Here you would typically filter your products based on the selected filter
-    console.log(`Filtering by: ${filter}`);
-  };
+const handleFilterSelect = (filter) => {
+  setActiveFilter(filter);
+  setProduct(allProducts); 
+  let filtered = [...allProducts];
+
+  switch(filter) {
+    case 'Latest':
+      filtered.sort((a, b) => b.id - a.id); // example: newest first
+      break;
+    case 'Top Sales':
+      filtered.sort((a, b) => (b.sold || 0) - (a.sold || 0));
+      break;
+    case 'Price':
+      filtered.sort((a, b) => a.price - b.price);
+      break;
+    case 'Free Shipping':
+      filtered = filtered.filter(item => item.hasFreeShipping);
+      break;
+    case 'Preferred':
+      filtered = filtered.filter(item => item.isPreferred);
+      break;
+    case 'Near Me':
+      // optional: implement location-based filter
+      break;
+    case 'Discount':
+      filtered = filtered.filter(item => item.discount);
+      break;
+  }
+
+  console.log(`Filter applied: ${filtered.length} items match "${filter}"`);
+
+  setProduct(filtered);
+};
 
   // Handle sort selection
   const handleSortSelect = (sortOption) => {
@@ -106,93 +135,93 @@ const SearchResults = () => {
     navigation.navigate("ProductDetails", { product_id: product.id });
   };
 
-  const renderProductItem = ({ item }) => (
-    <Animated.View style={[styles_idea.productItem, { opacity: fadeAnim }]}>
-      <TouchableOpacity 
-           onPress={() => handleProductPress(item)}
-        activeOpacity={0.8}
-      >
-        {/* Product Image with Badges */}
-        <View style={styles_idea.imageContainer}>
-          <Image source={{ uri: item.image }} style={styles_idea.productImage} />
+  // const renderProductItem = ({ item }) => (
+  //   <Animated.View style={[styles_idea.productItem, { opacity: fadeAnim }]}>
+  //     <TouchableOpacity 
+  //          onPress={() => handleProductPress(item)}
+  //       activeOpacity={0.8}
+  //     >
+  //       {/* Product Image with Badges */}
+  //       <View style={styles_idea.imageContainer}>
+  //         <Image source={{ uri: item.image }} style={styles_idea.productImage} />
           
-          {/* Top Left Badges */}
-          <View style={styles_idea.topBadges}>
-            {item.isNew && (
-              <View style={[styles_idea.badge, styles_idea.newBadge]}>
-                <Text style={styles_idea.badgeText}>NEW</Text>
-              </View>
-            )}
-            {item.isTrending && (
-              <View style={[styles_idea.badge, styles_idea.trendingBadge]}>
-                <Text style={styles_idea.badgeText}>TRENDING</Text>
-              </View>
-            )}
-          </View>
+  //         {/* Top Left Badges */}
+  //         <View style={styles_idea.topBadges}>
+  //           {item.isNew && (
+  //             <View style={[styles_idea.badge, styles_idea.newBadge]}>
+  //               <Text style={styles_idea.badgeText}>NEW</Text>
+  //             </View>
+  //           )}
+  //           {item.isTrending && (
+  //             <View style={[styles_idea.badge, styles_idea.trendingBadge]}>
+  //               <Text style={styles_idea.badgeText}>TRENDING</Text>
+  //             </View>
+  //           )}
+  //         </View>
           
-          {/* Free Shipping Badge */}
-          {item.hasFreeShipping && (
-            <View style={[styles_idea.badge, styles_idea.freeShippingBadge]}>
-              <Text style={styles_idea.badgeText}>FREE SHIPPING</Text>
-            </View>
-          )}
+  //         {/* Free Shipping Badge */}
+  //         {item.hasFreeShipping && (
+  //           <View style={[styles_idea.badge, styles_idea.freeShippingBadge]}>
+  //             <Text style={styles_idea.badgeText}>FREE SHIPPING</Text>
+  //           </View>
+  //         )}
           
-          {/* Wishlist Button */}
-          <TouchableOpacity 
-            style={styles_idea.wishlistButton}
-            onPress={(e) => {
-              e.stopPropagation(); // Prevent triggering the parent TouchableOpacity
-              toggleWishlist(item.id);
-            }}
-          >
-            <Ionicons 
-              name={wishlist.includes(item.id) ? "heart" : "heart-outline"} 
-              size={20} 
-              color={wishlist.includes(item.id) ? COLORS_idea.highlight : COLORS_idea.white} 
-            />
-          </TouchableOpacity>
-        </View>
+  //         {/* Wishlist Button */}
+  //         <TouchableOpacity 
+  //           style={styles_idea.wishlistButton}
+  //           onPress={(e) => {
+  //             e.stopPropagation(); // Prevent triggering the parent TouchableOpacity
+  //             toggleWishlist(item.id);
+  //           }}
+  //         >
+  //           <Ionicons 
+  //             name={wishlist.includes(item.id) ? "heart" : "heart-outline"} 
+  //             size={20} 
+  //             color={wishlist.includes(item.id) ? COLORS_idea.highlight : COLORS_idea.white} 
+  //           />
+  //         </TouchableOpacity>
+  //       </View>
 
-        {/* Product Details */}
-        <View style={styles_idea.productDetails}>
-          {/* Shop and Preferred Badge */}
-          <View style={styles_idea.shopContainer}>
-            {item.isPreferred && (
-              <View style={styles_idea.preferredBadge}>
-                <Text style={styles_idea.preferredText}>Preferred</Text>
-              </View>
-            )}
-            <Text style={styles_idea.productShop} numberOfLines={1}>{item.shop}</Text>
-          </View>
+  //       {/* Product Details */}
+  //       <View style={styles_idea.productDetails}>
+  //         {/* Shop and Preferred Badge */}
+  //         <View style={styles_idea.shopContainer}>
+  //           {item.isPreferred && (
+  //             <View style={styles_idea.preferredBadge}>
+  //               <Text style={styles_idea.preferredText}>Preferred</Text>
+  //             </View>
+  //           )}
+  //           <Text style={styles_idea.productShop} numberOfLines={1}>{item.shop}</Text>
+  //         </View>
 
-          {/* Product Name */}
-          <Text style={styles_idea.productName} numberOfLines={2}>{item.name}</Text>
+  //         {/* Product Name */}
+  //         <Text style={styles_idea.productName} numberOfLines={2}>{item.name}</Text>
 
-          {/* Price */}
-          <View style={styles_idea.priceContainer}>
-            <Text style={styles_idea.currentPrice}>{item.price}</Text>
-            <Text style={styles_idea.originalPrice}>{item.originalPrice}</Text>
-            <Text style={styles_idea.discount}>{item.discount}</Text>
-          </View>
+  //         {/* Price */}
+  //         <View style={styles_idea.priceContainer}>
+  //           <Text style={styles_idea.currentPrice}>{item.price}</Text>
+  //           <Text style={styles_idea.originalPrice}>{item.originalPrice}</Text>
+  //           <Text style={styles_idea.discount}>{item.discount}</Text>
+  //         </View>
 
-          {/* Rating */}
-          <View style={styles_idea.ratingContainer}>
-            <View style={styles_idea.ratingWrapper}>
-              <Ionicons name="star" size={14} color={COLORS_idea.rating} />
-              <Text style={styles_idea.ratingText}>{item.rating}</Text>
-            </View>
-            <Text style={styles_idea.soldText}>{item.sold}</Text>
-          </View>
+  //         {/* Rating */}
+  //         <View style={styles_idea.ratingContainer}>
+  //           <View style={styles_idea.ratingWrapper}>
+  //             <Ionicons name="star" size={14} color={COLORS_idea.rating} />
+  //             <Text style={styles_idea.ratingText}>{item.rating}</Text>
+  //           </View>
+  //           <Text style={styles_idea.soldText}>{item.sold}</Text>
+  //         </View>
 
-          {/* Location */}
-          <View style={styles_idea.locationContainer}>
-            <Ionicons name="location-outline" size={12} color={COLORS_idea.text} />
-            <Text style={styles_idea.locationText}>{item.location}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
+  //         {/* Location */}
+  //         <View style={styles_idea.locationContainer}>
+  //           <Ionicons name="location-outline" size={12} color={COLORS_idea.text} />
+  //           <Text style={styles_idea.locationText}>{item.location}</Text>
+  //         </View>
+  //       </View>
+  //     </TouchableOpacity>
+  //   </Animated.View>
+  // );
 
   return (
     <View style={styles_idea.container}>

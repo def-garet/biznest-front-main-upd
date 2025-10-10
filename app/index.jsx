@@ -8,8 +8,8 @@ import { MyAddress,EditProfile, PurchaseHistory, CustomerService, OrderTracking 
 import { StartSelling, SellerDashboard, SellerOrderManagement, ProductManagement, SalesReports } from '../screens/SellerSide';
 import { ChatConversation } from '../screens/HomeScreen/component';
 import SplashScreen from './SplashScreen';
-import { TradeScreen, TradeOffer } from '../screens/Trading';
-import { ViewShop } from '../screens/ShopSide';
+import { TradeScreen, TradeOffer, TradeConfirmationScreen } from '../screens/Trading';
+import { ViewShop, AllProducts, } from '../screens/ShopSide';
 import { SearchResults } from '../screens/SearchComponents';
 import { DinagyangProducts } from '../screens/SeasonalCompenents';
 
@@ -52,6 +52,8 @@ export default function App() {
         <Stack.Screen name="SearchResults" component={SearchResults} options={{headerShown:false}} />
         <Stack.Screen name="DinagyangProducts" component={DinagyangProducts} options={{headerShown:false}} />
         <Stack.Screen name="Chatbot" component={Chatbot} options={{headerShown:false}} /> 
+        <Stack.Screen name="AllProducts" component={AllProducts} options={{headerShown:false}} />
+        <Stack.Screen name="TradeConfirmationScreen" component={TradeConfirmationScreen} options={{headerShown:false}} />
         
       </Stack.Navigator>
 

@@ -1,56 +1,80 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  TextInput, 
+  ScrollView, 
+  Modal, 
+  Image,
+  SafeAreaView,
+  Alert
+} from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import TradeConfirmation from './TradeComponent/TradeConfirmationScreen';
 
 const TradeOffer = ({ visible, onClose, onCreate }) => {
-  // Color theme
+  const navigation = useNavigation();
+  
   const colors = {
-    primary: '#172d55',
-    secondary: '#2196f3',
+    primary: '#0f172a',
+    secondary: '#2563eb',
+    accent: '#f59e0b',
     background: '#ffffff',
-    text: '#808080',
+    cardBackground: '#f8fafc',
+    text: '#0f172a',
+    textLight: '#64748b',
+    border: '#e2e8f0',
+    success: '#059669'
   };
 
-  // Mock shop data with products
   const mockShops = [
     {
       id: '1',
       name: 'Iloilo Biscocho Haus',
-      image: 'https://d3up48wss6lvj.cloudfront.net/data/uploads/2020/07/ORIGINAL_BISCOCHO_HAUS.jpg',
+      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+      rating: 4.5,
       products: [
-        { id: 'p1', name: 'Biscocho', image: 'https://images.unsplash.com/photo-1517705008128-361805f42e86?w=500&auto=format&fit=crop&q=60', price: '₱60' },
-        { id: 'p2', name: 'Manok', image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=60', price: '₱160' },
+        { id: 'p1', name: 'Biscocho', image: 'https://images.unsplash.com/photo-1517705008128-361805f42e86?w=300&auto=format&fit=crop&q=60', price: '₱60' },
+        { id: 'p2', name: 'Butterscotch', image: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=300&auto=format&fit=crop&q=60', price: '₱160' },
       ]
     },
     {
       id: '2', 
       name: 'Madge Coffee',
-      image: 'https://images.unsplash.com/photo-1486401899868-0e435ed85128?w=500',
+      image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
+      rating: 4.7,
       products: [
-        { id: 'p3', name: 'Bluetooth Speaker', image: 'https://images.unsplash.com/photo-1517705008128-361805f42e86?w=500&auto=format&fit=crop&q=60', price: '₱120' },
-        { id: 'p4', name: 'Power Bank', image: 'https://images.unsplash.com/photo-1517705008128-361805f42e86?w=500&auto=format&fit=crop&q=60', price: '₱350' },
+        { id: 'p3', name: 'Arabica Blend', image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=300&auto=format&fit=crop&q=60', price: '₱120' },
+        { id: 'p4', name: 'Coffee Beans', image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60', price: '₱350' },
       ]
     }
   ];
 
-  // Users products
   const userProducts = [
-    { id: 'u1', name: 'Hablon Wallet', image: 'https://i0.wp.com/www.mycitymysm.com/wp-content/uploads/2021/07/my-city-my-sm-my-craft-iloilo-26.jpg?fit=1600%2C1063&ssl=1', value: '₱250' },
-    { id: 'u2', name: 'Barako Coffee', image: 'https://i0.wp.com/lostboy.blog/wp-content/uploads/2017/07/fb_img_1500417649033.jpg?ssl=1', value: '₱350' },
-    { id: 'u3', name: 'Piaya Original', image: 'https://anec.global/cdn/shop/products/Untitleddesign_27_02371ddb-c443-485b-86d2-290f96cdb8f3.png?v=1645853439', value: '₱120' },
+    { id: 'u1', name: 'Hablon Wallet', image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&auto=format&fit=crop&q=60', value: '₱250' },
+    { id: 'u2', name: 'Barako Coffee', image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60', value: '₱350' },
+    { id: 'u3', name: 'Piaya Original', image: 'https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60', value: '₱120' },
   ];
 
   const [selectedShop, setSelectedShop] = useState(null);
   const [selectedUserProduct, setSelectedUserProduct] = useState(null);
   const [selectedShopProduct, setSelectedShopProduct] = useState(null);
   const [notes, setNotes] = useState('');
-  const [step, setStep] = useState(1); // 1: select shop, 2: select products, 3: confirm
+  const [step, setStep] = useState(1);
 
-  const handleCreateOffer = () => {
-    if (!selectedShop || !selectedUserProduct || !selectedShopProduct) return;
+  const handleCreateOffer = async () => {
+    console.log('=== CREATE OFFER PROCESS STARTED ===');
+    
+    if (!selectedShop || !selectedUserProduct || !selectedShopProduct) {
+      Alert.alert('Missing Information', 'Please select a shop and both products to continue.');
+      return;
+    }
     
     const newTrade = {
-      id: Date.now().toString(),
+      id: `trade-${Date.now()}`,
       shop: selectedShop,
       userProduct: selectedUserProduct,
       shopProduct: selectedShopProduct,
@@ -59,9 +83,35 @@ const TradeOffer = ({ visible, onClose, onCreate }) => {
       createdAt: new Date().toISOString(),
     };
     
-    onCreate(newTrade);
+    console.log('Trade created:', newTrade);
+    
+    // 1. First call onCreate callback if provided
+    if (onCreate && typeof onCreate === 'function') {
+      console.log('Calling onCreate callback...');
+      onCreate(newTrade);
+    }
+    
+    // 2. Reset form and close modal
+    console.log('Closing modal and resetting form...');
     resetForm();
     onClose();
+    
+    // 3. Navigate after a small delay to ensure modal is closed
+    setTimeout(() => {
+      console.log('Attempting navigation to TradeConfirmationScreen...');
+      try {
+        navigation.navigate('TradeConfirmationScreen', { 
+          trade: newTrade 
+        });
+        console.log('Navigation successful!');
+      } catch (error) {
+        console.error('Navigation failed:', error);
+        Alert.alert(
+          'Navigation Error', 
+          'Could not navigate to confirmation page. Please try again.'
+        );
+      }
+    }, 100);
   };
 
   const resetForm = () => {
@@ -77,38 +127,82 @@ const TradeOffer = ({ visible, onClose, onCreate }) => {
       setStep(step - 1);
     } else {
       onClose();
+      resetForm();
     }
   };
 
+  const renderStars = (rating) => {
+    return (
+      <View style={styles.starContainer}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Feather
+            key={star}
+            name={star <= rating ? "star" : "star"}
+            size={14}
+            color={star <= rating ? "#fbbf24" : "#cbd5e1"}
+          />
+        ))}
+        <Text style={styles.ratingText}>({rating})</Text>
+      </View>
+    );
+  };
+
+  // Add a helper to check if confirm button should be enabled
+  const isConfirmDisabled = !selectedShop || !selectedUserProduct || !selectedShopProduct;
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={false}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.header}>
-          {step !== 1 && (
-            <TouchableOpacity onPress={goBack}>
-              <Ionicons name="arrow-back" size={24} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-          {step === 1 && <View style={{ width: 24 }} />}
-          
-          <Text style={[styles.title, { color: colors.primary }]}>
-            {step === 1 ? 'Select Shop' : 
-             step === 2 ? 'Select Products' : 'Confirm Trade'}
-          </Text>
-          
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color={colors.primary} />
+    <Modal 
+      visible={visible} 
+      animationType="slide"
+      onRequestClose={goBack}
+    >
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.background }]}>
+          <TouchableOpacity onPress={goBack} style={styles.headerButton}>
+            <Feather 
+              name={step === 1 ? "x" : "arrow-left"} 
+              size={24} 
+              color={colors.primary} 
+            />
           </TouchableOpacity>
+          
+          <View style={styles.headerTitle}>
+            <Text style={[styles.title, { color: colors.primary }]}>
+              {step === 1 ? 'Select Shop' : 
+               step === 2 ? 'Select Products' : 'Confirm Trade'}
+            </Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { 
+                    width: `${(step / 3) * 100}%`,
+                    backgroundColor: colors.secondary
+                  }
+                ]} 
+              />
+            </View>
+          </View>
+          
+          <View style={styles.headerButton} />
         </View>
 
-        {step === 1 ? (
+        {/* Step 1: Shop Selection */}
+        {step === 1 && (
           <ScrollView style={styles.shopList}>
+            <Text style={[styles.sectionDescription, { color: colors.textLight }]}>
+              Choose a shop to trade with
+            </Text>
             {mockShops.map(shop => (
               <TouchableOpacity
                 key={shop.id}
                 style={[
                   styles.shopItem,
-                  selectedShop?.id === shop.id && { borderColor: colors.secondary }
+                  { 
+                    backgroundColor: colors.cardBackground,
+                    borderColor: selectedShop?.id === shop.id ? colors.secondary : colors.border
+                  }
                 ]}
                 onPress={() => {
                   setSelectedShop(shop);
@@ -118,120 +212,158 @@ const TradeOffer = ({ visible, onClose, onCreate }) => {
                 <Image source={{ uri: shop.image }} style={styles.shopImage} />
                 <View style={styles.shopInfo}>
                   <Text style={[styles.shopName, { color: colors.primary }]}>{shop.name}</Text>
-                  <Text style={[styles.shopProducts, { color: colors.text }]}>
+                  {renderStars(shop.rating)}
+                  <Text style={[styles.shopProducts, { color: colors.textLight }]}>
                     {shop.products.length} products available
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.secondary} />
+                <Feather name="chevron-right" size={20} color={colors.secondary} />
               </TouchableOpacity>
             ))}
           </ScrollView>
-        ) : step === 2 ? (
+        )}
+
+        {/* Step 2: Product Selection */}
+        {step === 2 && (
           <ScrollView style={styles.productsContainer}>
+            {/* Your Products */}
             <Text style={[styles.sectionTitle, { color: colors.primary }]}>Your Products</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsHorizontal}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsRow}>
               {userProducts.map(product => (
                 <TouchableOpacity
                   key={product.id}
                   style={[
                     styles.productCard,
-                    selectedUserProduct?.id === product.id && { borderColor: colors.secondary }
+                    { 
+                      backgroundColor: colors.cardBackground,
+                      borderColor: selectedUserProduct?.id === product.id ? colors.secondary : colors.border
+                    }
                   ]}
                   onPress={() => setSelectedUserProduct(product)}
                 >
                   <Image source={{ uri: product.image }} style={styles.productImage} />
                   <Text style={[styles.productName, { color: colors.primary }]}>{product.name}</Text>
                   <Text style={[styles.productValue, { color: colors.secondary }]}>{product.value}</Text>
+                  {selectedUserProduct?.id === product.id && (
+                    <View style={[styles.selectedIndicator, { backgroundColor: colors.secondary }]}>
+                      <Feather name="check" size={16} color="#FFF" />
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            <Text style={[styles.sectionTitle, { color: colors.primary }]}>{selectedShop.name}'s Products</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsHorizontal}>
-              {selectedShop.products.map(product => (
+            {/* Shop Products */}
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>{selectedShop?.name}'s Products</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsRow}>
+              {selectedShop?.products.map(product => (
                 <TouchableOpacity
                   key={product.id}
                   style={[
                     styles.productCard,
-                    selectedShopProduct?.id === product.id && { borderColor: colors.secondary }
+                    { 
+                      backgroundColor: colors.cardBackground,
+                      borderColor: selectedShopProduct?.id === product.id ? colors.secondary : colors.border
+                    }
                   ]}
                   onPress={() => setSelectedShopProduct(product)}
                 >
                   <Image source={{ uri: product.image }} style={styles.productImage} />
                   <Text style={[styles.productName, { color: colors.primary }]}>{product.name}</Text>
                   <Text style={[styles.productValue, { color: colors.secondary }]}>{product.price}</Text>
+                  {selectedShopProduct?.id === product.id && (
+                    <View style={[styles.selectedIndicator, { backgroundColor: colors.secondary }]}>
+                      <Feather name="check" size={16} color="#FFF" />
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            <View style={styles.inputGroup}>
+            {/* Notes */}
+            <View style={[styles.notesContainer, { backgroundColor: colors.cardBackground }]}>
               <Text style={[styles.label, { color: colors.primary }]}>Notes (optional):</Text>
               <TextInput
-                style={[styles.input, styles.notesInput, { color: colors.text }]}
+                style={[styles.textInput, { color: colors.text, borderColor: colors.border }]}
                 multiline
                 placeholder="Add any message to the shop owner..."
-                placeholderTextColor={colors.text}
+                placeholderTextColor={colors.textLight}
                 value={notes}
                 onChangeText={setNotes}
               />
             </View>
 
+            {/* Continue Button */}
             <TouchableOpacity
               style={[
-                styles.nextButton, 
+                styles.continueButton, 
                 { backgroundColor: colors.secondary },
-                (!selectedUserProduct || !selectedShopProduct) && styles.disabledButton
+                (!selectedUserProduct || !selectedShopProduct) && { backgroundColor: colors.border }
               ]}
               onPress={() => setStep(3)}
               disabled={!selectedUserProduct || !selectedShopProduct}
             >
-              <Text style={styles.nextButtonText}>Continue</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFF" />
+              <Text style={styles.continueButtonText}>Continue</Text>
+              <Feather name="arrow-right" size={20} color="#FFF" />
             </TouchableOpacity>
           </ScrollView>
-        ) : (
+        )}
+
+        {/* Step 3: Confirmation */}
+        {step === 3 && (
           <View style={styles.confirmationContainer}>
-            <Text style={[styles.confirmationTitle, { color: colors.primary }]}>Trade Summary</Text>
-            
-            <View style={styles.tradeSummary}>
-              <View style={styles.tradeItem}>
-                <Text style={[styles.tradeLabel, { color: colors.text }]}>You're offering:</Text>
-                <View style={styles.productSummary}>
-                  <Image source={{ uri: selectedUserProduct.image }} style={styles.summaryImage} />
-                  <View>
-                    <Text style={[styles.summaryName, { color: colors.primary }]}>{selectedUserProduct.name}</Text>
-                    <Text style={[styles.summaryValue, { color: colors.secondary }]}>{selectedUserProduct.value}</Text>
+            <ScrollView>
+              <Text style={[styles.confirmationTitle, { color: colors.primary }]}>Trade Summary</Text>
+              
+              {/* Trade Items */}
+              <View style={[styles.tradeCard, { backgroundColor: colors.cardBackground }]}>
+                <View style={styles.tradeItem}>
+                  <Text style={[styles.tradeLabel, { color: colors.text }]}>You're offering:</Text>
+                  <View style={styles.productSummary}>
+                    <Image source={{ uri: selectedUserProduct?.image }} style={styles.summaryImage} />
+                    <View>
+                      <Text style={[styles.productName, { color: colors.primary }]}>{selectedUserProduct?.name}</Text>
+                      <Text style={[styles.productValue, { color: colors.secondary }]}>{selectedUserProduct?.value}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.exchangeIcon}>
+                  <Feather name="repeat" size={24} color={colors.secondary} />
+                </View>
+
+                <View style={styles.tradeItem}>
+                  <Text style={[styles.tradeLabel, { color: colors.text }]}>You'll receive:</Text>
+                  <View style={styles.productSummary}>
+                    <Image source={{ uri: selectedShopProduct?.image }} style={styles.summaryImage} />
+                    <View>
+                      <Text style={[styles.productName, { color: colors.primary }]}>{selectedShopProduct?.name}</Text>
+                      <Text style={[styles.productValue, { color: colors.secondary }]}>{selectedShopProduct?.price}</Text>
+                    </View>
                   </View>
                 </View>
               </View>
 
-              <View style={styles.exchangeIcon}>
-                <Ionicons name="swap-horizontal" size={30} color={colors.secondary} />
-              </View>
-
-              <View style={styles.tradeItem}>
-                <Text style={[styles.tradeLabel, { color: colors.text }]}>You'll receive:</Text>
-                <View style={styles.productSummary}>
-                  <Image source={{ uri: selectedShopProduct.image }} style={styles.summaryImage} />
-                  <View>
-                    <Text style={[styles.summaryName, { color: colors.primary }]}>{selectedShopProduct.name}</Text>
-                    <Text style={[styles.summaryValue, { color: colors.secondary }]}>{selectedShopProduct.price}</Text>
-                  </View>
+              {/* Shop Info */}
+              <View style={[styles.shopCard, { backgroundColor: colors.cardBackground }]}>
+                <Image source={{ uri: selectedShop?.image }} style={styles.shopThumbnail} />
+                <View>
+                  <Text style={[styles.shopName, { color: colors.primary }]}>{selectedShop?.name}</Text>
+                  {renderStars(selectedShop?.rating)}
                 </View>
               </View>
-            </View>
 
-            <View style={styles.shopInfoBox}>
-              <Image source={{ uri: selectedShop.image }} style={styles.shopThumbnail} />
-              <Text style={[styles.shopNameText, { color: colors.primary }]}>{selectedShop.name}</Text>
-            </View>
+              {/* Notes */}
+              {notes ? (
+                <View style={[styles.notesCard, { backgroundColor: colors.cardBackground }]}>
+                  <Text style={[styles.label, { color: colors.primary }]}>Your Note:</Text>
+                  <Text style={[styles.notesText, { color: colors.text }]}>{notes}</Text>
+                </View>
+              ) : null}
+            </ScrollView>
 
-            <View style={styles.notesSummary}>
-              <Text style={[styles.notesLabel, { color: colors.text }]}>Your Note:</Text>
-              <Text style={[styles.notesText, { color: colors.primary }]}>{notes || 'No message'}</Text>
-            </View>
-
-            <View style={styles.buttonGroup}>
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
               <TouchableOpacity 
                 style={[styles.backButton, { borderColor: colors.primary }]}
                 onPress={() => setStep(2)}
@@ -239,18 +371,25 @@ const TradeOffer = ({ visible, onClose, onCreate }) => {
                 <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.confirmButton, { backgroundColor: colors.secondary }]}
+                style={[
+                  styles.confirmButton, 
+                  { backgroundColor: isConfirmDisabled ? colors.border : colors.success }
+                ]}
                 onPress={handleCreateOffer}
+                disabled={isConfirmDisabled}
               >
-                <Text style={styles.confirmButtonText}>Confirm Trade</Text>
+                <Text style={styles.confirmButtonText}>
+                  {isConfirmDisabled ? 'Select All Items' : 'Confirm Trade'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -258,34 +397,54 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#e2e8f0',
+  },
+  headerButton: {
+    width: 40,
+  },
+  headerTitle: {
+    flex: 1,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  progressBar: {
+    width: 100,
+    height: 4,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 2,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   shopList: {
     flex: 1,
-    padding: 15,
+    padding: 20,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   shopItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
-    marginBottom: 15,
-    backgroundColor: '#FFF',
+    marginBottom: 12,
     borderRadius: 12,
+    borderWidth: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
   shopImage: {
     width: 60,
@@ -299,112 +458,117 @@ const styles = StyleSheet.create({
   shopName: {
     fontSize: 16,
     fontWeight: '600',
+    marginBottom: 4,
+  },
+  starContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  ratingText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginLeft: 5,
   },
   shopProducts: {
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 12,
   },
   productsContainer: {
     flex: 1,
-    padding: 15,
+    padding: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 15,
   },
-  productsHorizontal: {
+  productsRow: {
     marginBottom: 25,
   },
   productCard: {
-    width: 150,
-    marginRight: 15,
-    backgroundColor: '#FFF',
+    width: 140,
+    marginRight: 12,
+    padding: 12,
     borderRadius: 10,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
     borderWidth: 2,
-    borderColor: 'transparent',
+    position: 'relative',
   },
   productImage: {
     width: '100%',
-    height: 120,
+    height: 100,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   productName: {
     fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 5,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   productValue: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
-  inputGroup: {
+  selectedIndicator: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notesContainer: {
+    padding: 15,
+    borderRadius: 10,
     marginBottom: 20,
   },
   label: {
     fontSize: 16,
+    fontWeight: '600',
     marginBottom: 8,
   },
-  input: {
-    backgroundColor: '#f0f0f0',
-    padding: 15,
-    borderRadius: 10,
-    fontSize: 16,
-  },
-  notesInput: {
-    height: 100,
+  textInput: {
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 8,
+    height: 80,
     textAlignVertical: 'top',
   },
-  nextButton: {
+  continueButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 15,
+    padding: 16,
     borderRadius: 10,
-    marginTop: 10,
   },
-  disabledButton: {
-    backgroundColor: '#b2bec3',
-  },
-  nextButtonText: {
+  continueButtonText: {
     color: '#FFF',
     fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 10,
+    fontWeight: '600',
+    marginRight: 8,
   },
   confirmationContainer: {
     flex: 1,
     padding: 20,
   },
   confirmationTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 25,
+    fontSize: 20,
+    fontWeight: '600',
     textAlign: 'center',
+    marginBottom: 20,
   },
-  tradeSummary: {
-    backgroundColor: '#FFF',
+  tradeCard: {
     borderRadius: 12,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   tradeItem: {
     marginBottom: 15,
   },
   tradeLabel: {
     fontSize: 16,
+    fontWeight: '600',
     marginBottom: 10,
   },
   productSummary: {
@@ -417,31 +581,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 15,
   },
-  summaryName: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 5,
-  },
   exchangeIcon: {
     alignItems: 'center',
     marginVertical: 10,
   },
-  shopInfoBox: {
+  shopCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 10,
     padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 20,
+    borderRadius: 10,
+    marginBottom: 15,
   },
   shopThumbnail: {
     width: 50,
@@ -449,44 +598,31 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginRight: 15,
   },
-  shopNameText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  notesSummary: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
+  notesCard: {
     padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 20,
-  },
-  notesLabel: {
-    fontSize: 16,
-    marginBottom: 5,
+    borderRadius: 10,
+    marginBottom: 15,
   },
   notesText: {
-    fontSize: 16,
+    fontSize: 14,
+    lineHeight: 20,
   },
-  buttonGroup: {
+  actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 10,
   },
   backButton: {
     flex: 1,
-    backgroundColor: 'transparent',
     padding: 15,
     borderRadius: 10,
+    borderWidth: 1,
     marginRight: 10,
     alignItems: 'center',
-    borderWidth: 1,
   },
   backButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   confirmButton: {
     flex: 1,
@@ -497,7 +633,7 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: '#FFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 

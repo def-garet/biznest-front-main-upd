@@ -1,160 +1,286 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Image 
+} from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 const TradeCard = ({ trade, type, onAccept, onReject, onComplete }) => {
-  const getStatusColor = () => {
-    switch(trade.status) {
-      case 'pending': return '#FFA500';
-      case 'accepted': return '#4CAF50';
-      case 'completed': return '#2196F3';
-      case 'rejected': return '#F44336';
-      default: return '#9E9E9E';
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'pending': return '#f59e0b';
+      case 'active': return '#2563eb';
+      case 'completed': return '#059669';
+      default: return '#64748b';
     }
+  };
+
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'pending': return 'clock';
+      case 'active': return 'refresh-cw';
+      case 'completed': return 'check-circle';
+      default: return 'help-circle';
+    }
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
     <View style={styles.card}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.tradeId}>Trade #{trade.id.substring(0, 6)}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
-          <Text style={styles.statusText}>{trade.status}</Text>
+        <View style={styles.shopInfo}>
+          <Text style={styles.shopName}>
+            {type === 'offer' ? trade.from : trade.recipient}
+          </Text>
+          <View style={styles.statusContainer}>
+            <Feather 
+              name={getStatusIcon(trade.status)} 
+              size={12} 
+              color={getStatusColor(trade.status)} 
+            />
+            <Text style={[styles.status, { color: getStatusColor(trade.status) }]}>
+              {trade.status?.charAt(0).toUpperCase() + trade.status?.slice(1)}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.date}>
+          {formatDate(trade.createdAt || trade.completedAt)}
+        </Text>
+      </View>
+
+      {/* Trade Items */}
+      <View style={styles.tradeContent}>
+        {/* Your Item */}
+        <View style={styles.itemSection}>
+          <Text style={styles.sectionLabel}>You give:</Text>
+          <View style={styles.item}>
+            <Image 
+              source={{ uri: trade.itemsOffered?.[0]?.image }} 
+              style={styles.itemImage} 
+            />
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName}>
+                {trade.itemsOffered?.[0]?.name || 'Unknown Item'}
+              </Text>
+              <Text style={styles.itemValue}>
+                {trade.itemsOffered?.[0]?.value || trade.itemsOffered?.[0]?.price}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Exchange Icon */}
+        <View style={styles.exchangeIcon}>
+          <Feather name="repeat" size={20} color="#94a3b8" />
+        </View>
+
+        {/* Their Item */}
+        <View style={styles.itemSection}>
+          <Text style={styles.sectionLabel}>You get:</Text>
+          <View style={styles.item}>
+            <Image 
+              source={{ uri: trade.itemsRequested?.[0]?.image }} 
+              style={styles.itemImage} 
+            />
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName}>
+                {trade.itemsRequested?.[0]?.name || 'Unknown Item'}
+              </Text>
+              <Text style={styles.itemValue}>
+                {trade.itemsRequested?.[0]?.price || trade.itemsRequested?.[0]?.value}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
-      
-      <View style={styles.tradeDetails}>
-        <View style={styles.itemsSection}>
-          <Text style={styles.sectionTitle}>You Give:</Text>
-          {trade.itemsOffered.map((item, index) => (
-            <Text key={index} style={styles.itemText}>- {item}</Text>
-          ))}
+
+      {/* Message */}
+      {trade.message && (
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageText}>"{trade.message}"</Text>
         </View>
-        
-        <Ionicons name="swap-horizontal" size={24} color="#666" style={styles.swapIcon} />
-        
-        <View style={styles.itemsSection}>
-          <Text style={styles.sectionTitle}>You Get:</Text>
-          {trade.itemsRequested.map((item, index) => (
-            <Text key={index} style={styles.itemText}>- {item}</Text>
-          ))}
-        </View>
-      </View>
-      
-      {type === 'offer' && (
+      )}
+
+      {/* Actions */}
+      {type === 'offers' && (
         <View style={styles.actions}>
           <TouchableOpacity 
-            style={[styles.button, styles.acceptButton]}
-            onPress={() => onAccept(trade.id)}
+            style={[styles.button, styles.rejectButton]}
+            onPress={onReject}
           >
-            <Text style={styles.buttonText}>Accept</Text>
+            <Feather name="x" size={16} color="#dc2626" />
+            <Text style={[styles.buttonText, styles.rejectText]}>Decline</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.button, styles.rejectButton]}
-            onPress={() => onReject(trade.id)}
+            style={[styles.button, styles.acceptButton]}
+            onPress={onAccept}
           >
-            <Text style={styles.buttonText}>Reject</Text>
+            <Feather name="check" size={16} color="#059669" />
+            <Text style={[styles.buttonText, styles.acceptText]}>Accept</Text>
           </TouchableOpacity>
         </View>
       )}
-      
+
       {type === 'active' && (
-        <TouchableOpacity 
-          style={[styles.button, styles.completeButton]}
-          onPress={() => onComplete(trade.id)}
-        >
-          <Text style={styles.buttonText}>Mark as Completed</Text>
-        </TouchableOpacity>
+        <View style={styles.actions}>
+          <TouchableOpacity 
+            style={[styles.button, styles.completeButton]}
+            onPress={onComplete}
+          >
+            <Feather name="check-circle" size={16} color="#059669" />
+            <Text style={[styles.buttonText, styles.completeText]}>Mark Complete</Text>
+          </TouchableOpacity>
+        </View>
       )}
-      
-      <Text style={styles.dateText}>
-        {type === 'history' ? 'Completed: ' : 'Created: '}
-        {trade.createdAt?.toLocaleDateString()}
-      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  tradeId: {
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: '#FFF',
-    fontSize: 12,
-  },
-  tradeDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  itemsSection: {
+  shopInfo: {
     flex: 1,
   },
-  sectionTitle: {
+  shopName: {
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 5,
-    color: '#555',
+    color: '#0f172a',
+    marginBottom: 4,
   },
-  itemText: {
-    marginLeft: 5,
-    color: '#666',
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  swapIcon: {
-    marginHorizontal: 10,
+  status: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  date: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  tradeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  itemSection: {
+    flex: 1,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  itemImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#0f172a',
+    marginBottom: 2,
+  },
+  itemValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563eb',
+  },
+  exchangeIcon: {
+    paddingHorizontal: 12,
+  },
+  messageContainer: {
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  messageText: {
+    fontSize: 14,
+    color: '#475569',
+    fontStyle: 'italic',
+    lineHeight: 20,
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
+    justifyContent: 'flex-end',
+    gap: 8,
   },
   button: {
-    padding: 10,
-    borderRadius: 5,
+    flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  acceptButton: {
-    backgroundColor: '#4CAF50',
-  },
-  rejectButton: {
-    backgroundColor: '#F44336',
-  },
-  completeButton: {
-    backgroundColor: '#2196F3',
-    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
   },
   buttonText: {
-    color: '#FFF',
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 4,
   },
-  dateText: {
-    marginTop: 10,
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'right',
+  rejectButton: {
+    borderColor: '#fecaca',
+    backgroundColor: '#fef2f2',
+  },
+  rejectText: {
+    color: '#dc2626',
+  },
+  acceptButton: {
+    borderColor: '#bbf7d0',
+    backgroundColor: '#f0fdf4',
+  },
+  acceptText: {
+    color: '#059669',
+  },
+  completeButton: {
+    borderColor: '#bbf7d0',
+    backgroundColor: '#f0fdf4',
+  },
+  completeText: {
+    color: '#059669',
   },
 });
 

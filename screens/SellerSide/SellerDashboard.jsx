@@ -151,6 +151,7 @@ const sendMessage = async () => {
       text: chatMessage,
       sender: "user",
     };
+
     setChatMessages((prev) => [...prev, userMsg]);
     setChatMessage("");
     // Auto-scroll to bottom
@@ -162,6 +163,8 @@ const sendMessage = async () => {
       const res = await axios.post( `${N8NAPI_URL}/webhook/AI_Seller_Helper`, {
         userMsg,
       });
+
+      console.log("AI Response:", res.data);
 
       // Handle the bot's reply
       const botMsg = {

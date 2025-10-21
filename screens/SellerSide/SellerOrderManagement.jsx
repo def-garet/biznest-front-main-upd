@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,10 @@ import {
   TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import axiosInstance from "../../api/axiosInstance";
+
+
+const API = `/api/v1/seller/Seller Orders/seller_orders`;
 
 const COLORS = {
   primary: "#172d55",
@@ -111,31 +115,71 @@ const SellerOrderManagement = () => {
   const [editedItems, setEditedItems] = useState([]);
   const [editedNotes, setEditedNotes] = useState("");
 
-  const handleOrderAction = (order, action) => {
+ 
+const fetchOrder = async () => {
+    try {
+      const response = await axiosInstance.get(API);
+      // console.log(response.data);
+      setOrders(response.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrder();
+  }, []);
+
+
+  const handleOrderAction = async (order, action) => {
     let updatedOrders = [...orders];
     const index = updatedOrders.findIndex((o) => o.id === order.id);
+    let updatedStatus = "";
 
     switch (action) {
       case "accept":
         updatedOrders[index].status = "Accepted";
+        updatedStatus = "Accepted";
+
         break;
       case "ship":
         updatedOrders[index].status = "Shipped";
+        updatedStatus = "Shipped";
+
         break;
       case "cancel":
         updatedOrders[index].status = "Cancelled";
+        updatedStatus = "Cancelled";
+
         break;
       default:
         break;
     }
 
-    setOrders(updatedOrders);
+  try {
+    const response = await axiosInstance.put(API, {
+      order_id: order.id,
+      status: updatedStatus,
+    });
+
+    if (response.status === 200) {
+      // update local state
+      setOrders((prevOrders) =>
+        prevOrders.map((o) =>
+          o.id === order.id ? { ...o, status: updatedStatus } : o
+        )
+      );
+      console.log("Order updated successfully");
+    }
+  } catch (error) {
+    console.log("Error updating order:", error.response?.data || error.message);
+  }
     setIsActionModalVisible(false);
   };
 
   const openEditModal = (order) => {
     setSelectedOrder(order);
-    setEditedItems([...order.items]);
+    setEditedItems([order]);
     setEditedNotes(order.notes);
     setIsEditModalVisible(true);
   };
@@ -168,20 +212,54 @@ const SellerOrderManagement = () => {
         <Text
           style={[
             styles.orderStatus,
-            item.status === "Pending" && styles.statusPending,
+            item.status === "Pending"  && styles.statusPending,
+            item.status === null  && styles.statusPending,
             item.status === "Accepted" && styles.statusAccepted,
             item.status === "Shipped" && styles.statusShipped,
             item.status === "Cancelled" && styles.statusCancelled,
           ]}
         >
-          {item.status}
+        {item.status || "Pending"}
         </Text>
       </View>
 
-      <Text style={styles.customerName}>{item.customer}</Text>
-      <Text style={styles.orderDate}>Placed on: {item.date}</Text>
+     {/* Buyer Info */}
+    <Text style={styles.customerName}>
+      {item.buyer_info?.l_name} {item.buyer_info?.f_name}
+    </Text>
 
-      <View style={styles.itemsContainer}>
+      {/* <Text style={styles.orderDate}>Placed on: {item.order_date}</Text> original  */}
+        <Text style={styles.orderDate}>
+          Placed on: {new Date(item.order_date).toLocaleString('en-PH', {
+            timeZone: 'Asia/Manila',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+          })}
+        </Text>
+    
+    {/* Product Info */}
+    <View style={styles.itemsContainer}>
+      <View style={styles.productItem}>
+        <Image
+          source={{ uri: item.product_info?.img }}
+          style={styles.productImage}
+        />
+        <View style={styles.productInfo}>
+          <Text style={styles.productName}>{item.product_info?.name}</Text>
+         <Text style={styles.productPrice}>
+          x{item.quantity} at ₱{(item.product_info?.price ?? 0).toLocaleString()}
+          </Text> 
+        </View>
+      </View>
+    </View>
+    
+
+
+      {/* accept multiple product <View style={styles.itemsContainer}>
         {item.items.map((product) => (
           <View key={product.id} style={styles.productItem}>
             <Image source={product.image} style={styles.productImage} />
@@ -193,15 +271,15 @@ const SellerOrderManagement = () => {
             </View>
           </View>
         ))}
-      </View>
+      </View> */}
 
       <View style={styles.orderFooter}>
         <Text style={styles.orderTotal}>
-          Total: ₱{item.total.toLocaleString()}
+        Total: ₱{(item.total_price ?? 0).toLocaleString()}
         </Text>
 
         <View style={styles.actionButtons}>
-          {item.status === "Pending" && (
+          {(item.status === "Pending" || item.status === null) && (
             <>
               <TouchableOpacity
                 style={[styles.actionButton, styles.acceptButton]}
@@ -247,6 +325,92 @@ const SellerOrderManagement = () => {
     </View>
   );
 
+  //  const renderOrderItem = ({ item }) => (
+  //   <View style={styles.orderCard}>
+  //     <View style={styles.orderHeader}>
+  //       <Text style={styles.orderId}>Order #{item.id}</Text>
+  //       <Text
+  //         style={[
+  //           styles.orderStatus,
+  //           item.status === "Pending" && styles.statusPending,
+  //           item.status === "Accepted" && styles.statusAccepted,
+  //           item.status === "Shipped" && styles.statusShipped,
+  //           item.status === "Cancelled" && styles.statusCancelled,
+  //         ]}
+  //       >
+  //         {item.status}
+  //       </Text>
+  //     </View>
+
+  //     <Text style={styles.customerName}>{item.customer}</Text>
+  //     <Text style={styles.orderDate}>Placed on: {item.date}</Text>
+
+  //     <View style={styles.itemsContainer}>
+  //       {item.items.map((product) => (
+  //         <View key={product.id} style={styles.productItem}>
+  //           <Image source={product.image} style={styles.productImage} />
+  //           <View style={styles.productInfo}>
+  //             <Text style={styles.productName}>{product.name}</Text>
+  //             <Text style={styles.productPrice}>
+  //               x{product.quantity} at ₱{product.price.toLocaleString()}
+  //             </Text>
+  //           </View>
+  //         </View>
+  //       ))}
+  //     </View>
+
+  //     <View style={styles.orderFooter}>
+  //       <Text style={styles.orderTotal}>
+  //         Total: ₱{item.total.toLocaleString()}
+  //       </Text>
+
+  //       <View style={styles.actionButtons}>
+  //         {item.status === "Pending" && (
+  //           <>
+  //             <TouchableOpacity
+  //               style={[styles.actionButton, styles.acceptButton]}
+  //               onPress={() => handleOrderAction(item, "accept")}
+  //             >
+  //               <Text style={styles.buttonText}>Accept</Text>
+  //             </TouchableOpacity>
+  //             <TouchableOpacity
+  //               style={[styles.actionButton, styles.cancelButton]}
+  //               onPress={() => handleOrderAction(item, "cancel")}
+  //             >
+  //               <Text style={styles.buttonText}>Cancel</Text>
+  //             </TouchableOpacity>
+  //           </>
+  //         )}
+
+  //         {item.status === "Accepted" && (
+  //           <>
+  //             <TouchableOpacity
+  //               style={[styles.actionButton, styles.editButton]}
+  //               onPress={() => openEditModal(item)}
+  //             >
+  //               <Text style={styles.buttonText}>Edit</Text>
+  //             </TouchableOpacity>
+  //             <TouchableOpacity
+  //               style={[styles.actionButton, styles.shipButton]}
+  //               onPress={() => handleOrderAction(item, "ship")}
+  //             >
+  //               <Text style={styles.buttonText}>Ship</Text>
+  //             </TouchableOpacity>
+  //           </>
+  //         )}
+
+  //         {item.status === "Shipped" && (
+  //           <Text style={styles.completedText}>Order completed</Text>
+  //         )}
+
+  //         {item.status === "Cancelled" && (
+  //           <Text style={styles.cancelledText}>Order cancelled</Text>
+  //         )}
+  //       </View>
+  //     </View>
+  //   </View>
+  // );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -282,8 +446,8 @@ const SellerOrderManagement = () => {
             <Text style={styles.sectionTitle}>Items:</Text>
             {editedItems.map((item) => (
               <View key={item.id} style={styles.editItemRow}>
-                <Image source={item.image} style={styles.editItemImage} />
-                <Text style={styles.editItemName}>{item.name}</Text>
+                <Image source={{ uri: item.product_info?.img }} style={styles.editItemImage} />
+                <Text style={styles.editItemName}>{item.product_info?.name}</Text>
                 <View style={styles.quantityControls}>
                   <TouchableOpacity
                     style={styles.quantityButton}
@@ -304,7 +468,7 @@ const SellerOrderManagement = () => {
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.editItemPrice}>
-                  ₱{(item.price * item.quantity).toLocaleString()}
+                  ₱{(item.total_price * item.quantity).toLocaleString()}
                 </Text>
               </View>
             ))}

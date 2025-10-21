@@ -241,7 +241,7 @@ const PurchaseHistory = ({ route }) => {
     >
       {/* Store and Status */}
       <View style={styles.storeHeader}>
-        <Text style={styles.storeName}>{item.store}</Text>
+        <Text style={styles.storeName}>{item.store || item.shop}</Text>
         {renderStatus(item.status)}
       </View>
 

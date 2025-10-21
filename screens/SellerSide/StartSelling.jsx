@@ -14,6 +14,9 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import axiosInstance from "../../api/axiosInstance";
+
+const API = `/api/v1/seller/Seller Create Account/seller_register`;
 
 const COLORS = {
   primary: '#172d55',
@@ -67,6 +70,10 @@ const StartSelling = () => {
   // Step 3: Business Details
   const [businessDescription, setBusinessDescription] = useState("");
 
+
+  
+  
+
   const handleNextStep = () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
@@ -74,6 +81,37 @@ const StartSelling = () => {
       setShowConfirmation(true);
     }
   };
+
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      phone: phoneNumber,
+      seller_type: businessType,
+      shop_name: shopName,
+      // shop_logo: "https://example.com/logo.png", // Optional placeholder
+      shop_category: shopCategory,
+      shop_description: businessDescription,
+      register_address: pickupAddress,
+    };
+
+    console.log("Submitting seller registration:", payload);
+
+    const response = await axiosInstance.post(API, payload);
+
+    if (response.status === 200 || response.status === 201) {
+      console.log("✅ Seller created:", response.data);
+      setShowConfirmation(true);
+    } else {
+      console.log("⚠️ Unexpected response:", response.status);
+      alert("Something went wrong, please try again.");
+    }
+  } catch (error) {
+    console.error("❌ Error creating seller:", error.response?.data || error.message);
+    alert("Failed to register seller. Please check your connection or try again later.");
+  }
+};
+
+
 
   const handlePrevStep = () => {
     if (currentStep > 1) {
@@ -352,7 +390,14 @@ const StartSelling = () => {
             )}
             
             <TouchableOpacity 
-              onPress={handleNextStep} 
+              onPress={() => {
+                if (currentStep === 3) {
+                  handleSubmit();
+                } else {
+                  handleNextStep();
+                }
+              }}
+              
               style={[
                 styles.navButton, 
                 styles.primaryButton,

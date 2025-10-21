@@ -16,7 +16,7 @@ import { DinagyangProducts } from '../screens/SeasonalCompenents';
 
 const Stack = createStackNavigator();
 
-export default function App() {
+export default function App({linking}) {
   return (
     <AuthProvider>
 

@@ -30,6 +30,9 @@ import axios from "axios";
 import API_URL from "../api/api_urls";
 import { ProductsTitle } from "./Global";
 import axiosInstance from "../api/axiosInstance";
+import { Share, Linking } from "react-native";
+import * as Clipboard from 'expo-clipboard';
+
 
 const PRIMARY_COLOR = "#172d55";
 const SECONDARY_COLOR = "#172d55";
@@ -47,19 +50,57 @@ const ShareModal = ({ visible, onClose, shareUrl }) => {
     { id: 8, name: 'More', icon: 'more-horiz', color: '#666', type: MaterialIcons },
   ];
 
-  const handleShare = async (platform) => {
-    try {
-      if (platform === 'Copy Link') {
-        Alert.alert('Success', 'Link copied to clipboard!');
-      } else if (platform === 'More') {
-      } else {
-        Alert.alert(`Sharing to ${platform}`, `URL: ${shareUrl}`);
+ const handleShare = async (platform) => {
+  try {
+    if (platform === 'Copy Link') {
+      await Clipboard.setString(shareUrl);
+      Alert.alert('Success', 'Link copied to clipboard!');
+    } else if (platform === 'More') {
+      // Open native share sheet
+      await Share.share({
+        message: `Check out this product: ${shareUrl}`,
+      });
+    } else {
+      // Platform-specific sharing URLs
+      let url = "";
+      switch (platform) {
+        case "WhatsApp":
+          url = `whatsapp://send?text=${encodeURIComponent(shareUrl)}`;
+          break;
+        case "Facebook":
+          url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+          break;
+        case "Twitter":
+          url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}`;
+          break;
+        case "Instagram":
+          Alert.alert("Info", "Instagram sharing is limited. Use More option.");
+          return;
+        case "Messenger":
+          url = `fb-messenger://share/?link=${encodeURIComponent(shareUrl)}`;
+          break;
+        case "Telegram":
+          url = `tg://msg_url?url=${encodeURIComponent(shareUrl)}`;
+          break;
+        default:
+          url = shareUrl;
       }
-      onClose();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to share');
+
+      // Open the link in the app if possible
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert("Error", `Cannot open ${platform}`);
+      }
     }
-  };
+    onClose();
+  } catch (error) {
+    console.error(error);
+    Alert.alert('Error', 'Failed to share');
+  }
+};
+
 
   return (
     <Modal
@@ -113,6 +154,8 @@ const ProductDetails = () => {
   const [productDetails, setProductDetail] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [quantity, setQuantity] = useState(1);
+
+    console.log("Current Route:", route.name);
 
   const [comments, setComments] = useState([
     // {
@@ -698,7 +741,7 @@ const ProductDetails = () => {
       <ShareModal
         visible={shareModalVisible}
         onClose={() => setShareModalVisible(false)}
-        shareUrl={`https://BizNest.com/product/${product_id}`}
+        shareUrl={`exp://192.168.195.57:8081/--/${route.name.toLowerCase()}/${product_id}`}
       />
     </SafeAreaView>
   );

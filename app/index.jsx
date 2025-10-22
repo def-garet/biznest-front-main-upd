@@ -5,10 +5,10 @@ import { AuthProvider } from '../auth/AuthContext';
 import CustomerSignup from './CustomerSignup';
 import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat, Chatbot} from '../screens';
 import { MyAddress,EditProfile, PurchaseHistory, CustomerService, OrderTracking } from '../screens/settings';
-import { StartSelling, SellerDashboard, SellerOrderManagement, ProductManagement, SalesReports } from '../screens/SellerSide';
+import { StartSelling, SellerDashboard, SellerOrderManagement, ProductManagement, SalesReports, SellerTradeManagementScreen } from '../screens/SellerSide';
 import { ChatConversation } from '../screens/HomeScreen/component';
 import SplashScreen from './SplashScreen';
-import { TradeScreen, TradeOffer, TradeConfirmationScreen } from '../screens/Trading';
+import { TradeScreen, TradeOffer, TradeConfirmationScreen,AvailableTradesScreen } from '../screens/Trading';
 import { ViewShop, AllProducts, } from '../screens/ShopSide';
 import { SearchResults } from '../screens/SearchComponents';
 import { DinagyangProducts } from '../screens/SeasonalCompenents';
@@ -54,7 +54,8 @@ export default function App({linking}) {
         <Stack.Screen name="Chatbot" component={Chatbot} options={{headerShown:false}} /> 
         <Stack.Screen name="AllProducts" component={AllProducts} options={{headerShown:false}} />
         <Stack.Screen name="TradeConfirmationScreen" component={TradeConfirmationScreen} options={{headerShown:false}} />
-        
+        <Stack.Screen name="SellerTradeManagementScreen" component={SellerTradeManagementScreen} options={{headerShown:false}} />
+        <Stack.Screen name="AvailableTradesScreen" component={AvailableTradesScreen} options={{headerShown:false}} />        
       </Stack.Navigator>
 
     </AuthProvider>

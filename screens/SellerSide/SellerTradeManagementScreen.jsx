@@ -15,8 +15,13 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
+import API_URL from "../../api/api_urls";
+import axios from "axios";
+
 
 const { width: screenWidth } = Dimensions.get('window');
+const products_api = API_URL + "/api/v1/seller/Manage Product/manage_product";
 
 const SellerTradeManagementScreen = () => {
   const navigation = useNavigation();
@@ -28,13 +33,34 @@ const SellerTradeManagementScreen = () => {
   
   // New product form state
   const [newProduct, setNewProduct] = useState({
+    product_id: '',
     name: '',
     description: '',
     value: '',
-    category: '',
-    image: '',
+    // category: '',
+    // image: '',
     isActive: true
   });
+
+  const [products, setProducts] = useState([]);
+
+  
+  const fetchProducts = async () => {
+    try {
+      const response = await axios.get(products_api);
+      setProducts(response.data.product_info);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
+  };
+
+    useEffect(() => {
+      fetchProducts();
+    }, []);
+  
+  
+
+
 
   // Mock categories
   const categories = [
@@ -398,16 +424,47 @@ const SellerTradeManagementScreen = () => {
             </View>
 
             <ScrollView style={styles.modalContent}>
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Product Name *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter product name"
-                  value={newProduct.name}
-                  onChangeText={(text) => setNewProduct(prev => ({ ...prev, name: text }))}
-                />
-              </View>
 
+              {/* Product Name Picker */}
+                        <View style={styles.formGroup}>
+              <Text style={styles.label}>Product Name *</Text>
+              <View style={styles.pickerWrapper}>
+          <Picker
+  selectedValue={newProduct.product_id}
+  onValueChange={(itemValue) => {
+    const selected = products.find(p => p.id === itemValue);
+    if (selected) {
+      setNewProduct(prev => ({
+        ...prev,
+        product_id: selected.id,
+        name: selected.name,
+        value: selected.price ? selected.price.toString() : '' // convert to string
+      }));
+    } else {
+      setNewProduct(prev => ({
+        ...prev,
+        product_id: '',
+        name: '',
+        value: ''
+      }));
+    }
+  }}
+  style={styles.picker}
+>
+  <Picker.Item label="Select a product" value="" />
+  {products.map(product => (
+    <Picker.Item
+      key={product.id}
+      label={product.name}
+      value={product.id}
+    />
+  ))}
+</Picker>
+
+              </View>
+            </View>
+              
+              {/* Description Input */}
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Description</Text>
                 <TextInput
@@ -419,19 +476,38 @@ const SellerTradeManagementScreen = () => {
                   onChangeText={(text) => setNewProduct(prev => ({ ...prev, description: text }))}
                 />
               </View>
+              
+{/*       tO BE ADDED LATER            
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Trade Quantity *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="1"
+              value={newTradeProduct.trade_quantity}
+              keyboardType="numeric"
+              onChangeText={(text) =>
+                setNewTradeProduct(prev => ({ ...prev, trade_quantity: text }))
+              }
+            />
+          </View> */}
 
+            
+            {/* Expanded value input */}
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Estimated Value *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="₱0.00"
-                  value={newProduct.value}
-                  onChangeText={(text) => setNewProduct(prev => ({ ...prev, value: text }))}
-                  keyboardType="numeric"
-                />
+<TextInput
+  style={styles.input}
+  placeholder="₱0.00"
+  value={newProduct.value}
+  onChangeText={(text) => setNewProduct(prev => ({ ...prev, value: text }))}
+  keyboardType="numeric"
+/>
+
+
+
               </View>
 
-              <View style={styles.formGroup}>
+              {/* <View style={styles.formGroup}>
                 <Text style={styles.label}>Category *</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
                   {categories.map(category => (
@@ -452,9 +528,9 @@ const SellerTradeManagementScreen = () => {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
-              </View>
+              </View> */}
 
-              <View style={styles.formGroup}>
+              {/* <View style={styles.formGroup}>
                 <Text style={styles.label}>Product Image URL (Optional)</Text>
                 <TextInput
                   style={styles.input}
@@ -462,7 +538,7 @@ const SellerTradeManagementScreen = () => {
                   value={newProduct.image}
                   onChangeText={(text) => setNewProduct(prev => ({ ...prev, image: text }))}
                 />
-              </View>
+              </View> */}
 
               <View style={styles.formGroup}>
                 <View style={styles.switchContainer}>
@@ -499,6 +575,24 @@ const SellerTradeManagementScreen = () => {
 };
 
 const styles = StyleSheet.create({
+
+  //product name picker styles
+  pickerWrapper: {
+  borderWidth: 1,
+  borderColor: '#e2e8f0',
+  borderRadius: 8,
+  overflow: 'hidden',
+},
+picker: {
+  height: 50,
+  width: '100%',
+  color: '#0f172a',
+},
+// end 
+
+
+
+
   container: {
     flex: 1,
     backgroundColor: '#ffffff',

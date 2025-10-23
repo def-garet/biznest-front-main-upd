@@ -1555,6 +1555,7 @@ import {
   FlatList,
   Dimensions,
   Animated,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { TradeContext } from "./TradeComponent/TradeContext";
@@ -2611,6 +2612,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   content: {
+    marginTop: Platform.OS === 'android' ? 140 : 180,
     flex: 1,
   },
   // FIXED: Remove paddingTop from containers and use contentContainerStyle instead
@@ -2619,6 +2621,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   gridContent: {
+    // marginTop: Platform.OS === 'android' ? 140 : 0,
+    paddingBottom: 200,
     paddingTop: 180, // This creates space for the header
     padding: 8,
   },
@@ -2633,6 +2637,8 @@ const styles = StyleSheet.create({
   productCard: {
     flex: 1,
     backgroundColor: '#ffffff',
+    marginBottom: 12, // vertical spacing between rows
+    marginHorizontal: 8, //
     borderRadius: 12,
     margin: 8,
     padding: 12,

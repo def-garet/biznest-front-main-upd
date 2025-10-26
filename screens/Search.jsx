@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useRef,useEffect,useCallback } from "react";
 import {
   Text,
   View,
@@ -15,6 +15,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { COLORS } from "../style/theme";
 import { Suggestions } from "./Global";
 import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from '@react-navigation/native';
 
 const Search = () => {
   const navigation = useNavigation();
@@ -22,6 +23,24 @@ const Search = () => {
   const [searchHistory, setSearchHistory] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
   const [scaleValue] = useState(new Animated.Value(1));
+  const inputRef = useRef(null);
+
+ useFocusEffect(
+  React.useCallback(() => {
+    const timer = setTimeout(() => inputRef.current?.focus(), 500);
+    return () => clearTimeout(timer);
+  }, [])
+);
+
+// useFocusEffect(
+//   useCallback(() => {
+//     const timer = setTimeout(() => {
+//       inputRef.current?.focus();
+//     }, 300); // Adjust delay if needed
+//     return () => clearTimeout(timer);
+//   }, [])
+// );
+
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim().length > 0) {
@@ -190,6 +209,7 @@ const Search = () => {
             style={styles.searchIcon}
           />
           <TextInput
+            ref={inputRef}
             placeholder="Search products..."
             placeholderTextColor="#999"
             style={styles.searchInput}

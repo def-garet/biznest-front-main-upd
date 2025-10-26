@@ -36,6 +36,31 @@ const Chatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+useEffect(() => {
+    fetchMessageHistory();
+  }, []);
+
+const fetchMessageHistory = async () => {
+  try {
+    const response = await axios.get(`${N8NAPI_URL}/webhook/get_AIHelper_BuyerHistory`);
+    const msgs = response.data.full_history.map(msg => ({
+      ...msg,
+      timestamp: new Date(msg.timestamp), // convert here
+    }));
+    setMessages(msgs);
+    console.log("Fetched message history:", msgs);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+  }
+};
+
+
+
+
+
+
+
+
   // Keyboard listeners
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -57,6 +82,8 @@ const Chatbot = () => {
     };
   }, []);
 
+  
+
   // Auto-scroll to bottom when new messages are added or keyboard appears
   useEffect(() => {
     if (flatListRef.current) {
@@ -66,57 +93,121 @@ const Chatbot = () => {
     }
   }, [messages, keyboardHeight]);
 
-  
-const fetchMessage = async () => {
-    try {
-      const response = await axios.get(
-        `${N8NAPI_URL}/api/v1/Product Reviews/product_reviews/${Buyer_id}`
-      );
-      setComments(response.data);
-    } catch (error) {
-      console.error("Error fetching product details:", error);
-    }
-  }
 
 
+
+  // const handleSend = async () => {
+  //   if (inputText.trim() === '') return;
+
+  //   // Add user message
+  //   const userMessage = {
+  //     id: Date.now(),
+  //     text: inputText.trim(),
+  //     isUser: true,
+  //     timestamp: new Date(),
+  //   };
+
+  //   setMessages(prev => [...prev, userMessage]);
+  //   setInputText('');
+  //   setIsLoading(true);
+
+  //   // Dismiss keyboard
+  //   Keyboard.dismiss();
+
+  //   // Simulate bot response after a delay
+  //   setTimeout(() => {
+  //     const botResponse = {
+  //       id: Date.now() + 1,
+  //       text: 'How can I help you?',
+  //       isUser: false,
+  //       timestamp: new Date(),
+  //     };
+  //     setMessages(prev => [...prev, botResponse]);
+  //     setIsLoading(false);
+      
+  //     // Auto-scroll after bot response
+  //     setTimeout(() => {
+  //       if (flatListRef.current) {
+  //         flatListRef.current.scrollToEnd({ animated: true });
+  //       }
+  //     }, 100);
+  //   }, 1500);
+  // };
 
   const handleSend = async () => {
-    if (inputText.trim() === '') return;
+  if (inputText.trim() === '') return;
 
-    // Add user message
-    const userMessage = {
-      id: Date.now(),
-      text: inputText.trim(),
-      isUser: true,
+  // Add user message locally
+  const userMessage = {
+    text: inputText.trim(),
+    isUser: true,
+    timestamp: new Date(),
+  };
+
+  // Add to current messages
+  const updatedMessages = [...messages, userMessage];
+
+  // Reindex IDs sequentially
+  updatedMessages.forEach((msg, index) => {
+    msg.id = index + 1;
+  });
+
+  setMessages(updatedMessages);
+  setInputText('');
+  setIsLoading(true);
+
+  // Dismiss keyboard
+  Keyboard.dismiss();
+
+  try {
+    // Send to API
+    const response = await axios.post(`${N8NAPI_URL}/webhook/send_AIHelper_BuyerMessage`, {
+      sessionId: 1,
+      userMsg: userMessage
+    });
+
+    // Extract bot response
+    const botMessage = response.data.last_exchange;
+
+    // Convert timestamp to Date object
+    botMessage.timestamp = new Date(botMessage.timestamp);
+
+    // Add bot message to messages and reindex again
+    const finalMessages = [...updatedMessages, botMessage];
+    finalMessages.forEach((msg, index) => {
+      msg.id = index + 1;
+    });
+
+    setMessages(finalMessages);
+
+    // Auto-scroll
+    setTimeout(() => {
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }
+    }, 100);
+
+  } catch (error) {
+    console.error("Error sending message:", error);
+
+    const errorMessage = {
+      text: "Oops! Something went wrong. Please try again.",
+      isUser: false,
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputText('');
-    setIsLoading(true);
+    const finalMessages = [...updatedMessages, errorMessage];
+    finalMessages.forEach((msg, index) => {
+      msg.id = index + 1;
+    });
 
-    // Dismiss keyboard
-    Keyboard.dismiss();
+    setMessages(finalMessages);
 
-    // Simulate bot response after a delay
-    setTimeout(() => {
-      const botResponse = {
-        id: Date.now() + 1,
-        text: 'How can I help you?',
-        isUser: false,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, botResponse]);
-      setIsLoading(false);
-      
-      // Auto-scroll after bot response
-      setTimeout(() => {
-        if (flatListRef.current) {
-          flatListRef.current.scrollToEnd({ animated: true });
-        }
-      }, 100);
-    }, 1500);
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const formatTime = (date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

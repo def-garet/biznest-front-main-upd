@@ -22,6 +22,7 @@ import axios from "axios";
 
 const { width: screenWidth } = Dimensions.get('window');
 const products_api = API_URL + "/api/v1/seller/Manage Product/manage_product";
+const trade_api = API_URL + "/api/v1/seller/Seller Trade/seller_trade";
 
 const SellerTradeManagementScreen = () => {
   const navigation = useNavigation();
@@ -121,47 +122,137 @@ const SellerTradeManagementScreen = () => {
     }
   ];
 
+  const fetchTradeProducts = async () => {
+  try {
+    const response = await axios.get(trade_api);
+    setTradeableProducts(response.data);
+  } catch (error) {
+    console.error("Error fetching trade products:", error);
+  }
+};
+
   useEffect(() => {
     // Load sample data
-    setTradeableProducts(sampleProducts);
+    // setTradeableProducts(sampleProducts);
+    fetchTradeProducts();
+
     setTradeOffers(sampleTradeOffers);
   }, []);
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.value || !newProduct.category) {
-      Alert.alert('Missing Information', 'Please fill in all required fields');
-      return;
-    }
+  
 
-    const product = {
-      id: `product-${Date.now()}`,
-      ...newProduct,
-      createdAt: new Date().toISOString().split('T')[0]
+const handleAddProduct = async () => {
+  if (!newProduct.product_id || !newProduct.value) {
+    Alert.alert('Missing Information', 'Please fill in all required fields');
+    return;
+  }
+
+  try {
+    const payload = {
+      product_id: newProduct.product_id,
+      trade_price: parseFloat(newProduct.value),
+      note: newProduct.description || "",
+      is_active: newProduct.isActive
     };
 
-    setTradeableProducts(prev => [product, ...prev]);
-    setNewProduct({
-      name: '',
-      description: '',
-      value: '',
-      category: '',
-      image: '',
-      isActive: true
-    });
-    setIsAddProductModal(false);
-    
-    Alert.alert('Success', 'Product added successfully!');
-  };
+    const response = await axios.post(trade_api, payload);
 
-  const toggleProductStatus = (productId) => {
+    if (response.status === 201) {
+      Alert.alert('Success', 'Trade product added successfully!');
+      setIsAddProductModal(false);
+      setNewProduct({
+        product_id: '',
+        name: '',
+        description: '',
+        value: '',
+        isActive: true
+      });
+      fetchTradeProducts(); // Refresh the list
+    }
+  } catch (error) {
+    console.error("Error adding trade product:", error);
+    Alert.alert('Error', 'Failed to add trade product. Please try again.');
+  }
+};
+
+
+
+  // const handleAddProduct = () => {
+  //   if (!newProduct.name || !newProduct.value || !newProduct.category) {
+  //     Alert.alert('Missing Information', 'Please fill in all required fields');
+  //     return;
+  //   }
+
+  //   const product = {
+  //     id: `product-${Date.now()}`,
+  //     ...newProduct,
+  //     createdAt: new Date().toISOString().split('T')[0]
+  //   };
+
+  //   setTradeableProducts(prev => [product, ...prev]);
+  //   setNewProduct({
+  //     name: '',
+  //     description: '',
+  //     value: '',
+  //     category: '',
+  //     image: '',
+  //     isActive: true
+  //   });
+  //   setIsAddProductModal(false);
+    
+  //   Alert.alert('Success', 'Product added successfully!');
+  // };
+
+  // const toggleProductStatus = (productId) => {
+  //   setTradeableProducts(prev =>
+  //     prev.map(product =>
+  //       product.id === productId
+  //         ? { ...product, isActive: !product.isActive }
+  //         : product
+  //     )
+  //   );
+  // };
+
+  const toggleProductStatus = async (productId) => {
+  // Optimistic UI: immediately toggle on frontend
+  setTradeableProducts(prev =>
+    prev.map(product =>
+      product.id === productId
+        ? { ...product, isActive: !product.isActive }
+        : product
+    )
+  );
+
+  // Find the updated product to know new status
+  const updatedProduct = tradeableProducts.find(p => p.id === productId);
+  const newStatus = !updatedProduct.isActive;
+
+  try {
+    const payload = {
+      trade_product_id: productId,
+      is_active: newStatus,
+    };
+
+    const response = await axios.put(trade_api, payload);
+    if (response.status === 200) {
+      console.log("✅ Product status updated:", response.data);
+    } else {
+      throw new Error("Failed to update");
+    }
+  } catch (error) {
+    console.error("Error updating trade status:", error);
+    Alert.alert("Error", "Could not update trade product status.");
+    // Revert the UI change on error
     setTradeableProducts(prev =>
       prev.map(product =>
         product.id === productId
-          ? { ...product, isActive: !product.isActive }
+          ? { ...product, isActive: !product.isActive } // revert
           : product
       )
     );
-  };
+  }
+};
+
 
   const handleTradeOffer = (offerId, action) => {
     setTradeOffers(prev =>
@@ -179,24 +270,60 @@ const SellerTradeManagementScreen = () => {
     }
   };
 
-  const deleteProduct = (productId) => {
-    Alert.alert(
-      'Delete Product',
-      'Are you sure you want to remove this product from trade?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setTradeableProducts(prev =>
-              prev.filter(product => product.id !== productId)
-            );
+  // const deleteProduct = (productId) => {
+  //   Alert.alert(
+  //     'Delete Product',
+  //     'Are you sure you want to remove this product from trade?',
+  //     [
+  //       { text: 'Cancel', style: 'cancel' },
+  //       {
+  //         text: 'Delete',
+  //         style: 'destructive',
+  //         onPress: () => {
+  //           setTradeableProducts(prev =>
+  //             prev.filter(product => product.id !== productId)
+  //           );
+  //         }
+  //       }
+  //     ]
+  //   );
+  // };
+
+const deleteProduct = (productId) => {
+  Alert.alert(
+    "Delete Product",
+    "Are you sure you want to remove this product from trade?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const response = await axios.delete(trade_api, {
+              data: { trade_product_id: productId }, // ✅ send as JSON body
+              headers: { "Content-Type": "application/json" },
+            });
+
+            if (response.status === 200) {
+              setTradeableProducts(prev =>
+                prev.filter(product => product.id !== productId)
+              );
+              Alert.alert("Deleted", "Trade product deleted successfully!");
+            } else {
+              throw new Error("Failed to delete");
+            }
+          } catch (error) {
+            console.error("Error deleting trade product:", error);
+            Alert.alert("Error", "Could not delete trade product.");
           }
-        }
-      ]
-    );
-  };
+        },
+      },
+    ]
+  );
+};
+
+
 
   const renderProductItem = ({ item }) => (
     <View style={styles.productCard}>
@@ -219,7 +346,7 @@ const SellerTradeManagementScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-        <Text style={styles.productDescription}>{item.description}</Text>
+        <Text style={styles.productDescription}>{item.note}</Text>
         <View style={styles.productDetails}>
           <Text style={styles.productValue}>{item.value}</Text>
           <Text style={styles.productCategory}>{item.category}</Text>

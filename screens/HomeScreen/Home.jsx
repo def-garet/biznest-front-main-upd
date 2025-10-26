@@ -596,18 +596,18 @@ const Home = () => {
   );
 
 
-  const toggleLike = async (product_id) => {
-    try {
-      likedItems[product_id] 
-        ? await axiosInstance.delete(`${API_Like}/${product_id}`)
-        : await axiosInstance.post(API_Like, { like_id: product_id });
+  // const toggleLike = async (product_id) => {
+  //   try {
+  //     likedItems[product_id] 
+  //       ? await axiosInstance.delete(`${API_Like}/${product_id}`)
+  //       : await axiosInstance.post(API_Like, { like_id: product_id });
       
-      setLikedItems(prev => ({ ...prev, [product_id]: !prev[product_id] }));
-    } catch (error) {
-      console.error("Error toggling like:", error);
-      Alert.alert("Error", "Failed to update like status");
-    }
-  };
+  //     setLikedItems(prev => ({ ...prev, [product_id]: !prev[product_id] }));
+  //   } catch (error) {
+  //     console.error("Error toggling like:", error);
+  //     Alert.alert("Error", "Failed to update like status");
+  //   }
+  // };
 
 
 const handleCategoryPress = (category) => {
@@ -706,8 +706,8 @@ useEffect(() => {
             </View>
           </View>
 
-          {/* Search bar */}
-          <View style={style.SearchContainer}>
+          {/* Search bar old*/}
+          {/* <View style={style.SearchContainer}>
             <View style={[style.searchBarcontainer, {
               backgroundColor: "#fff",
               borderRadius: 10,
@@ -724,15 +724,56 @@ useEffect(() => {
                 <TextInput placeholder="Search" style={style.textInput} />
               </View>
             </View>
+            
             <TouchableOpacity style={style.searchCamera}>
               <Ionicons name="camera-outline" size={20} color="black" />
             </TouchableOpacity>
+          </View> */}
+        {/* Search bar new Redirect*/}
+        <View style={style.SearchContainer}>
+        <TouchableOpacity
+          style={[style.searchBarcontainer, {
+            backgroundColor: "#fff",
+            borderRadius: 10,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 2,
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 10,
+            flex: 1,
+          }]}
+          onPress={() => navigation.navigate("Search")} // Redirect here
+          activeOpacity={0.7}
+        >
+          <FontAwesome name="search" style={style.searchIcon} size={24} color="black" />
+          <View style={style.searchwrapper}>
+            <Text style={[style.textInput, { color: '#888' }]}>
+              Search
+            </Text>
           </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={style.searchCamera}
+          // onPress={() => navigation.navigate("CameraSearch")} // Redirect camera tap
+          activeOpacity={0.7}
+        >
+          <Ionicons name="camera-outline" size={20} color="black" />
+        </TouchableOpacity>
+      </View>
+
         </View>
         
 
         <View style={style.homeBody}>
           <Animatable.View animation="fadeInUp" duration={600} style={{ padding: 20 }}>
+           {/* Categories Product */}
+          
+          <Categories />
+           
             {/* SRP Monitoring */}
             <Animatable.View animation="fadeIn" delay={100}>
               <TouchableOpacity onPress={() => navigation.navigate("SRPDetails")}>
@@ -762,16 +803,17 @@ useEffect(() => {
 
             {/* All Products Grid */}
        <View style={styles.productsGrid}>
-  <StaticProductStyle data={filteredProducts} />
-</View>
+        <StaticProductStyle data={filteredProducts} />
+      </View>
 
 
             {/* Additional Sections */}
             <Animatable.View animation="fadeIn" delay={300}>
-              <Slider />
+              {/* <Slider /> */}
             </Animatable.View>
             <Animatable.View animation="fadeIn" delay={500}>
-              <Categories />
+
+
             </Animatable.View>
           </Animatable.View>
         </View>
@@ -810,7 +852,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 20
+    marginBottom: 50
   },
   productCard: {
     width: '48%',

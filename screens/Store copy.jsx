@@ -573,8 +573,6 @@ import { Feather, AntDesign, FontAwesome, Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import API_URL from "../api/api_urls.jsx";
 import { useNavigation } from "@react-navigation/native";
-import Categories from "./HomeScreen/component/Categories.jsx";
-import StaticProductStyle from "./Global/StaticProductStyle.jsx";
 
 const { width } = Dimensions.get("window");
 
@@ -687,7 +685,7 @@ const Store = () => {
           </View>
         </Animated.View>
 
-        {/* Search Bar
+        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
             <Feather
@@ -701,9 +699,9 @@ const Store = () => {
           <TouchableOpacity style={styles.filterButton}>
             <Feather name="sliders" size={20} color="#64748b" />
           </TouchableOpacity>
-        </View> */}
+        </View>
 
-        {/* Categories
+        {/* Categories */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Categories</Text>
           <FlatList
@@ -714,7 +712,7 @@ const Store = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryList}
           />
-        </View> */}
+        </View>
 
         {/* Featured Banner */}
         <View style={styles.featuredBanner}>
@@ -732,25 +730,19 @@ const Store = () => {
             </TouchableOpacity>
           </View>
         </View>
-      
-      {/* Categories */}
-      <View style={[styles.section, {marginTop: 14}]}>
-      <Categories />
-      </View>
-        
 
-            {/* Best Sellers */}
+        {/* Trending Products */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionTitle}>Best Sellers</Text>
-              <Text style={styles.sectionSubtitle}>Customer favorites</Text>
+              <Text style={styles.sectionTitle}>Trending Now</Text>
+              <Text style={styles.sectionSubtitle}>Most popular this week</Text>
             </View>
             <TouchableOpacity
               style={styles.seeAllButton}
               onPress={() =>
                 navigation.navigate("AllProducts", {
-                  title: "Best Sellers",
+                  title: "Trending Now",
                   initialProducts: productsample,
                 })
               }
@@ -767,29 +759,101 @@ const Store = () => {
               style={styles.loader}
             />
           ) : (
-            <View style={styles.bestSellersContainer}>
-              {productsample?.slice(4, 8).map((item, index) => (
+            <FlatList
+              data={productsample?.slice(0, 4)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              renderItem={({ item }) => (
                 <TouchableOpacity
-                  key={item.id}
-                  style={styles.bestSellerCard}
+                  style={styles.productCard}
                   onPress={() =>
                     navigation.navigate("ProductDetails", {
                       product_id: item.id,
                     })
                   }
                 >
-                  <View style={styles.rankContainer}>
-                    <Text style={styles.rankText}>{index + 1}</Text>
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.productImage}
+                  />
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productName} numberOfLines={2}>
+                      {item.product}
+                    </Text>
+                    <Text style={styles.productPrice}>₱{item.price}</Text>
+                    <View style={styles.productMeta}>
+                      <View style={styles.ratingContainer}>
+                        <AntDesign name="star" size={12} color="#f59e0b" />
+                        <Text style={styles.ratingText}>4.9</Text>
+                      </View>
+                      <Text style={styles.soldText}>{item.sold} sold</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.productList}
+            />
+          )}
+        </View>
+
+        {/* New Arrivals */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>New Arrivals</Text>
+              <Text style={styles.sectionSubtitle}>Fresh from artisans</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.seeAllButton}
+              onPress={() =>
+                navigation.navigate("AllProducts", {
+                  title: "Trending Now",
+                  products: productsample,
+                })
+              }
+            >
+              <Text style={styles.seeAllText}>View all</Text>
+              <Feather name="chevron-right" size={16} color="#2563eb" />
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <ActivityIndicator
+              size="large"
+              color="#2563eb"
+              style={styles.loader}
+            />
+          ) : (
+            <View style={styles.gridContainer}>
+              {productsample?.slice(0, 4).map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.gridProductCard}
+                  onPress={() =>
+                    navigation.navigate("ProductDetails", {
+                      product_id: item.id,
+                    })
+                  }
+                >
+                  <View style={styles.newBadge}>
+                    <Text style={styles.newBadgeText}>NEW</Text>
                   </View>
                   <Image
                     source={{ uri: item.image }}
-                    style={styles.bestSellerImage}
+                    style={styles.gridProductImage}
                   />
-                  <View style={styles.bestSellerInfo}>
-                    <Text style={styles.bestSellerName} numberOfLines={2}>
+                  <View style={styles.gridProductInfo}>
+                    <Text style={styles.gridProductName} numberOfLines={2}>
                       {item.product}
                     </Text>
-                    <Text style={styles.bestSellerPrice}>₱{item.price}</Text>
+                    <Text style={styles.gridProductPrice}>₱{item.price}</Text>
+                    <View style={styles.gridProductMeta}>
+                      <View style={styles.ratingContainer}>
+                        <AntDesign name="star" size={12} color="#f59e0b" />
+                        <Text style={styles.ratingText}>4.9</Text>
+                      </View>
+                    </View>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -797,49 +861,7 @@ const Store = () => {
           )}
         </View>
 
-      {/* Trending Products */}
-<View style={styles.section}>
-  <View style={styles.sectionHeader}>
-    <View>
-      <Text style={styles.sectionTitle}>Trending Now</Text>
-      <Text style={styles.sectionSubtitle}>Most popular this week</Text>
-    </View>
-    <TouchableOpacity
-      style={styles.seeAllButton}
-      onPress={() =>
-        navigation.navigate("AllProducts", {
-          title: "Trending Now",
-          initialProducts: productsample, // pass full data
-        })
-      }
-    >
-      <Text style={styles.seeAllText}>View all</Text>
-      <Feather name="chevron-right" size={16} color="#2563eb" />
-    </TouchableOpacity>
-  </View>
-
-  {loading ? (
-    <ActivityIndicator
-      size="large"
-      color="#2563eb"
-      style={styles.loader}
-    />
-  ) : (
-    <FlatList
-      data={productsample?.slice(0, 4)}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      keyExtractor={(item) => item.id?.toString()}
-      renderItem={({ item }) => (
-        <StaticProductStyle data={[item]} horizontalItem />
-      )}
-      contentContainerStyle={{ paddingHorizontal: 10 }}
-    />
-  )}
-</View>
-
-
-          {/* Special Offer */}
+        {/* Special Offer */}
         <View style={styles.specialOffer}>
           <View style={styles.specialOfferContent}>
             <Text style={styles.specialOfferTitle}>Weekend Special</Text>
@@ -855,57 +877,7 @@ const Store = () => {
           </View>
         </View>
 
-       {/* New Arrivals */}
-  <View style={[styles.section, { marginBottom: 60 }]}>
-  <View style={styles.sectionHeader}>
-    <View>
-      <Text style={styles.sectionTitle}>New Arrivals</Text>
-      <Text style={styles.sectionSubtitle}>Fresh from artisans</Text>
-    </View>
-    <TouchableOpacity
-      style={styles.seeAllButton}
-      onPress={() =>
-        navigation.navigate("AllProducts", {
-          title: "New Arrivals",
-          initialProducts: productsample, // pass full data
-        })
-      }
-    >
-      <Text style={styles.seeAllText}>View all</Text>
-      <Feather name="chevron-right" size={16} color="#2563eb" />
-    </TouchableOpacity>
-  </View>
-
-  {loading ? (
-    <ActivityIndicator
-      size="large"
-      color="#2563eb"
-      style={styles.loader}
-    />
-  ) : (
-    // Use StaticProductStyle here
-    <StaticProductStyle data={productsample?.slice(0, 4)} />
-  )}
-</View>
-
-
-        {/* Special Offer
-        <View style={styles.specialOffer}>
-          <View style={styles.specialOfferContent}>
-            <Text style={styles.specialOfferTitle}>Weekend Special</Text>
-            <Text style={styles.specialOfferSubtitle}>
-              15% off on handmade bags
-            </Text>
-            <TouchableOpacity style={styles.specialOfferButton}>
-              <Text style={styles.specialOfferButtonText}>Shop Now</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.specialOfferIcon}>
-            <Feather name="shopping-bag" size={40} color="#2563eb" />
-          </View>
-        </View> */}
-
-        {/* Best Sellers
+        {/* Best Sellers */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
@@ -961,7 +933,7 @@ const Store = () => {
               ))}
             </View>
           )}
-        </View> */}
+        </View>
       </Animated.ScrollView>
     </SafeAreaView>
   );

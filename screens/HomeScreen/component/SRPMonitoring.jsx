@@ -133,55 +133,56 @@ import { View, Text, StyleSheet, Dimensions, Animated, TouchableOpacity, ScrollV
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../../style/theme";
 import * as Animatable from 'react-native-animatable';
-
+import axios from "axios";
+import API_URL from "../../../api/api_urls";
 const { width } = Dimensions.get("window");
+const srpi_api = API_URL + "/api/v1/seller/Seller Product SRP/seller_product_srp";
 
-const initialSrpData = [
-  { id: 1, name: "Mangga", srp: 150, prevSrp: 160, category: "Fruits" },
-  { id: 2, name: "Bangus", srp: 120, prevSrp: 100, category: "Seafood" },
-  { id: 3, name: "Pork per Kilo", srp: 200, prevSrp: 220, category: "Meat" },
-  { id: 4, name: "Alugbati per Kilo", srp: 100, prevSrp: 130, category: "Vegetables" },
-  { id: 5, name: "Onion per Kilo", srp: 149, prevSrp: 150, category: "Vegetables" },
-  { id: 6, name: "Rice per Kilo", srp: 45, prevSrp: 42, category: "Grains" },
-  { id: 7, name: "Egg per Piece", srp: 8, prevSrp: 7, category: "Poultry" },
-  { id: 8, name: "Chicken per Kilo", srp: 160, prevSrp: 155, category: "Poultry" },
-];
+// const initialSrpData = [
+//   { id: 1, name: "Mangga", srp: 150, prevSrp: 160, category: "Fruits" },
+//   { id: 2, name: "Bangus", srp: 120, prevSrp: 100, category: "Seafood" },
+//   { id: 3, name: "Pork per Kilo", srp: 200, prevSrp: 220, category: "Meat" },
+//   { id: 4, name: "Alugbati per Kilo", srp: 100, prevSrp: 130, category: "Vegetables" },
+//   { id: 5, name: "Onion per Kilo", srp: 149, prevSrp: 150, category: "Vegetables" },
+//   { id: 6, name: "Rice per Kilo", srp: 45, prevSrp: 42, category: "Grains" },
+//   { id: 7, name: "Egg per Piece", srp: 8, prevSrp: 7, category: "Poultry" },
+//   { id: 8, name: "Chicken per Kilo", srp: 160, prevSrp: 155, category: "Poultry" },
+// ];
 
 const SRPMonitoring = () => {
-  const [srpData, setSrpData] = useState(initialSrpData);
+  const [srpData, setSrpData] = useState([]);
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [activeCategory, setActiveCategory] = useState("All");
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [loading, setLoading] = useState(true);
 
-  const categories = ["All", ...new Set(initialSrpData.map(item => item.category))];
-
-  const filteredData = activeCategory === "All" 
-    ? srpData 
-    : srpData.filter(item => item.category === activeCategory);
+  // 🔹 Fetch data from backend
+  const fetchSrpData = async () => {
+    try {
+      const response = await axios.get(srpi_api);
+      setSrpData(response.data);
+    } catch (err) {
+      console.error("Error fetching SRP data:", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
+    fetchSrpData();
+
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
       useNativeDriver: true,
     }).start();
 
-    const interval = setInterval(() => {
-      setSrpData((prevData) =>
-        prevData.map((product) => {
-          const priceFluctuation = Math.floor(Math.random() * 10) - 5;
-          const newPrice = Math.max(5, product.srp + priceFluctuation);
-          
-          return {
-            ...product,
-            prevSrp: product.srp,
-            srp: newPrice,
-          };
-        })
-      );
-    }, 10000);
+    // Refresh every 10 seconds
+    // const interval = setInterval(fetchSrpData, 10000);
 
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
+    return () => {}; // nothing to clean up
+
   }, []);
 
   const toggleExpand = (id) => {
@@ -197,8 +198,67 @@ const SRPMonitoring = () => {
   const getTrendIcon = (change) => {
     if (change > 0) return "trending-up";
     if (change < 0) return "trending-down";
-    return "remove-outline"; // Using remove-outline for neutral trend
+    return "remove-outline";
   };
+
+  const categories = ["All", ...new Set(srpData.map(item => item.category || "Uncategorized"))];
+  const filteredData = activeCategory === "All" 
+    ? srpData 
+    : srpData.filter(item => item.category === activeCategory);
+
+
+
+  // const [srpData, setSrpData] = useState(initialSrpData);
+  // const [expandedProduct, setExpandedProduct] = useState(null);
+  // const [activeCategory, setActiveCategory] = useState("All");
+  // const [fadeAnim] = useState(new Animated.Value(0));
+
+  // const categories = ["All", ...new Set(initialSrpData.map(item => item.category))];
+
+  // const filteredData = activeCategory === "All" 
+  //   ? srpData 
+  //   : srpData.filter(item => item.category === activeCategory);
+
+  // useEffect(() => {
+  //   Animated.timing(fadeAnim, {
+  //     toValue: 1,
+  //     duration: 500,
+  //     useNativeDriver: true,
+  //   }).start();
+
+  //   const interval = setInterval(() => {
+  //     setSrpData((prevData) =>
+  //       prevData.map((product) => {
+  //         const priceFluctuation = Math.floor(Math.random() * 10) - 5;
+  //         const newPrice = Math.max(5, product.srp + priceFluctuation);
+          
+  //         return {
+  //           ...product,
+  //           prevSrp: product.srp,
+  //           srp: newPrice,
+  //         };
+  //       })
+  //     );
+  //   }, 10000);
+
+  //   return () => clearInterval(interval);
+  // }, []);
+
+  // const toggleExpand = (id) => {
+  //   setExpandedProduct(expandedProduct === id ? null : id);
+  // };
+
+  // const getPriceChangeColor = (change) => {
+  //   if (change > 0) return "#e74c3c"; 
+  //   if (change < 0) return "#2ecc71"; 
+  //   return "#7f8c8d"; 
+  // };
+
+  // const getTrendIcon = (change) => {
+  //   if (change > 0) return "trending-up";
+  //   if (change < 0) return "trending-down";
+  //   return "remove-outline"; // Using remove-outline for neutral trend
+  // };
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
@@ -238,7 +298,9 @@ const SRPMonitoring = () => {
 
         {filteredData.map((item) => {
           const priceChange = item.srp - item.prevSrp;
-          const changePercent = ((priceChange / item.prevSrp) * 100).toFixed(1);
+          const changePercent = item.prevSrp 
+            ? ((priceChange / item.prevSrp) * 100).toFixed(1)
+            : 0;
           const changeColor = getPriceChangeColor(priceChange);
           const isExpanded = expandedProduct === item.id;
 

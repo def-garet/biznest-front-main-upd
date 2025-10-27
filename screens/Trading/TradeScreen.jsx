@@ -18,9 +18,9 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { TradeContext } from "./TradeComponent/TradeContext";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 import API_URL from "../../api/api_urls";
-const trade_api = API_URL + "/api/v1/seller/Seller Trade/seller_trade";
+const trade_api = "/api/v1/seller/Seller Trade/seller_trade";
 
 
 
@@ -93,7 +93,7 @@ const TradeScreen = () => {
   
   const fetchUserProducts = async () => {
     try {
-      const response = await axios.get(trade_api);
+      const response = await axiosInstance.get(trade_api);
       setUserProducts(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -329,7 +329,7 @@ const [tradesFromBackend, setTradesFromBackend] = useState([]);
 
   const fetchTrades = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/v1/seller/Trade/trade`);
+      const response = await axiosInstance.get(`/api/v1/seller/Trade/trade`);
       setTradesFromBackend(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -480,7 +480,7 @@ const displayTradeHistory = tradeHistory.length > 0
   // console.log("Trade Payload:", payload);
 
   try {
-    const response = await axios.post(`${API_URL}/api/v1/seller/Trade/trade`, payload);
+    const response = await axiosInstance.post(`/api/v1/seller/Trade/trade`, payload);
     
     if (response.status === 201) {
       // Optional: add trade to local state
@@ -532,7 +532,7 @@ const displayTradeHistory = tradeHistory.length > 0
 
   const handleTradeAction = async (tradeId, action) => {
   try {
-    const response = await axios.put(`${API_URL}/api/v1/seller/Trade/trade`, {
+    const response = await axiosInstance.put(`/api/v1/seller/Trade/trade`, {
       trade_id: tradeId,
       action: action,
     });

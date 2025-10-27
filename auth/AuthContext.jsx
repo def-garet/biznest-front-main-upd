@@ -166,6 +166,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sysRoles, setRoles] = useState(null);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -174,16 +175,20 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
 
     const ejectInterceptor = attachInterceptor();
-    return () => ejectInterceptor(); 
+    return () => ejectInterceptor(); // Cleanup interceptor on unmount
   }, []);
 
   const loadToken = async () => {
     try {
       const token = await SecureStore.getItemAsync("buyer_token");
+      const rolesStr = await SecureStore.getItemAsync("system_roles");
+      const roles = rolesStr ? JSON.parse(rolesStr) : [];
       console.log('[Auth] Loaded token:', token);
       if (token) {
-        setUserToken(token);
+        setUserToken(token); 
         axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        setRoles(roles);
+        console.log('[Auth] User is logged in with roles:', sysRoles);
       }
     } catch (error) {
       console.log('[Auth] Failed to load token:', error);
@@ -224,7 +229,7 @@ export const AuthProvider = ({ children }) => {
             axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
             originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
 
-            return axiosInstance(originalRequest); 
+            return axiosInstance(originalRequest); // Retry original request
           } catch (refreshError) {
             console.log('[Interceptor] Refresh token failed:', refreshError.response?.data || refreshError.message);
             await logout();
@@ -247,8 +252,11 @@ export const AuthProvider = ({ children }) => {
 
       await SecureStore.setItemAsync("buyer_token", info.access_token);
       await SecureStore.setItemAsync("refresh_token", info.refresh_token);
+      await SecureStore.setItemAsync("system_roles", JSON.stringify(info.roles)); // stringify if array
+
 
       setUserToken(info.access_token);
+      setRoles(info.roles);
       axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${info.access_token}`;
 
       console.log('[Auth] Login success');
@@ -286,7 +294,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ userToken, login, logout, ProtectedNavigation }}>
+    <AuthContext.Provider value={{ userToken,sysRoles, login, logout, ProtectedNavigation, }}>
       {children}
     </AuthContext.Provider>
   );

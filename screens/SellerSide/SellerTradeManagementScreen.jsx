@@ -17,12 +17,11 @@ import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import API_URL from "../../api/api_urls";
-import axios from "axios";
-
+import axiosInstance from '../../api/axiosInstance';
 
 const { width: screenWidth } = Dimensions.get('window');
-const products_api = API_URL + "/api/v1/seller/Manage Product/manage_product";
-const trade_api = API_URL + "/api/v1/seller/Seller Trade/seller_trade";
+const products_api = "/api/v1/seller/Manage Product/manage_product";
+const trade_api = "/api/v1/seller/Seller Trade/seller_trade";
 
 const SellerTradeManagementScreen = () => {
   const navigation = useNavigation();
@@ -48,7 +47,7 @@ const SellerTradeManagementScreen = () => {
   
   const fetchProducts = async () => {
     try {
-      const response = await axios.get(products_api);
+      const response = await axiosInstance.get(products_api);
       setProducts(response.data.product_info);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -124,7 +123,7 @@ const SellerTradeManagementScreen = () => {
 
   const fetchTradeProducts = async () => {
   try {
-    const response = await axios.get(trade_api);
+    const response = await axiosInstance.get(trade_api);
     setTradeableProducts(response.data);
   } catch (error) {
     console.error("Error fetching trade products:", error);
@@ -155,7 +154,7 @@ const handleAddProduct = async () => {
       is_active: newProduct.isActive
     };
 
-    const response = await axios.post(trade_api, payload);
+    const response = await axiosInstance.post(trade_api, payload);
 
     if (response.status === 201) {
       Alert.alert('Success', 'Trade product added successfully!');
@@ -233,7 +232,7 @@ const handleAddProduct = async () => {
       is_active: newStatus,
     };
 
-    const response = await axios.put(trade_api, payload);
+    const response = await axiosInstance.put(trade_api, payload);
     if (response.status === 200) {
       console.log("✅ Product status updated:", response.data);
     } else {
@@ -300,7 +299,7 @@ const deleteProduct = (productId) => {
         style: "destructive",
         onPress: async () => {
           try {
-            const response = await axios.delete(trade_api, {
+            const response = await axiosInstance.delete(trade_api, {
               data: { trade_product_id: productId }, // ✅ send as JSON body
               headers: { "Content-Type": "application/json" },
             });

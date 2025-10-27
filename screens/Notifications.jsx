@@ -42,7 +42,7 @@ const notifications = [
     time: "3 days ago",
     read: true,
   },
-];
+]; 
 
 const orderUpdates = [
   {

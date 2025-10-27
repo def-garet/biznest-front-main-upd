@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   ScrollView
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState ,useContext} from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   MaterialCommunityIcons,
@@ -22,11 +22,18 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { COLORS } from "../style/theme";
 import axiosInstance from "../api/axiosInstance";
+import { AuthContext } from "../auth/AuthContext";
 
 const API ="/api/v1/Profile/buyer_profile";
 const Profile = () => {
   const navigation = useNavigation();
   const route = useRoute();
+
+  const { sysRoles } = useContext(AuthContext);
+
+  const isSeller = sysRoles?.includes("seller");
+
+
 
   const [profile, setProfile] = useState([]);
   const [isImageLoading, setIsImageLoading] = useState(true);
@@ -239,7 +246,7 @@ const Profile = () => {
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Seller Center</Text>
           <View style={styles.sellerActions}>
-            <TouchableOpacity 
+            {/* <TouchableOpacity 
               style={[styles.sellerButton, styles.dashboardButton]}
               onPress={() => navigation.navigate("SellerDashboard")}
             >
@@ -253,7 +260,29 @@ const Profile = () => {
             >
               <Entypo name="shop" size={20} color="white" />
               <Text style={styles.sellerButtonText}>Start Selling</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+
+          {isSeller ? (
+          // ✅ Show Dashboard if user is seller
+          <TouchableOpacity
+            style={[styles.sellerButton, styles.dashboardButton]}
+            onPress={() => navigation.navigate("SellerDashboard")}
+          >
+            <MaterialCommunityIcons name="view-dashboard" size={20} color="white" />
+            <Text style={styles.sellerButtonText}>Dashboard</Text>
+          </TouchableOpacity>
+        ) : (
+          // 🚀 Show Start Selling if not seller
+          <TouchableOpacity
+            style={[styles.sellerButton, styles.sellButton]}
+            onPress={() => navigation.navigate("StartSelling")}
+          >
+            <Entypo name="shop" size={20} color="white" />
+            <Text style={styles.sellerButtonText}>Start Selling</Text>
+          </TouchableOpacity>
+        )}
+
+
           </View>
         </View>
 
@@ -264,7 +293,7 @@ const Profile = () => {
       {/* Chatbot Floating Button - Outside ScrollView */}
       <TouchableOpacity 
         style={styles.chatbotButton}
-        onPress={() => navigation.navigate("Chatbot")}
+        onPress={() => navigation.navigate("Chatbot", { buyer_id: profile.id })}
       >
         <MaterialCommunityIcons name="robot-happy" size={28} color="white" />
       </TouchableOpacity>

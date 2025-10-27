@@ -16,10 +16,10 @@ import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { DataTable } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../style/theme';
-import axios from 'axios';
 import API_URL from '../../api/api_urls';
+import axiosInstance from '../../api/axiosInstance';
 import DateTimePicker from '@react-native-community/datetimepicker';
-const api_sales_reports = API_URL + '/api/v1/seller/SalesReport/seller_sales_report';
+const api_sales_reports = '/api/v1/seller/SalesReport/seller_sales_report';
 
 const SalesReports = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
@@ -38,8 +38,7 @@ const SalesReports = ({ navigation }) => {
       try {
         setLoading(true);
         const formatDate = (d) => d ? d.toISOString().split('T')[0] : undefined;
-
-        const res = await axios.get(api_sales_reports, {
+        const res = await axiosInstance.get(api_sales_reports, {
           params: {
             timeRange,
             startDate: timeRange === "custom" ? formatDate(startDate) : undefined,

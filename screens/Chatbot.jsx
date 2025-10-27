@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect,useContext } from 'react';
 import {
   StyleSheet,
   View,
@@ -21,9 +21,11 @@ import { COLORS } from '../style/theme';
 import axios from 'axios';
 import N8NAPI_URL from '../api/n8n_api';
 
-const Chatbot = () => {
+const Chatbot = ({route}) => {
   const navigation = useNavigation();
   const flatListRef = useRef(null);
+  const buyer_id = route?.params?.buyer_id; // 👈 get it here
+  console.log("Buyer ID in Chatbot:", buyer_id);
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -42,7 +44,7 @@ useEffect(() => {
 
 const fetchMessageHistory = async () => {
   try {
-    const response = await axios.get(`${N8NAPI_URL}/webhook/get_AIHelper_BuyerHistory`);
+    const response = await axios.get(`${N8NAPI_URL}/webhook/get_AIHelper_BuyerHistory/${buyer_id}`);
     const msgs = response.data.full_history.map(msg => ({
       ...msg,
       timestamp: new Date(msg.timestamp), // convert here
@@ -161,8 +163,10 @@ const fetchMessageHistory = async () => {
 
   try {
     // Send to API
-    const response = await axios.post(`${N8NAPI_URL}/webhook/send_AIHelper_BuyerMessage`, {
-      sessionId: 1,
+    // http://localhost:5678/webhook/c018e021-d270-4db5-9428-aab1b3cdce01/send_AIHelper_BuyerMessage/:buyer_id
+    // http://localhost:5678/webhook-test/c018e021-d270-4db5-9428-aab1b3cdce01/send_AIHelper_BuyerMessage/:buyer_id
+    const response = await axios.post(`${N8NAPI_URL}/webhook/c018e021-d270-4db5-9428-aab1b3cdce01/send_AIHelper_BuyerMessage/${buyer_id}`, {
+      sessionId: buyer_id,
       userMsg: userMessage
     });
 

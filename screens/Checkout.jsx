@@ -319,9 +319,8 @@ import { View, Text, ScrollView, TouchableOpacity, Modal, Image, StyleSheet, Swi
 import { COLORS } from '../style/theme';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import API_URL from '../api/api_urls';
-import axios from 'axios';
-
-const order_api = API_URL + '/api/v1/seller/Seller Orders/seller_orders';
+import axiosInstance from '../api/axiosInstance';
+const order_api = '/api/v1/seller/Seller Orders/seller_orders';
 
 const Checkout = ({ route, navigation }) => {
   const { cartProducts, total } = route.params;
@@ -342,7 +341,7 @@ const Checkout = ({ route, navigation }) => {
       total_price: (item.product_info.price * item.quantity).toFixed(2),
     }));
 
-    const response = axios.post(order_api, orderDetails).then(res => { 
+    const response = axiosInstance.post(order_api, orderDetails).then(res => { 
       console.log("Order response:", res.data);
     }).catch(err => {
       console.error("Error placing order:", err);

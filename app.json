@@ -21,8 +21,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff",
         "softwareKeyboardLayoutMode": "pan",
-      "windowSoftInputMode": "adjustResize"
-      }
+        "windowSoftInputMode": "adjustResize"
+      },
+      "package": "com.hotaka098.BIZNest"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -31,6 +32,12 @@
     "plugins": [
       "expo-router",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "23e9728c-ef83-417f-9f76-381cacdaa835"
+      }
+    }
   }
 }

@@ -4,8 +4,6 @@ import CustomerLogin from './customerlogin';
 import { AuthProvider } from '../auth/AuthContext';
 import CustomerSignup from './CustomerSignup';
 import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat,SellerChat, Chatbot} from '../screens';
-import { MyAddress,EditProfile, PurchaseHistory, CustomerService, OrderTracking } from '../screens/settings';
-import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat, Chatbot} from '../screens';
 import { MyAddress,EditProfile, PurchaseHistory, CustomerService, OrderTracking, AccountSecurity, Coins, Vouchers} from '../screens/settings';
 import { StartSelling, SellerDashboard, SellerOrderManagement, ProductManagement, SalesReports, SellerTradeManagementScreen } from '../screens/SellerSide';
 import { ChatConversation,SellerChatConversation } from '../screens/HomeScreen/component';

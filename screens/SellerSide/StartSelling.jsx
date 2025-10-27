@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useContext } from "react";
 import { 
   View, 
   Text, 
@@ -15,7 +15,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import axiosInstance from "../../api/axiosInstance";
-
+import { AuthContext } from "../../auth/AuthContext";
 const API = `/api/v1/seller/Seller Create Account/seller_register`;
 
 const COLORS = {
@@ -54,6 +54,7 @@ const StartSelling = () => {
   const navigation = useNavigation();
   const [currentStep, setCurrentStep] = useState(1);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const { logout, user } = useContext(AuthContext);
   
   // Step 1: Basic Information
   const [shopName, setShopName] = useState("");
@@ -101,6 +102,8 @@ const handleSubmit = async () => {
     if (response.status === 200 || response.status === 201) {
       console.log("✅ Seller created:", response.data);
       setShowConfirmation(true);
+       await logout(); 
+       navigation.navigate("Home"); 
     } else {
       console.log("⚠️ Unexpected response:", response.status);
       alert("Something went wrong, please try again.");

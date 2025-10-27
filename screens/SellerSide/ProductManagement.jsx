@@ -15,7 +15,7 @@ import {
 import { Ionicons, Feather, MaterialIcons } from "@expo/vector-icons";
 import { COLORS } from "../../style/theme";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 import API_URL from "../../api/api_urls";
 
 const { width } = Dimensions.get('window');
@@ -37,7 +37,7 @@ const ProductManagement = () => {
   });
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const products_api = API_URL + "/api/v1/seller/Manage Product/manage_product";
+  const products_api ="/api/v1/seller/Manage Product/manage_product";
 
   useEffect(() => {
     fetchProducts();
@@ -46,7 +46,7 @@ const ProductManagement = () => {
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(products_api);
+      const response = await axiosInstance.get(products_api);
       setProducts(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -87,7 +87,7 @@ const ProductManagement = () => {
           description: productForm.description,
           image: productForm.img,
         };
-        await axios.put(products_api, productData);
+        await axiosInstance.put(products_api, productData);
       } else {
         // Create new product
         const productData = {
@@ -97,7 +97,7 @@ const ProductManagement = () => {
           description: productForm.description,
           image: productForm.img,
         };
-        await axios.post(products_api, productData);
+        await axiosInstance.post(products_api, productData);
       }
       
       fetchProducts();
@@ -124,7 +124,7 @@ const ProductManagement = () => {
           onPress: async () => {
             setIsLoading(true);
             try {
-              await axios.delete(`${products_api}/${productId}`);
+              await axiosInstance.delete(`${products_api}/${productId}`);
               fetchProducts();
               setModalVisible(false);
             } catch (error) {

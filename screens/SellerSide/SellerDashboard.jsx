@@ -12,7 +12,7 @@ import {
   Platform,
   RefreshControl,
 } from "react-native";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect,useContext } from "react";
 import {
   Ionicons,
   MaterialIcons,
@@ -26,9 +26,11 @@ import { useNavigation } from "@react-navigation/native";
 import ProductManagement from "./ProductManagement";
 import API_URL from "../../api/api_urls";
 import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 import N8NAPI_URL from "../../api/n8n_api";
+import { AuthContext } from "../../auth/AuthContext";
 
-const products_api = API_URL + "/api/v1/seller/Manage Product/manage_product";
+const products_api = "/api/v1/seller/Manage Product/manage_product";
 
 const SellerDashboard = () => {
   const navigation = useNavigation();
@@ -43,11 +45,16 @@ const SellerDashboard = () => {
   //   },
   // ]
   );
+  const[seller_id,setSellerId]=useState(null);
+  const {userToken} = useContext(AuthContext);
+  
 
-const fetchMessage = async () => {
+const fetchMessage = async (id) => {
     try {
       const response = await axios.get(
-        `${N8NAPI_URL}/webhook/get_AIHelper_SellerHistory`
+        // http://localhost:5678/webhook/706f713f-873b-437e-9dd0-791c9fbbb51d/get_AIHelper_SellerHistory/:seller_id
+        // http://localhost:5678/webhook-test/706f713f-873b-437e-9dd0-791c9fbbb51d/get_AIHelper_SellerHistory/:seller_id
+        `${N8NAPI_URL}/webhook/706f713f-873b-437e-9dd0-791c9fbbb51d/get_AIHelper_SellerHistory/${id}`
       );
       setChatMessages(response.data.full_history);
       console.log("Fetched chat history:", response.data.full_history);
@@ -72,9 +79,19 @@ const fetchMessage = async () => {
   const flatListRef = useRef(null);
 
   useEffect(() => {
-    fetchProducts();
-    fetchMessage();
+   fetchData();
   }, []);
+
+
+const fetchData = async () => {
+  try {
+    const response = await fetchProducts(); // wait for products to finish
+    const id = response.seller_info.id;     // get id directly
+    await fetchMessage(id);                  // pass id
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -83,8 +100,11 @@ const fetchMessage = async () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get(products_api);
+      const response = await axiosInstance.get(products_api);
       setProducts(response.data);
+      setSellerId(response.data.seller_info.id);
+      return response.data; // return response so we can get seller_id
+
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -150,6 +170,8 @@ const sendMessage = async () => {
       id: chatMessages.length + 1,
       text: chatMessage,
       sender: "user",
+      seller_id: seller_id,
+      userToken: userToken,
     };
 
     setChatMessages((prev) => [...prev, userMsg]);
@@ -160,8 +182,12 @@ const sendMessage = async () => {
     }, 100);
 
     try {
-      const res = await axios.post( `${N8NAPI_URL}/webhook/AI_Seller_Helper`, {
+            // const res = await axios.post( `${N8NAPI_URL}/webhook/AI_Seller_Helper`, {
+// http://localhost:5678/webhook/c018e021-d270-4db5-9428-aab1b3cdce01/AI_Seller_Helper/:seller_id
+      // http://localhost:5678/webhook-test/c018e021-d270-4db5-9428-aab1b3cdce01/AI_Seller_Helper/:seller_id
+      const res = await axios.post( `${N8NAPI_URL}/webhook/c018e021-d270-4db5-9428-aab1b3cdce01/AI_Seller_Helper/${seller_id}`, {
         userMsg,
+        
       });
 
       console.log("AI Response:", res.data);
@@ -233,7 +259,7 @@ const sendMessage = async () => {
           description: productForm.description,
           image: productForm.img,
         };
-        await axios.put(products_api, productData);
+        await axios.axiosInstance(products_api, productData);
       } else {
         const productData = {
           name: productForm.name,
@@ -242,7 +268,7 @@ const sendMessage = async () => {
           description: productForm.description,
           image: productForm.img,
         };
-        await axios.post(products_api, productData);
+        await axios.axiosInstance(products_api, productData);
       }
       fetchProducts();
       setModalVisible(false);
@@ -253,7 +279,7 @@ const sendMessage = async () => {
 
   const handleDeleteProduct = async (id) => {
     try {
-      await axios.delete(`${products_api}/${id}`);
+      await axiosInstance.delete(`${products_api}/${id}`);
       fetchProducts();
       setModalVisible(false);
     } catch (error) {

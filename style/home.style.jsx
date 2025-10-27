@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 import theme, { COLORS, SIZES } from "./theme";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Colors } from "react-native/Libraries/NewAppScreen";
+// import { Colors } from "react-native/Libraries/NewAppScreen";
 
 const style = StyleSheet.create({
     textStyle: {

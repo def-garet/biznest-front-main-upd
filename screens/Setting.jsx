@@ -563,6 +563,14 @@ export default Setting;
 //     { icon: "lock-outline", text: "Privacy", action: () => console.log("Privacy") },
 //     { icon: "location-pin", text: "My Address", action: () => navigation.navigate("MyAddress") },
 //   ];
+  // Account Settings
+  // const accountItems = [
+  //   { icon: "person-outline", text: "Edit Profile", action: () => navigation.navigate("EditProfile") },
+  //   { icon: "security", text: "Account Security", action: () => navigation.navigate("AccountSecurity") },
+  //   { icon: "notifications-none", text: "Notifications", action: () => navigation.navigate("Notifications") },
+  //   { icon: "lock-outline", text: "Privacy", action: () => console.log("Privacy") },
+  //   { icon: "location-pin", text: "My Address", action: () => navigation.navigate("MyAddress") },
+  // ];
 
 //   // Seller Management Items (only visible if user is a seller)
 //   const sellerItems = [

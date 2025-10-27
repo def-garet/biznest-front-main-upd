@@ -174,7 +174,7 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
 
     const ejectInterceptor = attachInterceptor();
-    return () => ejectInterceptor(); // Cleanup interceptor on unmount
+    return () => ejectInterceptor(); 
   }, []);
 
   const loadToken = async () => {
@@ -224,7 +224,7 @@ export const AuthProvider = ({ children }) => {
             axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
             originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
 
-            return axiosInstance(originalRequest); // Retry original request
+            return axiosInstance(originalRequest); 
           } catch (refreshError) {
             console.log('[Interceptor] Refresh token failed:', refreshError.response?.data || refreshError.message);
             await logout();

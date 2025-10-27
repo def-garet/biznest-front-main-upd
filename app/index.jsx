@@ -5,6 +5,8 @@ import { AuthProvider } from '../auth/AuthContext';
 import CustomerSignup from './CustomerSignup';
 import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat,SellerChat, Chatbot} from '../screens';
 import { MyAddress,EditProfile, PurchaseHistory, CustomerService, OrderTracking } from '../screens/settings';
+import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat, Chatbot} from '../screens';
+import { MyAddress,EditProfile, PurchaseHistory, CustomerService, OrderTracking, AccountSecurity, Coins, Vouchers} from '../screens/settings';
 import { StartSelling, SellerDashboard, SellerOrderManagement, ProductManagement, SalesReports, SellerTradeManagementScreen } from '../screens/SellerSide';
 import { ChatConversation,SellerChatConversation } from '../screens/HomeScreen/component';
 import SplashScreen from './SplashScreen';
@@ -58,6 +60,10 @@ export default function App({linking}) {
         <Stack.Screen name="TradeConfirmationScreen" component={TradeConfirmationScreen} options={{headerShown:false}} />
         <Stack.Screen name="SellerTradeManagementScreen" component={SellerTradeManagementScreen} options={{headerShown:false}} />
         <Stack.Screen name="AvailableTradesScreen" component={AvailableTradesScreen} options={{headerShown:false}} />        
+        <Stack.Screen name="AccountSecurity" component={AccountSecurity} options={{headerShown:false}} />
+        <Stack.Screen name="Coins" component={Coins} options={{headerShown:false}} />
+        <Stack.Screen name="Vouchers" component={Vouchers} options={{headerShown:false}} />
+        
       </Stack.Navigator>
 
     </AuthProvider>

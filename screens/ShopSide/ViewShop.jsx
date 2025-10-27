@@ -28,9 +28,8 @@ const CARD_SHADOW = {
 
 const ViewShop = ({ navigation, route }) => {
   const { seller_id } = route.params;
-  
-  const [shopDetails,setShopDetails] = useState(
-    {
+
+  const [shopDetails, setShopDetails] = useState({
     shop_name: "Iloilo Handicrafts Haven",
     shop_logo: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
     rating: 4.8,
@@ -39,106 +38,72 @@ const ViewShop = ({ navigation, route }) => {
     description: "Proudly showcasing the finest handmade crafts from Iloilo's talented local artisans. We specialize in traditional woven products (hablon), pottery, shell crafts, and other unique Ilonggo handicrafts. Each piece tells a story of our rich cultural heritage.",
     joined_date: "2018",
     response_rate: "99%"
-  }
-);
-  
-  const [categories,setCategories] = useState(
-  //   [
-  //   { id: 0, name: 'All Products' },
-  //   { id: 'woven', name: 'Woven Products' },
-  //   { id: 'pottery', name: 'Pottery' },
-  //   { id: 'shell', name: 'Shell Crafts' },
-  //   { id: 'clothing', name: 'Clothing' }
-  // ]
-);
-  
-const [activeCategory, setActiveCategory] = useState(0); 
-  
-  const [products,setProductDetail] = useState([
-    {
-      id: 1,
-      name: "Hablon Tote Bag",
-      price: 450,
-      img: "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      category: 'woven'
-    },
-    {
-      id: 2,
-      name: "Bamboo Coffee Mug Set",
-      price: 1200,
-      img: "https://images.unsplash.com/photo-1595341595379-cf0f2f9cfd0a?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      category: 'pottery'
-    },
-    {
-      id: 3,
-      name: "Capiz Shell Wind Chime",
-      price: 650,
-      img: "https://images.unsplash.com/photo-1605000797499-95e51f0dc0e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      category: 'shell'
-    },
-    {
-      id: 4,
-      name: "Handwoven Patadyong",
-      price: 850,
-      img: "https://images.unsplash.com/photo-1551232864-3f0890e580d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      category: 'clothing'
-    },
-    {
-      id: 5,
-      name: "Ceramic Jar",
-      price: 1500,
-      img: "https://images.unsplash.com/photo-1589118949245-7d38baf380d6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      category: 'pottery'
-    },
-    {
-      id: 6,
-      name: "Raffia Sun Hat",
-      price: 550,
-      img: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-      category: 'woven'
-    }
-  ]);
-  
+  });
+
+  const [categories, setCategories] = useState([]);
+  const [activeCategory, setActiveCategory] = useState(0);
+  const [products, setProductDetail] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [isLoading] = useState(false);
-  
+
+const handleChatWithSeller = async () => {
+  try {
+    const response = await axios.post(`${API_URL}/api/v1/chat/send_message`, {
+      seller_id: seller_id,
+      thread_id: null ,
+       message: null, // or don't send this field
+
+    });
+    
+    const thread_id = response.data.thread_id;
+    
+    navigation.navigate("ChatConversation", { 
+      chat: {
+        thread_id,
+        seller_id: seller_id,
+        store: shopDetails.shop_name,
+        message: "Say hi!",
+        date: "Just now"
+      }
+    });
+    
+  } catch (err) {
+    console.error("Error starting chat", err);
+  }
+};
+
+
+
   const fetchShopDetails = async () => {
     try {
-      console.log("Fetching shop details for seller_id:", `${API_URL}/api/v1/View Shop/view_shop/${seller_id}`);
       const response = await axios.get(`${API_URL}/api/v1/View Shop/view_shop/${seller_id}`);
-      
-      // Assuming 'response.data' contains your shop data
       const products = response.data.products || [];
 
-      // Compute total reviews and total rating
+      // Compute rating and reviews
       let totalReviews = 0;
       let totalRatingSum = 0;
-
       products.forEach((product) => {
         totalReviews += product.total_reviews || 0;
         totalRatingSum += product.total_rating || 0;
       });
-
-      // Compute average rating (avoid dividing by zero)
       const averageRating = totalReviews > 0 ? (totalRatingSum / totalReviews).toFixed(1) : 0;
 
-      const shopData = { 
+      const shopData = {
         shop_name: response.data.shop_name || "Noname Shop",
-        shop_logo: response.data.owner_info.profile_pic || "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-        rating: averageRating,        // ✅ computed average rating
-        review_count: totalReviews,   // ✅ computed total reviews
+        shop_logo: response.data.owner_info?.profile_pic || "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
+        rating: averageRating,
+        review_count: totalReviews,
         location: response.data.register_address || "Unknown Location",
         description: "Proudly showcasing the finest handmade crafts from Iloilo's talented local artisans.",
         joined_date: "2018",
         response_rate: "99%"
       };
+
       setShopDetails(shopData);
-      setCategories([{ id: 0, name: "All Products" }, ...response.data.category_info]);
-      setProductDetail(response.data.products || []);
+      setCategories([{ id: 0, name: "All Products" }, ...(response.data.category_info || [])]);
+      setProductDetail(products);
     } catch (error) {
       console.error("Error fetching shop details", error);
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -146,46 +111,16 @@ const [activeCategory, setActiveCategory] = useState(0);
     fetchShopDetails();
   }, []);
 
-useEffect(() => {
-  if (!products || !categories) return;
+  useEffect(() => {
+    if (!products || !categories) return;
 
-  if (activeCategory === 0) {
-    setFilteredProducts(products);
-  } else {
-    // Get selected category name
-    const selectedCategory = categories.find(cat => cat.id === activeCategory)?.name;
-    setFilteredProducts(
-      products.filter(p => p.category === selectedCategory)
-    );
-  }
-}, [activeCategory, products, categories]);
-
-
-
-
-
-
-  const renderProductItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.productCard}
-      onPress={() => navigation.navigate('ProductDetails', { product_id: item.id })}
-    >
-      <Image 
-        source={{ uri: item.img }} 
-        style={styles.productImage}
-        resizeMode="cover"
-      />
-      <View style={styles.productInfoContainer}>
-        <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.productPrice}>₱{item.price.toLocaleString()}</Text>
-        <View style={styles.productRating}>
-          <Ionicons name="star" size={14} color="#FFC120" />
-          <Text style={styles.ratingText}>4.8</Text>
-          <Text style={styles.soldText}>({Math.floor(Math.random() * 100) + 1} sold)</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+    if (activeCategory === 0) {
+      setFilteredProducts(products);
+    } else {
+      const selectedCategory = categories.find(cat => cat.id === activeCategory)?.name;
+      setFilteredProducts(products.filter(p => p.category === selectedCategory));
+    }
+  }, [activeCategory, products, categories]);
 
   const renderCategoryItem = ({ item }) => (
     <TouchableOpacity
@@ -195,10 +130,12 @@ useEffect(() => {
       ]}
       onPress={() => setActiveCategory(item.id)}
     >
-      <Text style={[
-        styles.categoryText,
-        activeCategory === item.id && styles.activeCategoryText
-      ]}>
+      <Text
+        style={[
+          styles.categoryText,
+          activeCategory === item.id && styles.activeCategoryText
+        ]}
+      >
         {item.name}
       </Text>
     </TouchableOpacity>
@@ -215,7 +152,7 @@ useEffect(() => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -226,14 +163,11 @@ useEffect(() => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color="white" />
           </TouchableOpacity>
-          
+
           <View style={styles.shopLogoContainer}>
-            <Image 
-              source={{ uri: shopDetails.shop_logo }} 
-              style={styles.shopLogo}
-            />
+            <Image source={{ uri: shopDetails.shop_logo }} style={styles.shopLogo} />
           </View>
-          
+
           <View style={styles.shopInfo}>
             <Text style={styles.shopName}>{shopDetails.shop_name}</Text>
             <View style={styles.shopRating}>
@@ -267,15 +201,31 @@ useEffect(() => {
           </View>
         </View>
 
-        {/* Shop Description */}
+        {/* About Section */}
         <View style={styles.descriptionContainer}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="info" size={18} color={PRIMARY_COLOR} />
             <Text style={styles.sectionTitle}>About This Shop</Text>
           </View>
-          <Text style={styles.shopDescription}>
-            {shopDetails.description}
-          </Text>
+          <Text style={styles.shopDescription}>{shopDetails.description}</Text>
+        </View>
+
+        {/* Chat with Seller Button */}
+        <View style={styles.chatContainer}>
+          <TouchableOpacity
+            style={styles.chatButton}
+            // onPress={() =>
+            //   navigation.navigate("ChatConversation", {
+            //     seller_id,
+            //     shop_name: shopDetails.shop_name
+            //   })
+            // }
+          onPress={handleChatWithSeller}
+
+          >
+            <Ionicons name="chatbubbles" size={20} color="white" style={{ marginRight: 8 }} />
+            <Text style={styles.chatButtonText}>Chat with Seller</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Shop Products */}
@@ -284,35 +234,23 @@ useEffect(() => {
             <MaterialIcons name="shopping-bag" size={18} color={PRIMARY_COLOR} />
             <Text style={styles.sectionTitle}>Shop Products</Text>
           </View>
-          
-          {/* Categories */}
-          <FlatList
-          data={categories}
-          renderItem={renderCategoryItem}
-          keyExtractor={(item) => item.id.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
-        />
 
-          
+          <FlatList
+            data={categories}
+            renderItem={renderCategoryItem}
+            keyExtractor={(item) => item.id.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+          />
+
           {filteredProducts.length === 0 ? (
             <View style={styles.emptyContainer}>
               <MaterialIcons name="remove-shopping-cart" size={40} color="#ccc" />
               <Text style={styles.noProductsText}>No products in this category</Text>
             </View>
           ) : (
-              <StaticProductStyle data={filteredProducts} />
-
-            // <FlatList
-            //   data={filteredProducts}
-            //   renderItem={renderProductItem}
-            //   keyExtractor={item => item.id.toString()}
-            //   numColumns={2}
-            //   columnWrapperStyle={styles.productsRow}
-            //   contentContainerStyle={styles.productsList}
-            //   scrollEnabled={false}
-            // />
+            <StaticProductStyle data={filteredProducts} />
           )}
         </View>
       </ScrollView>
@@ -357,10 +295,7 @@ const styles = StyleSheet.create({
   },
   headerBackground: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: PRIMARY_COLOR,
     opacity: 0.9,
   },
@@ -466,6 +401,27 @@ const styles = StyleSheet.create({
     color: '#555',
     lineHeight: 20,
   },
+  chatContainer: {
+    alignItems: "center",
+    marginHorizontal: 10,
+    marginBottom: 15,
+  },
+  chatButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: PRIMARY_COLOR,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    width: "100%",
+    ...CARD_SHADOW,
+  },
+  chatButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
   productsSection: {
     backgroundColor: '#ffffff',
     padding: 15,
@@ -502,52 +458,6 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 10,
     fontSize: 14,
-  },
-  productsRow: {
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  productsList: {
-    paddingBottom: 5,
-  },
-  productCard: {
-    width: Dimensions.get('window').width / 2 - 25,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 15,
-    marginHorizontal: 5,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-  },
-  productImage: {
-    width: '100%',
-    height: 140,
-    backgroundColor: '#f5f5f5',
-  },
-  productInfoContainer: {
-    padding: 10,
-  },
-  productName: {
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 6,
-    height: 36,
-  },
-  productPrice: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: PRIMARY_COLOR,
-    marginBottom: 6,
-  },
-  productRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  soldText: {
-    fontSize: 11,
-    color: '#666',
-    marginLeft: 4,
   },
 });
 

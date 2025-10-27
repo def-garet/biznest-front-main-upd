@@ -3,10 +3,10 @@ import TabNavigator from './Biznest'
 import CustomerLogin from './customerlogin';
 import { AuthProvider } from '../auth/AuthContext';
 import CustomerSignup from './CustomerSignup';
-import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat, Chatbot} from '../screens';
+import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat,SellerChat, Chatbot} from '../screens';
 import { MyAddress,EditProfile, PurchaseHistory, CustomerService, OrderTracking } from '../screens/settings';
 import { StartSelling, SellerDashboard, SellerOrderManagement, ProductManagement, SalesReports, SellerTradeManagementScreen } from '../screens/SellerSide';
-import { ChatConversation } from '../screens/HomeScreen/component';
+import { ChatConversation,SellerChatConversation } from '../screens/HomeScreen/component';
 import SplashScreen from './SplashScreen';
 import { TradeScreen, TradeOffer, TradeConfirmationScreen,AvailableTradesScreen } from '../screens/Trading';
 import { ViewShop, AllProducts, } from '../screens/ShopSide';
@@ -40,7 +40,9 @@ export default function App({linking}) {
         <Stack.Screen name="SellerDashboard" component={SellerDashboard} options={{headerShown:false}} />
         <Stack.Screen name="PurchaseHistory" component={PurchaseHistory} options={{headerShown:false}} />
         <Stack.Screen name="Chat" component={Chat} options={{headerShown:false}} />
+        <Stack.Screen name="SellerChat" component={SellerChat} options={{headerShown:false}} />
         <Stack.Screen name="ChatConversation" component={ChatConversation} options={{headerShown:false}} />
+        <Stack.Screen name="SellerChatConversation" component={SellerChatConversation} options={{headerShown:false}} />
         <Stack.Screen name="SellerOrderManagement" component={SellerOrderManagement} options={{headerShown:false}} />
         <Stack.Screen name="ProductManagement" component={ProductManagement} options={{headerShown:false}} />
         <Stack.Screen name="SalesReports" component={SalesReports} options={{headerShown:false}} />

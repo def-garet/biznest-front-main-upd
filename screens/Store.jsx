@@ -580,6 +580,7 @@ const { width } = Dimensions.get("window");
 
 const Store = () => {
   const [productsample, setProduct] = useState(null);
+  const [BestProduct, setBestProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("1");
   const [scrollY] = useState(new Animated.Value(0));
@@ -604,6 +605,8 @@ const Store = () => {
     try {
       const response = await axios.get(`${API_URL}/api/v1/Product/product_api`);
       setProduct(response.data);
+      const bestseller = response.data.sort((a, b) => b.rating - a.rating);
+      setBestProduct(bestseller);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -751,7 +754,7 @@ const Store = () => {
               onPress={() =>
                 navigation.navigate("AllProducts", {
                   title: "Best Sellers",
-                  initialProducts: productsample,
+                  initialProducts: BestProduct,
                 })
               }
             >
@@ -768,7 +771,7 @@ const Store = () => {
             />
           ) : (
             <View style={styles.bestSellersContainer}>
-              {productsample?.slice(4, 8).map((item, index) => (
+              {BestProduct?.slice(0, 5).map((item, index) => (
                 <TouchableOpacity
                   key={item.id}
                   style={styles.bestSellerCard}

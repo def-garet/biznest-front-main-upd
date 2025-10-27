@@ -14,6 +14,8 @@ import {
 import { MaterialIcons, Feather } from '@expo/vector-icons'
 import { COLORS } from '../../../style/theme'
 import { useNavigation, useRoute } from '@react-navigation/native'
+import axios from 'axios'
+import API_URL from '../../../api/api_urls'
 
 const ChatConversation = () => {
   const navigation = useNavigation()
@@ -22,22 +24,22 @@ const ChatConversation = () => {
   const scrollViewRef = useRef(null)
   
   const [messages, setMessages] = useState([
-    { 
-      id: 1, 
-      text: chat.message.includes('sent you an image') 
-        ? "Here's the image you requested:" 
-        : chat.message,
-      sender: 'store', 
-      time: chat.date 
-    },
-    { 
-      id: 2, 
-      text: chat.message.includes('sent you an image') 
-        ? "Thanks for sending the image!" 
-        : "Thanks for the message!", 
-      sender: 'me', 
-      time: 'Just now' 
-    }
+    // { 
+    //   id: 1, 
+    //   text: chat.message.includes('sent you an image') 
+    //     ? "Here's the image you requested:" 
+    //     : chat.message,
+    //   sender: 'store', 
+    //   time: chat.date 
+    // },
+    // { 
+    //   id: 2, 
+    //   text: chat.message.includes('sent you an image') 
+    //     ? "Thanks for sending the image!" 
+    //     : "Thanks for the message!", 
+    //   sender: 'me', 
+    //   time: 'Just now' 
+    // }
   ])
 
   const [newMessage, setNewMessage] = useState('')
@@ -66,21 +68,60 @@ const ChatConversation = () => {
     }
   }, [])
 
-  const handleSend = () => {
-    if (newMessage.trim()) {
-      const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      setMessages([...messages, {
-        id: messages.length + 1,
-        text: newMessage,
-        sender: 'me',
-        time: currentTime
-      }])
-      setNewMessage('')
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true })
-      }, 100)
+  useEffect(() => {
+  const fetchMessages = async () => {
+    if (!chat.thread_id) return; // no thread yet
+
+    try {
+      const response = await axios.get(`${API_URL}/api/v1/chat/get_messages/${chat.thread_id}`);
+      const history = response.data.messages.map(msg => ({
+        id: msg.id,
+        text: msg.message,
+        sender: msg.sender_id === chat.seller_id ? 'store' : 'me',
+        time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }));
+      setMessages(history);
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    } catch (err) {
+      console.error("Failed to fetch messages", err);
     }
+  };
+
+  fetchMessages();
+}, [chat.thread_id]);
+
+
+  const handleSend = async () => {
+  if (!newMessage.trim()) return;
+
+  try {
+    const response = await axios.post(`${API_URL}/api/v1/chat/send_message`, {
+      thread_id: chat.thread_id, // could be null for first message
+      seller_id: chat.seller_id,
+      message: newMessage,
+      message_type: "text",
+    });
+
+    const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setMessages([...messages, {
+      id: messages.length + 1,
+      text: newMessage,
+      sender: 'me',
+      time: currentTime
+    }]);
+
+    setNewMessage('');
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+    
+    // Save returned thread_id if it was first message
+    if (!chat.thread_id) chat.thread_id = response.data.thread_id;
+
+  } catch (error) {
+    console.error("Failed to send message", error);
   }
+};
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -166,15 +207,22 @@ const ChatConversation = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: "#f9fafb", // light gray background for contrast
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#f0f0f0',
+     flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: "white",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    marginTop: Platform.OS === "android" ? 35 : 0,
   },
   headerTitle: {
     fontSize: 18,
@@ -183,6 +231,8 @@ const styles = StyleSheet.create({
     marginLeft: 20,
     flex: 1,
     textAlign: 'center',
+   marginLeft: -5, // centers title visually despite back button
+
   },
   messagesContainer: {
     flex: 1,

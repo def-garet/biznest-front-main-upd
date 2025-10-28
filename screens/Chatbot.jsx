@@ -44,7 +44,8 @@ useEffect(() => {
 
 const fetchMessageHistory = async () => {
   try {
-    const response = await axios.get(`${N8NAPI_URL}/webhook/get_AIHelper_BuyerHistory/${buyer_id}`);
+    // http://localhost:5678/webhook/706f713f-873b-437e-9dd0-791c9fbbb51d/get_AIHelper_BuyerHistory/:buyer_id
+    const response = await axios.get(`${N8NAPI_URL}/webhook/706f713f-873b-437e-9dd0-791c9fbbb51d/get_AIHelper_BuyerHistory/${buyer_id}`);
     const msgs = response.data.full_history.map(msg => ({
       ...msg,
       timestamp: new Date(msg.timestamp), // convert here

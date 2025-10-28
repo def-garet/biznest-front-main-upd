@@ -9,9 +9,10 @@ import {
 import React, { useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native"; 
 import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 import API_URL from "../../api/api_urls";
 
-const purchaseHistory_api = `${API_URL}/api/v1/Purchase History/purchase_history`;
+const purchaseHistory_api = `/api/v1/Purchase History/purchase_history`;
 const COLORS = {
   primary: "#172d55",
   secondary: "#2196f3",
@@ -106,7 +107,7 @@ const PurchaseHistory = ({ route }) => {
   useEffect(() => {
     console.log(route.params?.initialTab);
     setActiveTab(route.params?.initialTab || "All"); 
-    axios
+    axiosInstance
       .get(purchaseHistory_api)
       .then((response) => {
         setAllOrders((prevOrders) => [...prevOrders, ...response.data]); 

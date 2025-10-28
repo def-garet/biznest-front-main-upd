@@ -660,6 +660,7 @@ const Store = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}

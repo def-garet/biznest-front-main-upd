@@ -200,6 +200,8 @@ const StaticProductStyle = ({ data = [],  horizontalItem = false }) => {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ padding: 10 }}
       columnWrapperStyle={!horizontalItem ? { justifyContent: "space-between" } : null}
+      scrollEnabled={false}          // disable FlatList’s scroll
+      nestedScrollEnabled={true} 
     />
   );
 };

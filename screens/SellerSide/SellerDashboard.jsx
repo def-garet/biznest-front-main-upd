@@ -36,15 +36,17 @@ const SellerDashboard = () => {
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState("analytics");
   const [chatMessage, setChatMessage] = useState("");
-  const [chatMessages, setChatMessages] = useState(
-  //   [
-  //   {
-  //     id: 1,
-  //     text: "Hello! I'm your selling assistant. How can I help?",
-  //     sender: "bot",
-  //   },
-  // ]
-  );
+  // const [chatMessages, setChatMessages] = useState(
+  // //   [
+  // //   {
+  // //     id: 1,
+  // //     text: "Hello! I'm your selling assistant. How can I help?",
+  // //     sender: "bot",
+  // //   },
+  // // ]
+  // );
+  const [chatMessages, setChatMessages] = useState([]);
+
   const[seller_id,setSellerId]=useState(null);
   const {userToken} = useContext(AuthContext);
   
@@ -326,8 +328,8 @@ const sendMessage = async () => {
             <Text style={styles.sectionTitle}>Sales Performance</Text>
             {salesData.length > 0 ? (
               <FlatList
-                data={salesData}
-                keyExtractor={(item) => item.id.toString()}
+                data={salesData || []}
+                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
                 renderItem={({ item }) => (
                   <View style={styles.salesItem}>
                     <View style={{ flex: 2 }}>
@@ -363,8 +365,10 @@ const sendMessage = async () => {
             <Text style={styles.sectionTitle}>Current Inventory</Text>
             {products.product_info?.length > 0 ? (
               <FlatList
-                data={products.product_info}
-                keyExtractor={(item) => item.id.toString()}
+                data={products.product_info || []}
+                    scrollEnabled={false} // FlatList won't scroll independently
+
+                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={styles.inventoryItem}
@@ -418,8 +422,8 @@ const sendMessage = async () => {
             <Text style={styles.sectionTitle}>Pricing Suggestions</Text>
             {pricingSuggestions.length > 0 ? (
               <FlatList
-                data={pricingSuggestions}
-                keyExtractor={(item) => item.id.toString()}
+                data={pricingSuggestions || []}
+                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
                 renderItem={({ item }) => (
                   <View style={styles.pricingItem}>
                     <Text style={styles.productName}>{item.product}</Text>
@@ -490,48 +494,108 @@ const sendMessage = async () => {
                 <Text style={styles.sectionTitle}>Selling Assistant</Text>
 
                 {chatMessages.length > 1 ? (
+
                   <FlatList
-                    data={chatMessages}
-                    keyExtractor={(item) => item.id.toString()}
-                    contentContainerStyle={{ paddingBottom: 80 }}
-                    renderItem={({ item }) => (
-                      <View
-                        style={[
-                          styles.chatBubble,
-                          item.sender === "user"
-                            ? styles.userBubble
-                            : styles.botBubble,
-                        ]}
-                      >
-                        {item.sender === "bot" && (
-                          <View style={styles.botAvatar}>
-                            <FontAwesome5 name="earlybirds" size={20} color="white" />
-                          </View>
-                        )}
-                        <Text
-                          style={
-                            item.sender === "user"
-                              ? styles.userText
-                              : styles.botText
-                          }
-                        >
-                          {item.text}
-                        </Text>
-                        {item.sender === "user" && (
-                          <View style={styles.userAvatar}>
-                            <Ionicons name="person" size={16} color="white" />
-                          </View>
-                        )}
-                      </View>
-                    )}
-                    ref={flatListRef}
-                    onContentSizeChange={() =>
-                      flatListRef.current?.scrollToEnd({ animated: true })
-                    }
-                    onLayout={() =>
-                      flatListRef.current?.scrollToEnd({ animated: true })
-                    }
-                  />
+  data={chatMessages.filter(Boolean)}
+  
+  keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+  renderItem={({ item }) => (
+    <View style={[styles.chatBubble, item.sender === "user" ? styles.userBubble : styles.botBubble]}>
+      {item.sender === "bot" && (
+        <View style={styles.botAvatar}>
+          <FontAwesome5 name="earlybirds" size={20} color="white" />
+        </View>
+      )}
+      <Text style={item.sender === "user" ? styles.userText : styles.botText}>{item.text}</Text>
+      {item.sender === "user" && (
+        <View style={styles.userAvatar}>
+          <Ionicons name="person" size={16} color="white" />
+        </View>
+      )}
+    </View>
+  )}
+  ref={flatListRef}
+  onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+  onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+/>
+
+
+//                   <FlatList
+//   data={chatMessages || []} // always an array
+//   keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+//   renderItem={({ item }) => item && (
+//     <View style={[styles.chatBubble, item.sender === "user" ? styles.userBubble : styles.botBubble]}>
+//       {item.sender === "bot" && <View style={styles.botAvatar}><FontAwesome5 name="earlybirds" size={20} color="white" /></View>}
+//       <Text style={item.sender === "user" ? styles.userText : styles.botText}>{item.text}</Text>
+//       {item.sender === "user" && <View style={styles.userAvatar}><Ionicons name="person" size={16} color="white" /></View>}
+//     </View>
+//   )}
+//   ref={flatListRef}
+//   onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+//   onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+// />
+
+//                   <FlatList
+//   data={chatMessages || []}
+//   keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+//   contentContainerStyle={{ paddingBottom: 80 }}
+//   renderItem={({ item }) =>
+//     item ? (
+//       <View style={[styles.chatBubble, item.sender === "user" ? styles.userBubble : styles.botBubble]}>
+//         {item.sender === "bot" && <View style={styles.botAvatar}><FontAwesome5 name="earlybirds" size={20} color="white" /></View>}
+//         <Text style={item.sender === "user" ? styles.userText : styles.botText}>{item.text}</Text>
+//         {item.sender === "user" && <View style={styles.userAvatar}><Ionicons name="person" size={16} color="white" /></View>}
+//       </View>
+//     ) : null
+//   }
+//   ref={flatListRef}
+//   onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+//   onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+// />
+            
+                  ///the frist message is bot welcome message, so we check length >1
+                  // <FlatList
+                  //   data={chatMessages || []}
+                  //   keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+                  //   contentContainerStyle={{ paddingBottom: 80 }}
+                  //   renderItem={({ item }) => (
+                  //     <View
+                  //       style={[
+                  //         styles.chatBubble,
+                  //         item.sender === "user"
+                  //           ? styles.userBubble
+                  //           : styles.botBubble,
+                  //       ]}
+                  //     >
+                  //       {item.sender === "bot" && (
+                  //         <View style={styles.botAvatar}>
+                  //           <FontAwesome5 name="earlybirds" size={20} color="white" />
+                  //         </View>
+                  //       )}
+                  //       <Text
+                  //         style={
+                  //           item.sender === "user"
+                  //             ? styles.userText
+                  //             : styles.botText
+                  //         }
+                  //       >
+                  //         {item.text}
+                  //       </Text>
+                  //       {item.sender === "user" && (
+                  //         <View style={styles.userAvatar}>
+                  //           <Ionicons name="person" size={16} color="white" />
+                  //         </View>
+                  //       )}
+                  //     </View>
+                  //   )}
+                  // ref={flatListRef}
+                  // onContentSizeChange={() =>
+                  //   flatListRef.current?.scrollToEnd({ animated: true })
+                  // }
+                  // onLayout={() =>
+                  //   flatListRef.current?.scrollToEnd({ animated: true })
+                  // }
+                  // />
                 ) : (
                   <View style={styles.assistantEmptyState}>
                     <View style={styles.botAvatarLarge}>
@@ -596,6 +660,12 @@ const sendMessage = async () => {
           />
         }
       >
+        <FlatList
+  data={[]} // empty because items are in ListHeaderComponent
+  keyExtractor={(item, index) => index.toString()}
+  ListHeaderComponent={
+    <>
+
         {/* Quick Stats Overview */}
         <View style={styles.overviewCard}>
           <View style={styles.overviewItem}>
@@ -783,6 +853,11 @@ const sendMessage = async () => {
 
         {/* Tab Content */}
         {renderTabContent()}
+
+    </>
+  }
+/>
+
       </ScrollView>
 
       {/* Add Product Floating Button */}

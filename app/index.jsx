@@ -12,12 +12,16 @@ import { TradeScreen, TradeOffer, TradeConfirmationScreen,AvailableTradesScreen 
 import { ViewShop, AllProducts, } from '../screens/ShopSide';
 import { SearchResults } from '../screens/SearchComponents';
 import { DinagyangProducts } from '../screens/SeasonalCompenents';
+import Toast from 'react-native-toast-message';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 const Stack = createStackNavigator();
 
 export default function App({linking}) {
   return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['bottom']}>
+
     <AuthProvider>
 
 
@@ -63,8 +67,10 @@ export default function App({linking}) {
         <Stack.Screen name="Vouchers" component={Vouchers} options={{headerShown:false}} />
         
       </Stack.Navigator>
+      <Toast />
 
     </AuthProvider>
-   
+       </SafeAreaView>
+
   );
 }

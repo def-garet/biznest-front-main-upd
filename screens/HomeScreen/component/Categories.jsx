@@ -2,7 +2,7 @@ import { View, Text, Image, StyleSheet, FlatList, Platform, TouchableOpacity } f
 import React, { useEffect, useState } from 'react';
 import { COLORS, HeadingText } from '../../../style/theme';
 import { useNavigation } from "@react-navigation/native";
-import API_URL from '../../../api/api_urls';
+import API_URL  from '../../../api/api_urls';
 const API = API_URL + "/api/v1/Category/biznest_api"
 
 
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
 // } from "react-native";
 // import { useNavigation } from "@react-navigation/native";
 // import { Feather } from "@expo/vector-icons";
-// import API_URL from "../../../api/api_urls";
+// import API_URL  from "../../../api/api_urls";
 // import { COLORS, HeadingText } from "../../../style/theme";
 
 // const API = API_URL + "/api/v1/Category/biznest_api";

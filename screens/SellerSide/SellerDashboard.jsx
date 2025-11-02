@@ -24,9 +24,9 @@ import {
 import { COLORS } from "../../style/theme";
 import { useNavigation } from "@react-navigation/native";
 import ProductManagement from "./ProductManagement";
-import API_URL from "../../api/api_urls";
+import API_URL  from "../../api/api_urls";
 import axios from "axios";
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from '@api/axiosInstance';
 import N8NAPI_URL from "../../api/n8n_api";
 import { AuthContext } from "../../auth/AuthContext";
 
@@ -1384,7 +1384,7 @@ export default SellerDashboard;
 // import { COLORS } from "../../style/theme";
 // import { useNavigation } from "@react-navigation/native";
 // import ProductManagement from "./ProductManagement";
-// import API_URL from "../../api/api_urls";
+// import API_URL  from "../../api/api_urls";
 // import axios from "axios";
 
 // const products_api = API_URL + "/api/v1/seller/Manage Product/manage_product";

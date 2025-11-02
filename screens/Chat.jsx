@@ -5,7 +5,6 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   ActivityIndicator,
 
@@ -13,7 +12,8 @@ import {
 import { MaterialIcons, Ionicons } from '@expo/vector-icons'
 import { COLORS } from '../style/theme'
 import { useNavigation } from '@react-navigation/native'
-import axiosInstance from '../api/axiosInstance'
+import axiosInstance from '@api/axiosInstance';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const Chat = () => {
   const navigation = useNavigation()

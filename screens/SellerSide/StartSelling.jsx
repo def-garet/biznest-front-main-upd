@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from '@api/axiosInstance';
 import { AuthContext } from "../../auth/AuthContext";
 const API = `/api/v1/seller/Seller Create Account/seller_register`;
 

@@ -15,7 +15,7 @@ import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { COLORS } from '../../../style/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
-import API_URL from '../../../api/api_urls';
+import API_URL  from '../../../api/api_urls';
 
 const SellerChatConversation = () => {
   const navigation = useNavigation();

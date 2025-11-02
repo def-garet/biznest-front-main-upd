@@ -12,7 +12,7 @@ import {
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../style/theme';
 import { useNavigation } from '@react-navigation/native';
-import axiosInstance from '../api/axiosInstance';
+import axiosInstance from '@api/axiosInstance';
 
 const SellerChat = () => {
   const navigation = useNavigation();

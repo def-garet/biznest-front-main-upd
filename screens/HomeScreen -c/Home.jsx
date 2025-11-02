@@ -14,7 +14,7 @@ import { COLORS } from "../../style/theme";
 import { Categories, Slider } from "./component";
 import { ProductStyle, ProductsTitle } from "../Global";
 import axios from "axios";
-import API_URL from "../../api/api_urls";
+import API_URL  from "../../api/api_urls";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../auth/AuthContext";
 import { axiosInstance } from "../../api/axiosInstance"; // Importing the singleton instance

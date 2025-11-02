@@ -2,7 +2,7 @@ import { View, Text, Image, StyleSheet, FlatList, Platform } from 'react-native'
 import React, { useEffect, useState,useContext } from 'react';
 import axios from 'axios';
 import { COLORS } from '../../../style/theme';
-import API_URL from '../../../api/api_urls';
+import API_URL  from '../../../api/api_urls';
 import { AuthContext } from '../../../auth/AuthContext';
 const API = API_URL + "/api/v1/DiscountCoupon/biznest_api"
 import { Link } from 'expo-router';

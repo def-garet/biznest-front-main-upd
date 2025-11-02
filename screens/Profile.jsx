@@ -21,7 +21,7 @@ import {
 } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { COLORS } from "../style/theme";
-import axiosInstance from "../api/axiosInstance";
+import axiosInstance from '@api/axiosInstance';
 import { AuthContext } from "../auth/AuthContext";
 
 const API ="/api/v1/Profile/buyer_profile";
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
   },
   chatbotButton: {
     position: 'absolute',
-    bottom: 80, 
+    bottom: 30, 
     right: 20,
     width: 60,
     height: 60,

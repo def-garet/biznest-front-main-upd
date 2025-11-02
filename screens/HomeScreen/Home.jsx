@@ -17,7 +17,7 @@
 
 // import { COLORS } from "../../style/theme";
 // import style from "../../style/home.style";
-// import API_URL from "../../api/api_urls";
+// import API_URL  from "../../api/api_urls";
 // import { Categories, Slider, SRPMonitoring } from "./component";
 // import { ProductStyle, ProductsTitle } from "../Global";
 
@@ -187,7 +187,7 @@
 
 // import { COLORS } from "../../style/theme";
 // import style from "../../style/home.style";
-// import API_URL from "../../api/api_urls";
+// import API_URL  from "../../api/api_urls";
 // import { Categories, Slider, SRPMonitoring } from "./component";
 // import { ProductStyle, ProductsTitle } from "../Global";
 // import { AuthContext } from "../../auth/AuthContext";
@@ -374,7 +374,7 @@ import { DinagyangProducts } from "../SeasonalCompenents";
 
 import { COLORS } from "../../style/theme";
 import style from "../../style/home.style";
-import API_URL from "../../api/api_urls";
+import API_URL  from "../../api/api_urls";
 import { Categories, Slider, SRPMonitoring } from "./component";
 import { StaticProductStyle,CategoryModal } from "../Global";
 import { AuthContext } from "../../auth/AuthContext";
@@ -546,7 +546,7 @@ const Home = () => {
 
   const fetchProduct = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/v1/Product/product_api`);
+      const response = await axios.get(`http://192.168.195.57:5000/api/v1/Product/product_api`);
       setProduct(response.data);
     } catch (error) {
       console.error("Error fetching product:", error);
@@ -680,7 +680,7 @@ useEffect(() => {
                 <Ionicons name="location-outline" size={30} color={COLORS.background} />
                 <View>
                   <Text style={{ color: COLORS.background, fontSize: 20, fontWeight: "bold" }}>
-                    Iloilo
+                    Iloilo 
                   </Text>
                   <Text style={{ color: COLORS.background }}>Iloilo City</Text>
                 </View>

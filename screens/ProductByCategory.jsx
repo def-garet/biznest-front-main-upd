@@ -1,7 +1,7 @@
 import { Text,View,SafeAreaView,StatusBar,ScrollView } from 'react-native';
 import React,{ useEffect, useState } from 'react';
 import { ProductStyle,ProductsTitle } from './Global';
-import API_URL from '../api/api_urls';
+import API_URL  from '../api/api_urls';
 import { useRoute } from "@react-navigation/native";
 import axios from "axios";
 const API = API_URL + "/api/v1/Category/biznest_api"

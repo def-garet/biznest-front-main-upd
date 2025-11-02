@@ -15,7 +15,7 @@ import { MaterialIcons, Feather } from '@expo/vector-icons'
 import { COLORS } from '../../../style/theme'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import axios from 'axios'
-import API_URL from '../../../api/api_urls'
+import API_URL  from '../../../api/api_urls'
 
 const ChatConversation = () => {
   const navigation = useNavigation()
@@ -44,6 +44,15 @@ const ChatConversation = () => {
 
   const [newMessage, setNewMessage] = useState('')
   const [keyboardHeight, setKeyboardHeight] = useState(0)
+
+useEffect(() => {
+  if (chat.thread_id) {
+    axios.put(`${API_URL}/api/v1/chat/notifications/read/${chat.thread_id}`)
+      .then(() => console.log('✅ All notifications for this chat marked as read'))
+      .catch(err => console.error('Failed to mark notifications', err));
+  }
+}, [chat.thread_id]);
+
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(

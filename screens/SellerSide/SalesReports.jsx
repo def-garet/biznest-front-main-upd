@@ -16,8 +16,8 @@ import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { DataTable } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../style/theme';
-import API_URL from '../../api/api_urls';
-import axiosInstance from '../../api/axiosInstance';
+import API_URL  from '../../api/api_urls';
+import axiosInstance from '@api/axiosInstance';
 import DateTimePicker from '@react-native-community/datetimepicker';
 const api_sales_reports = '/api/v1/seller/SalesReport/seller_sales_report';
 
@@ -395,7 +395,7 @@ export default SalesReports;
 // import { COLORS } from '../../style/theme';
 // import DatePicker from 'react-native-date-picker';
 // import axios from 'axios';
-// import API_URL from '../../api/api_urls';
+// import API_URL  from '../../api/api_urls';
 
 // const api_sales_reports = API_URL + '/api/v1/seller/SalesReport/seller_sales_report';
 
@@ -972,7 +972,7 @@ export default SalesReports;
 // import { COLORS } from '../../style/theme';
 // import DatePicker from 'react-native-date-picker';
 // import axios from 'axios';
-// import API_URL from '../../api/api_urls';
+// import API_URL  from '../../api/api_urls';
 
 // const api_sales_reports= API_URL + '/api/v1/seller/SalesReport/seller_sales_report';
 

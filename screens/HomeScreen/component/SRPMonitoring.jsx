@@ -134,7 +134,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../../style/theme";
 import * as Animatable from 'react-native-animatable';
 import axios from "axios";
-import API_URL from "../../../api/api_urls";
+import API_URL  from "../../../api/api_urls";
+
 const { width } = Dimensions.get("window");
 const srpi_api = API_URL + "/api/v1/seller/Seller Product SRP/seller_product_srp";
 

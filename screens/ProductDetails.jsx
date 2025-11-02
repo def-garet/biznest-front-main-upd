@@ -27,7 +27,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "expo-router";
 import { useRoute } from "@react-navigation/native";
 import axios from "axios";
-import API_URL from "../api/api_urls";
+import API_URL  from "../api/api_urls";
 import { ProductsTitle } from "./Global";
 import axiosInstance from "../api/axiosInstance";
 import { Share, Linking } from "react-native";
@@ -225,8 +225,8 @@ const ProductDetails = () => {
 
   const fetchProductDetails = async () => {
     try {
-      const response = await axios.post(
-        `${API_URL}/api/v1/Product/product_api`,
+      const response = await axiosInstance.post(
+        `/api/v1/Product/product_api`,
         { product_id }
       );
       setProductDetail(response.data);
@@ -1282,7 +1282,7 @@ export default ProductDetails;
 // import { useNavigation } from "expo-router";
 // import { useRoute } from "@react-navigation/native";
 // import axios from "axios";
-// import API_URL from "../api/api_urls";
+// import API_URL  from "../api/api_urls";
 // import { ProductsTitle } from "./Global";
 
 // const PRIMARY_COLOR = "#172d55";

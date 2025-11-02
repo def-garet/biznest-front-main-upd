@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import axiosInstance from "../../api/axiosInstance";
 import { AuthContext } from "../../auth/AuthContext";
+import axiosInstance from '@api/axiosInstance';
 
 const API = `/api/v1/Buyer Cart/buyer_cart`;
 const API_Like = `/api/v1/Buyer Likes/buyer_like`;

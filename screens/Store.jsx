@@ -14,7 +14,7 @@
 // import { SafeAreaView } from "react-native-safe-area-context";
 // import { Feather, MaterialIcons, AntDesign, FontAwesome } from "@expo/vector-icons";
 // import axios from "axios";
-// import API_URL from "../api/api_urls.jsx";
+// import API_URL  from "../api/api_urls.jsx";
 // import { useNavigation } from "@react-navigation/native";
 
 // const { width } = Dimensions.get('window');
@@ -571,10 +571,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather, AntDesign, FontAwesome, Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import API_URL from "../api/api_urls.jsx";
+import API_URL  from "../api/api_urls.jsx";
 import { useNavigation } from "@react-navigation/native";
 import Categories from "./HomeScreen/component/Categories.jsx";
 import StaticProductStyle from "./Global/StaticProductStyle.jsx";
+import axiosInstance from "../api/axiosInstance.js";
 
 const { width } = Dimensions.get("window");
 
@@ -584,6 +585,7 @@ const Store = () => {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("1");
   const [scrollY] = useState(new Animated.Value(0));
+  const [recommendedproduct, setRecommendedProduct] = useState([]);
 
   const navigation = useNavigation();
 
@@ -599,6 +601,7 @@ const Store = () => {
 
   useEffect(() => {
     fetchProduct();
+    fetchRecommendedProduct()
   }, []);
 
   const fetchProduct = async () => {
@@ -607,6 +610,23 @@ const Store = () => {
       setProduct(response.data);
       const bestseller = response.data.sort((a, b) => b.rating - a.rating);
       setBestProduct(bestseller);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+const fetchRecommendedProduct = async () => {
+    try {
+      const response = await axiosInstance.get(`/api/v1/AI Recommendation/buyer_recommendation`);
+      const productList = response.data.map(item => item.product_info);
+
+      setRecommendedProduct(productList);
+      // const bestseller = response.data.sort((a, b) => b.rating - a.rating);
+      // setBestProduct(bestseller);
+
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -891,6 +911,87 @@ const Store = () => {
     <StaticProductStyle data={productsample?.slice(0, 4)} />
   )}
 </View>
+
+
+{/* Recommendation */}
+{/* {recommendedproduct && recommendedproduct.length > 0 && ( */}
+
+{recommendedproduct && recommendedproduct.length > 0 ? (
+  <View style={[styles.section, { marginTop: -30 }]}>
+    <View style={styles.sectionHeader}>
+      <View>
+        <Text style={styles.sectionTitle}>Recommended For You</Text>
+        <Text style={styles.sectionSubtitle}>Picked just for you</Text>
+      </View>
+      <TouchableOpacity
+        style={styles.seeAllButton}
+        onPress={() =>
+          navigation.navigate("Recommended For You", {
+            title: "New Arrivals",
+            initialProducts: recommendedproduct, // pass full data
+          })
+        }
+      >
+        <Text style={styles.seeAllText}>View all</Text>
+        <Feather name="chevron-right" size={16} color="#2563eb" />
+      </TouchableOpacity>
+    </View>
+
+    {loading ? (
+      <ActivityIndicator
+        size="large"
+        color="#2563eb"
+        style={styles.loader}
+      />
+    ) : (
+      <StaticProductStyle data={recommendedproduct.slice(0, 4)} />
+    )}
+  </View>
+): (
+  !loading && (
+    <Text style={{ textAlign: "center", color: "#888", marginBottom: 10,marginTop: -50 }}>
+      No recommendations available right now.
+    </Text>
+  )
+)
+
+
+}
+
+
+
+       {/* Recommendation
+  <View style={[styles.section, { marginBottom: 60 }]}>
+  <View style={styles.sectionHeader}>
+    <View>
+      <Text style={styles.sectionTitle}>Recommended For You</Text>
+      <Text style={styles.sectionSubtitle}>Picked just for you</Text>
+    </View>
+    <TouchableOpacity
+      style={styles.seeAllButton}
+      onPress={() =>
+        navigation.navigate("Recommended For You", {
+          title: "New Arrivals",
+          initialProducts: recommendedproduct, // pass full data
+        })
+      }
+    >
+      <Text style={styles.seeAllText}>View all</Text>
+      <Feather name="chevron-right" size={16} color="#2563eb" />
+    </TouchableOpacity>
+  </View>
+
+  {loading ? (
+    <ActivityIndicator
+      size="large"
+      color="#2563eb"
+      style={styles.loader}
+    />
+  ) : (
+    // Use StaticProductStyle here
+    <StaticProductStyle data={recommendedproduct?.slice(0, 4)} />
+  )}
+</View> */}
 
 
         {/* Special Offer

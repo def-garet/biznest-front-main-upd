@@ -318,9 +318,9 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Image, StyleSheet, Switch } from 'react-native';
 import { COLORS } from '../style/theme';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import API_URL from '../api/api_urls';
-import axiosInstance from '../api/axiosInstance';
+import API_URL  from '../api/api_urls';
 const order_api = '/api/v1/seller/Seller Orders/seller_orders';
+import axiosInstance from '@api/axiosInstance';
 
 const Checkout = ({ route, navigation }) => {
   const { cartProducts, total } = route.params;
@@ -336,7 +336,7 @@ const Checkout = ({ route, navigation }) => {
     const orderDetails = cartProducts.map(item => ({
       buyer_id: item.buyer_id,
       product_id: item.product_info.id,
-      status: "To Ship",
+      status: "Pending",
       quantity: item.quantity,
       total_price: (item.product_info.price * item.quantity).toFixed(2),
     }));

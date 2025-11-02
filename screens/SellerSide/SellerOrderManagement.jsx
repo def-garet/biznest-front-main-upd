@@ -10,7 +10,7 @@ import {
   TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from '@api/axiosInstance';
 
 
 const API = `/api/v1/seller/Seller Orders/seller_orders`;

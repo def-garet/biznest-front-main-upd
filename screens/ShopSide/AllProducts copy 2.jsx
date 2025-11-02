@@ -13,9 +13,9 @@ import {
 } from "react-native";
 import { Feather, AntDesign, Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from '@api/axiosInstance';
 import N8NAPI_URL from "../../api/n8n_api";
-import API_URL from "../../api/api_urls";
+import API_URL  from "../../api/api_urls";
 
 const productAPI = API_URL + "/api/v1/Product/product_api";
 

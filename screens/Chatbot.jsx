@@ -276,11 +276,11 @@ const fetchMessageHistory = async () => {
       </View>
 
       {/* Main Container with Keyboard Avoiding */}
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+        <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.select({ ios: 90, android: 0 })}
+    >
         {/* Chat Messages */}
         <FlatList
           ref={flatListRef}
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    marginTop: Platform.OS === 'android' ? 30 : 0,
+    marginTop: Platform.OS === 'android' ? 1 : 0,
   },
   backButton: {
     padding: 4,
@@ -474,6 +474,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
+    
   },
   textInput: {
     flex: 1,

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, TextInput 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../auth/AuthContext';
-import API_URL from '../api/api_urls';
+import API_URL  from '../api/api_urls';
 import { COLORS } from '../style/theme';
 
 const API = API_URL + "/api/v1/Register%20Buyer/buyer_register"

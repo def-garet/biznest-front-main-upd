@@ -9,8 +9,8 @@ import {
 import React, { useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native"; 
 import axios from "axios";
-import axiosInstance from "../../api/axiosInstance";
-import API_URL from "../../api/api_urls";
+import axiosInstance from '@api/axiosInstance';
+import API_URL  from "../../api/api_urls";
 
 const purchaseHistory_api = `/api/v1/Purchase History/purchase_history`;
 const COLORS = {
@@ -37,71 +37,71 @@ const PurchaseHistory = ({ route }) => {
   const navigation = useNavigation();
 
   const [allOrders, setAllOrders] = useState([
-    // Completed orders
-    {
-      id: "1",
-      store: "Roberto's Siopao",
-      status: "Completed",
-      product: "Queen Siopao Special (6 pieces)",
-      quantity: 2,
-      price: 420,
-      ratingDeadline: "15 Aug",
-      coins: 1.2,
-      image:
-        "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&auto=format&fit=crop&q=60",
-    },
-    {
-      id: "2",
-      store: "Madge Coffee",
-      status: "Completed",
-      product: "Barako Coffee Beans",
-      variant: "500g pack",
-      quantity: 1,
-      price: 350,
-      image:
-        "https://images.unsplash.com/photo-1517705008128-361805f42e86?w=500&auto=format&fit=crop&q=60",
-    },
+    // // Completed orders
+    // {
+    //   id: "1",
+    //   store: "Roberto's Siopao",
+    //   status: "Completed",
+    //   product: "Queen Siopao Special (6 pieces)",
+    //   quantity: 2,
+    //   price: 420,
+    //   ratingDeadline: "15 Aug",
+    //   coins: 1.2,
+    //   image:
+    //     "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&auto=format&fit=crop&q=60",
+    // },
+    // {
+    //   id: "2",
+    //   store: "Madge Coffee",
+    //   status: "Completed",
+    //   product: "Barako Coffee Beans",
+    //   variant: "500g pack",
+    //   quantity: 1,
+    //   price: 350,
+    //   image:
+    //     "https://images.unsplash.com/photo-1517705008128-361805f42e86?w=500&auto=format&fit=crop&q=60",
+    // },
 
-    // To Pay orders
-    {
-      id: "3",
-      store: "Iloilo Biscocho Haus",
-      status: "To Pay",
-      product: "Original Biscocho Pack",
-      variant: "Family size",
-      quantity: 3,
-      price: 675,
-      dueDate: "Today, 5:00 PM",
-      image:
-        "https://images.unsplash.com/photo-1587241321921-91a834d6d191?w=500&auto=format&fit=crop&q=60",
-    },
+    // // To Pay orders
+    // {
+    //   id: "3",
+    //   store: "Iloilo Biscocho Haus",
+    //   status: "To Pay",
+    //   product: "Original Biscocho Pack",
+    //   variant: "Family size",
+    //   quantity: 3,
+    //   price: 675,
+    //   dueDate: "Today, 5:00 PM",
+    //   image:
+    //     "https://images.unsplash.com/photo-1587241321921-91a834d6d191?w=500&auto=format&fit=crop&q=60",
+    // },
 
-    // To Ship orders
-    {
-      id: "4",
-      store: "Tatoy's Manokan",
-      status: "To Ship",
-      product: "Native Chicken BBQ",
-      variant: "10 sticks",
-      quantity: 1,
-      price: 450,
-      estimatedShipDate: "Tomorrow",
-      image:
-        "https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=60",
-    },
+    // // To Ship orders
+    // {
+    //   id: "4",
+    //   store: "Tatoy's Manokan",
+    //   status: "To Ship",
+    //   product: "Native Chicken BBQ",
+    //   variant: "10 sticks",
+    //   quantity: 1,
+    //   price: 450,
+    //   estimatedShipDate: "Tomorrow",
+    //   image:
+    //     "https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=60",
+    // },
 
-    // To Receive orders
-    {
-      id: "5",
-      store: "Molo Mansion",
-      status: "To Receive",
-      product: "Assorted Tarts",
-      quantity: 10,
-      price: 30,
-      estimatedDelivery: "Aug 20-22",
-      image:
-        "https://anec.global/cdn/shop/products/Untitleddesign_30_7a6265bd-6a8b-4a2a-9791-6e3fd4a58c39_grande.png?v=1645164662",
-    },
+    // // To Receive orders
+    // {
+    //   id: "5",
+    //   store: "Molo Mansion",
+    //   status: "To Receive",
+    //   product: "Assorted Tarts",
+    //   quantity: 10,
+    //   price: 30,
+    //   estimatedDelivery: "Aug 20-22",
+    //   image:
+    //     "https://anec.global/cdn/shop/products/Untitleddesign_30_7a6265bd-6a8b-4a2a-9791-6e3fd4a58c39_grande.png?v=1645164662",
+    // },
   ]);
 
   useEffect(() => {

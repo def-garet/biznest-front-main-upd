@@ -18,8 +18,8 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { TradeContext } from "./TradeComponent/TradeContext";
 import { useNavigation } from "@react-navigation/native";
-import axiosInstance from "../../api/axiosInstance";
-import API_URL from "../../api/api_urls";
+import axiosInstance from '@api/axiosInstance';
+import API_URL  from "../../api/api_urls";
 const trade_api = "/api/v1/seller/Seller Trade/seller_trade";
 
 

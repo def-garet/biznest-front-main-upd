@@ -4,7 +4,7 @@
 // import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 // import axios from 'axios';
 // import { COLORS } from '../style/theme';
-// import API_URL from '../api/api_urls';
+// import API_URL  from '../api/api_urls';
 
 // // new cart
 
@@ -173,8 +173,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { COLORS } from '../style/theme';
-import axiosInstance from '../api/axiosInstance';
 const API = `/api/v1/Buyer%20Cart/buyer_cart/`;
+import axiosInstance from '@api/axiosInstance';
 
 const MyCart = ({ navigation }) => {
   const [cartProducts, setCartProducts] = useState([]);

@@ -6,14 +6,18 @@ import {
   ScrollView,
   Image,
   TextInput,
-  Alert,
+  Modal,
+  Animated,
+  Easing,
 } from "react-native";
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../auth/AuthContext";
 import API_URL from "../api/api_urls";
 import { COLORS } from "../style/theme";
+import Toast from 'react-native-toast-message';
+
 const API = API_URL + "/api/v1/Login%20Buyer/buyer_login";
 
 const CustomerLogin = () => {
@@ -23,6 +27,9 @@ const CustomerLogin = () => {
   const [tokenLogin, setTokenLogin] = useState(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [showFailPopup, setShowFailPopup] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Logintoken();
@@ -33,7 +40,6 @@ const CustomerLogin = () => {
       const response = await fetch(API);
       const data = await response.json();
       setTokenLogin(data.loginToken);
-      console.log(tokenLogin);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -41,16 +47,35 @@ const CustomerLogin = () => {
 
   const handleLogin = async () => {
     const result = await login(username, password, tokenLogin, navigation);
+    console.log("Login result:", result);
     if (!result) {
-      Alert.alert('Login Failed')
-      Logintoken()
+      showLoginFailPopup();
+      Logintoken();
     }
   };
 
-  const [showPass, setShowPass] = React.useState(false);
+  const showLoginFailPopup = () => {
+    setShowFailPopup(true);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+
+    // Auto close after 2.5s
+    setTimeout(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => setShowFailPopup(false));
+    }, 2500);
+  };
+
   return (
     <View style={{ flex: 1 }}>
-      {/*HEADER*/}
+      {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.row}>
           <TouchableOpacity onPress={() => navigation.navigate("Home")}>
@@ -73,8 +98,8 @@ const CustomerLogin = () => {
         </TouchableOpacity>
       </View>
 
+      {/* FORM */}
       <ScrollView style={styles.container}>
-        {/*lOGO*/}
         <View style={styles.LogoContainer}>
           <Image
             source={require("../assets/imgs/biznest-new.png")}
@@ -82,7 +107,6 @@ const CustomerLogin = () => {
           />
         </View>
 
-        {/*Form*/}
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Ionicons name={"person-outline"} size={25} />
@@ -93,6 +117,7 @@ const CustomerLogin = () => {
               onChangeText={(uName) => setUsername(uName)}
             />
           </View>
+
           <View style={styles.inputContainer}>
             <Ionicons name={"lock-closed-outline"} size={25} />
             <TextInput
@@ -102,38 +127,27 @@ const CustomerLogin = () => {
               value={password}
               onChangeText={(Pass) => setPassword(Pass)}
             />
-            <View>
-              <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                <Ionicons
-                  name={showPass ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={() => setShowPass(!showPass)}>
+              <Ionicons
+                name={showPass ? "eye-outline" : "eye-off-outline"}
+                size={20}
+              />
+            </TouchableOpacity>
             <View style={styles.separator} />
             <TouchableOpacity>
               <Text style={styles.forgotPass}>Forgot</Text>
             </TouchableOpacity>
           </View>
 
-          <View>
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={() => {
-                handleLogin()
-              }}
-            >
-              <Text style={styles.loginText}>Log In</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+            <Text style={styles.loginText}>Log In</Text>
+          </TouchableOpacity>
         </View>
 
-        {/*Continue with */}
         <View>
           <Text style={styles.contWith}>━━━━━ Or continue with ━━━━━</Text>
         </View>
 
-        {/*icons*/}
         <View style={styles.appIconContainer}>
           <TouchableOpacity>
             <Image
@@ -155,7 +169,6 @@ const CustomerLogin = () => {
           </TouchableOpacity>
         </View>
 
-        {/*SignUpText*/}
         <View style={styles.signUpTextContainer}>
           <Text style={styles.signUpText}>Don't have an account?</Text>
           <TouchableOpacity onPress={() => navigation.push("CustomerSignup")}>
@@ -163,6 +176,19 @@ const CustomerLogin = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* ⚠️ LOGIN FAILED POPUP */}
+      <Modal visible={showFailPopup} transparent animationType="none">
+        <View style={styles.overlay}>
+          <Animated.View style={[styles.popup, { opacity: fadeAnim }]}>
+            <Ionicons name="alert-circle-outline" size={50} color="#ff5c5c" />
+            <Text style={styles.popupTitle}>Login Failed</Text>
+            <Text style={styles.popupText}>
+              Please check your username or password.
+            </Text>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -170,9 +196,7 @@ const CustomerLogin = () => {
 export default CustomerLogin;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -181,30 +205,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: COLORS.primary,
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  text: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "white",
-  },
-  icon: {
-    marginRight: 8,
-  },
-  logo: {
-    height: 250,
-    width: 225,
-    marginVertical: 10,
-  },
-  LogoContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  formContainer: {
-    marginTop: 10,
-  },
+  row: { flexDirection: "row", alignItems: "center" },
+  text: { fontSize: 20, fontWeight: "bold", color: "white" },
+  icon: { marginRight: 8 },
+  logo: { height: 250, width: 225, marginVertical: 10 },
+  LogoContainer: { alignItems: "center", justifyContent: "center" },
+  formContainer: { marginTop: 10 },
   inputContainer: {
     borderWidth: 1,
     borderColor: "black",
@@ -216,14 +222,11 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     margin: 15,
   },
-  textInput: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
+  textInput: { flex: 1, paddingHorizontal: 20 },
   forgotPass: {
     textDecorationLine: "underline",
     color: "blue",
-    fontWeight: 500,
+    fontWeight: "500",
     marginLeft: 10,
   },
   separator: {
@@ -244,25 +247,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 15,
   },
-  appIcon: {
-    width: 40,
-    height: 40,
-    resizeMode: "contain",
-  },
+  appIcon: { width: 40, height: 40, resizeMode: "contain" },
   signUpTextContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 18,
   },
-  signUpText: {
-    fontSize: 20,
-  },
-  signUpTouch: {
-    fontSize: 20,
-    fontWeight: "bold",
-    // textDecorationLine: 'underline'
-  },
+  signUpText: { fontSize: 20 },
+  signUpTouch: { fontSize: 20, fontWeight: "bold" },
   loginButton: {
     borderWidth: 1,
     borderColor: COLORS.background,
@@ -276,9 +269,37 @@ const styles = StyleSheet.create({
     margin: 10,
     backgroundColor: COLORS.primary,
   },
-  loginText: {
-    color: "white",
-    fontSize: 20,
+  loginText: { color: "white", fontSize: 20, fontWeight: "bold" },
+
+  // 🔥 POPUP STYLES
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  popup: {
+    backgroundColor: "#1e1e1e",
+    width: "80%",
+    padding: 25,
+    borderRadius: 18,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  popupTitle: {
+    color: "#ff5c5c",
+    fontSize: 22,
     fontWeight: "bold",
+    marginTop: 10,
+  },
+  popupText: {
+    color: "#ddd",
+    textAlign: "center",
+    marginTop: 8,
+    fontSize: 15,
   },
 });

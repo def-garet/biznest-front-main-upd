@@ -23,7 +23,9 @@
       },
       "softwareKeyboardLayoutMode": "pan",
       "package": "com.hotaka098.BIZNest",
-      "permissions": ["INTERNET"]
+      "permissions": ["INTERNET"],
+      "usesCleartextTraffic": true
+
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -37,7 +39,7 @@
         "expo-build-properties",
         {
           "android": {
-            "useCleartextTraffic": true
+            "usesCleartextTraffic": true
           }
         }
       ]

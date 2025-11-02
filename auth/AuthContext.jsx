@@ -1,6 +1,6 @@
 // import React, { createContext, useState } from "react";
 // import axios from "axios";
-// import API_URL from "../api/api_urls";
+// import API_URL  from "../api/api_urls";
 // import * as SecureStore from 'expo-secure-store';
 // const API = API_URL + "/api/v1/Login%20Buyer/buyer_login"
 // console.log(API);
@@ -157,9 +157,10 @@
 // };
 
 import React, { createContext, useState, useEffect } from "react";
-import axiosInstance from "../api/axiosInstance";
 import * as SecureStore from 'expo-secure-store';
 import { Alert, ActivityIndicator, View } from 'react-native';
+import axiosInstance from '@api/axiosInstance';
+import Toast from 'react-native-toast-message';
 
 export const AuthContext = createContext();
 
@@ -259,10 +260,26 @@ export const AuthProvider = ({ children }) => {
       setRoles(info.roles);
       axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${info.access_token}`;
 
+       // ✅ Stylish success toast
+    Toast.show({
+      type: 'success',
+      text1: 'Welcome back! 👋',
+      text2: 'You’ve successfully logged in.',
+      position: 'top',
+      visibilityTime: 2000,
+      topOffset: 60,
+      text1Style: { fontSize: 18, fontWeight: '700' },
+      text2Style: { fontSize: 14, color: '#333' },
+    });
+
+
       console.log('[Auth] Login success');
       navigation.navigate("Home");
+      return true;
     } catch (err) {
       console.log('[Auth] Login failed:', err.response?.data || err.message);
+            return false;
+
       throw err;
     }
   };

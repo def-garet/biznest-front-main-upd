@@ -334,7 +334,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from '@api/axiosInstance';
 
 const API = "/api/v1/Profile/buyer_profile";
 

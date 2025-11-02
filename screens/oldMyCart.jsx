@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../style/theme';
 import axios from 'axios';
-import API_URL from '../api/api_urls';
+import API_URL  from '../api/api_urls';
 
 // for archiving 
 const API = `${API_URL}/api/v1/Buyer Cart/buyer_cart`;

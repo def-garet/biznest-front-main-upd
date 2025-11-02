@@ -417,7 +417,7 @@ export default UserLike;
 // import { Ionicons, Feather, MaterialIcons } from "@expo/vector-icons";
 // import { COLORS } from "../style/theme";
 // import axios from "axios";
-// import API_URL from "../api/api_urls";
+// import API_URL  from "../api/api_urls";
 // import Swipeable from "react-native-gesture-handler/Swipeable";
 // import axiosInstance from "../api/axiosInstance";
 // const API = `/api/v1/Buyer Likes/buyer_like`;

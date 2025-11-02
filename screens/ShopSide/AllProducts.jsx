@@ -16,7 +16,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Feather } from "@expo/vector-icons";
 import axiosInstance from "../../api/axiosInstance";
-import API_URL from "../../api/api_urls";
+import API_URL  from "../../api/api_urls";
 import { StaticProductStyle } from "../Global";
 
 const COLORS = {

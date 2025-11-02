@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from '@api/axiosInstance';
 import N8NAPI_URL from "../../api/n8n_api";
 import { StaticProductStyle } from "../Global";
 

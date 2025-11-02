@@ -15,8 +15,8 @@ import {
 import { Ionicons, Feather, MaterialIcons } from "@expo/vector-icons";
 import { COLORS } from "../../style/theme";
 import { useNavigation } from "@react-navigation/native";
-import axiosInstance from "../../api/axiosInstance";
-import API_URL from "../../api/api_urls";
+import axiosInstance from '@api/axiosInstance';
+import API_URL  from "../../api/api_urls";
 
 const { width } = Dimensions.get('window');
 const itemWidth = (width - 48) / 2;

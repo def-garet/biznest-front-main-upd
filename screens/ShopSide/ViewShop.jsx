@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import axios from 'axios';
-import API_URL from '../../api/api_urls';
+import API_URL  from '../../api/api_urls';
 import StaticProductStyle from '../Global/StaticProductStyle';
 
 const PRIMARY_COLOR = '#172d55';

@@ -16,9 +16,8 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
-import API_URL from "../../api/api_urls";
-import axiosInstance from '../../api/axiosInstance';
-
+import axiosInstance from '@api/axiosInstance';
+import API_URL  from '../../api/api_urls';
 const { width: screenWidth } = Dimensions.get('window');
 const products_api = "/api/v1/seller/Manage Product/manage_product";
 const trade_api = "/api/v1/seller/Seller Trade/seller_trade";

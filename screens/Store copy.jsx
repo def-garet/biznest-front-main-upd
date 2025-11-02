@@ -14,7 +14,7 @@
 // import { SafeAreaView } from "react-native-safe-area-context";
 // import { Feather, MaterialIcons, AntDesign, FontAwesome } from "@expo/vector-icons";
 // import axios from "axios";
-// import API_URL from "../api/api_urls.jsx";
+// import API_URL  from "../api/api_urls.jsx";
 // import { useNavigation } from "@react-navigation/native";
 
 // const { width } = Dimensions.get('window');
@@ -571,7 +571,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather, AntDesign, FontAwesome, Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import API_URL from "../api/api_urls.jsx";
+import API_URL  from "../api/api_urls.jsx";
 import { useNavigation } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");

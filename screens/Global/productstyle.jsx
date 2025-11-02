@@ -4,7 +4,7 @@ import { responsiveHeight, responsiveWidth, responsiveFontSize } from "react-nat
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-// import API_URL from "../../api/api_urls";
+// import API_URL  from "../../api/api_urls";
 import { COLORS } from "../../style/theme";
 import { useContext } from "react";
 import { AuthContext } from "../../auth/AuthContext";

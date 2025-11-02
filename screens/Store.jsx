@@ -926,8 +926,8 @@ const fetchRecommendedProduct = async () => {
       <TouchableOpacity
         style={styles.seeAllButton}
         onPress={() =>
-          navigation.navigate("Recommended For You", {
-            title: "New Arrivals",
+          navigation.navigate("AllProducts", {
+            title: "Recommended For You",
             initialProducts: recommendedproduct, // pass full data
           })
         }

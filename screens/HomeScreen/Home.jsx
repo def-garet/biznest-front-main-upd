@@ -380,6 +380,8 @@ import { StaticProductStyle,CategoryModal } from "../Global";
 import { AuthContext } from "../../auth/AuthContext";
 import { useContext, useEffect } from "react";
 import  axiosInstance  from "../../api/axiosInstance"; 
+import ProductsEnhanced from "../Global/ProductsEnhanced";
+
 const API_Like = `${API_URL}/api/v1/Buyer Likes/buyer_like`;
 
 const { width } = Dimensions.get('window');
@@ -396,6 +398,7 @@ const Home = () => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [likedItems, setLikedItems] = useState({});
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [seasonalproduct, setSeasonalProduct] = useState([]);
 
   const [wishlist, setWishlist] = useState([]);
 
@@ -543,10 +546,21 @@ const Home = () => {
   //   { id: 6, name: "Home Decor" },
   //   { id: 7, name: "Fashion" }
   // ];
+  const fetchSeasonalProduct = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/v1/Seasonal Product/seasonal_products/active/latest`);
+      setSeasonalProduct(response.data);
+    } catch (error) {
+      console.error("Error fetching product:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
 
   const fetchProduct = async () => {
     try {
-      const response = await axios.get(`http://192.168.195.57:5000/api/v1/Product/product_api`);
+      const response = await axios.get(`${API_URL}/api/v1/Product/product_api`);
       setProduct(response.data);
     } catch (error) {
       console.error("Error fetching product:", error);
@@ -587,11 +601,13 @@ const Home = () => {
     };
 
 
+
   useFocusEffect(
     useCallback(() => {
       fetchProduct();
       fetchCategory();
       fetchLikes();
+      fetchSeasonalProduct();
     }, [])
   );
 
@@ -729,6 +745,7 @@ useEffect(() => {
               <Ionicons name="camera-outline" size={20} color="black" />
             </TouchableOpacity>
           </View> */}
+
         {/* Search bar new Redirect*/}
         <View style={style.SearchContainer}>
         <TouchableOpacity
@@ -781,8 +798,11 @@ useEffect(() => {
               </TouchableOpacity>
             </Animatable.View>
 
-            {/* Seasional Product */}
-            <DinagyangProducts />
+            {/* Seasional Product
+            <DinagyangProducts /> */}
+
+             {/* Seasional Product */}
+            <ProductsEnhanced data={seasonalproduct} />
 
             {/* Filter Button */}
             <TouchableOpacity 

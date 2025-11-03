@@ -18,14 +18,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "assets/imgs/biznest-new.png",
         "backgroundColor": "#ffffff"
       },
       "softwareKeyboardLayoutMode": "pan",
       "package": "com.hotaka098.BIZNest",
-      "permissions": ["INTERNET"],
-      "usesCleartextTraffic": true
-
+      "permissions": ["INTERNET"]
     },
     "web": {
       "favicon": "./assets/favicon.png",

@@ -361,7 +361,9 @@ import {
   Modal,
   Pressable,
   Dimensions,
-  Animated
+  Animated,
+  FlatList,
+  ActivityIndicator
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
@@ -376,7 +378,7 @@ import { COLORS } from "../../style/theme";
 import style from "../../style/home.style";
 import API_URL  from "../../api/api_urls";
 import { Categories, Slider, SRPMonitoring } from "./component";
-import { StaticProductStyle,CategoryModal } from "../Global";
+import { StaticProductStyle,CategoryModal,HomeProductsInfinite } from "../Global";
 import { AuthContext } from "../../auth/AuthContext";
 import { useContext, useEffect } from "react";
 import  axiosInstance  from "../../api/axiosInstance"; 
@@ -397,10 +399,72 @@ const Home = () => {
   const { userToken, ProtectedNavigation } = useContext(AuthContext);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [likedItems, setLikedItems] = useState({});
+  const [simplebuyerinfo,setSimpleBuyerInfo]=useState({})
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [seasonalproduct, setSeasonalProduct] = useState([]);
 
   const [wishlist, setWishlist] = useState([]);
+
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [scrollableproducts, setScrollableProducts] = useState([]);
+  
+//  const fetchScrollableProduct = async () => {
+//   if (refreshing || (totalPages && page > totalPages)) return;
+
+//   setRefreshing(true);
+//   try {
+//     const response = await axios.post(`${API_URL}/api/v1/Product/product_pagination`, {
+//       page,
+//       per_page: 10,
+//     });
+
+//     const { products = [], total_pages } = response.data;
+//     console.log("dsadasda",page)
+//     if (page === 1) {
+//       setScrollableProducts(products);
+//     } else {
+//       setScrollableProducts((prev) => [...prev, ...products]);
+//     }
+
+//     if (total_pages) setTotalPages(total_pages);
+//     setPage((prev) => prev + 1);
+//   } catch (error) {
+//     console.error("Error fetching products:", error.response?.data || error.message);
+//   } finally {
+//     setRefreshing(false);
+//   }
+// };
+
+const fetchScrollableProduct = async (category = activeCategory) => {
+  if (refreshing || (totalPages && page > totalPages)) return;
+
+  setRefreshing(true);
+  try {
+    const response = await axios.post(`${API_URL}/api/v1/Product/product_pagination`, {
+      page,
+      per_page: 10,
+      category: category === "All" ? null : category,
+    });
+
+    const { products = [], total_pages } = response.data;
+
+    if (page === 1) {
+      setScrollableProducts(products);
+    } else {
+      setScrollableProducts((prev) => [...prev, ...products]);
+    }
+
+    if (total_pages) setTotalPages(total_pages);
+    setPage((prev) => prev + 1);
+  } catch (error) {
+    console.error("Error fetching products:", error.response?.data || error.message);
+  } finally {
+    setRefreshing(false);
+  }
+};
+
+
 
 
   // Iloilo local products data
@@ -416,111 +480,9 @@ const Home = () => {
       category: "Food",
       rating: 5,
       sold: 1250,
-    },
-    {
-      id: 2,
-      store: "JM Drinks and Foods",
-      product: "100% Pineapple Drink Concentrate 1 Gal.",
-      price: 120,
-      originalPrice: 150,
-      image: "https://anec.global/cdn/shop/products/PINEAPLEDRINKCONCENTRATE1GAL_grande.png?v=1661236579",
-      category: "Beverage",
-      rating: 4,
-      sold: 980
-    },
-    // Handicrafts and woven products
-    {
-      id: 3,
-      store: "Iloilo Handicrafts",
-      product: "Ratan bag",
-      price: 450,
-      originalPrice: 550,
-      image: "https://anec.global/cdn/shop/products/Untitleddesign_4_370f4737-fb81-4106-a09e-755bc1490bd3_grande.png?v=1637546152",
-      category: "Handicrafts",
-      rating: 4,
-      sold: 320
-    },
-    {
-      id: 4,
-      store: "Cabayogan Women Loom Weavers Association",
-      product: "Hablon Textiles: Custom Made",
-      price: 350,
-      originalPrice: 400,
-      image: "https://likhaan.com/cdn/shop/files/cabayogan-women-loom-weavers-association-iloilo-hablon-weaving-textile-fabric-barong-cotton-abaca-pina-hiligaynon-colors-colorful-prints-patadyong-skirt-malong-wraparound-patterns.jpg?v=1710253094&width=1946",
-      category: "Handicrafts",
-      rating: 5,
-      sold: 210
-    },
-    // Pasalubong items
-    {
-      id: 5,
-      store: "Lit's Special Baye-Baye",
-      product: "Special Baye-Baye",
-      price: 180,
-      originalPrice: 220,
-      image: "https://liit-bayebaye.vercel.app/assets/images/boxes_image.jpg",
-      category: "Pasalubong",
-      rating: 5,
-      sold: 3200
-    },
-    {
-      id: 6,
-      store: "Iloilo Delicacies",
-      product: "Peanut Brittle with Honey",
-      price: 150,
-      originalPrice: 180,
-      image: "https://anec.global/cdn/shop/products/product_13_bd501aac-9bdc-4354-a28f-c915bd9d0803_grande.png?v=1651290251",
-      category: "Pasalubong",
-      rating: 4,
-      sold: 1750
-    },
-    // Home decor
-    {
-      id: 7,
-      store: "Uswag Arts & Crafts",
-      product: "Nito Lampshade for home decors",
-      price: 1200,
-      originalPrice: 1500,
-      image: "https://anec.global/cdn/shop/products/015eea547fb8d43d446dad83a1a415e8.jpg?v=1641880813",
-      category: "Home Decor",
-      rating: 5,
-      sold: 150
-    },
-    {
-      id: 8,
-      store: "Fashion and Home Crafts",
-      product: "Shell Home Decor",
-      price: 800,
-      originalPrice: 950,
-      image: "https://anec.global/cdn/shop/products/275911656_416814450249589_2180825728258401622_n_grande.jpg?v=1648218361",
-      category: "Home Decor",
-      rating: 4,
-      sold: 95
-    },
-    // Fashion accessories
-    {
-      id: 9,
-      store: "Iloilo Fashion Center",
-      product: "Pearl Beads Necklace",
-      price: 1500,
-      originalPrice: 1800,
-      image: "https://anec.global/cdn/shop/products/necklace1_7_grande.png?v=1678244835",
-      category: "Fashion",
-      rating: 4,
-      sold: 120
-    },
-    {
-      id: 10,
-      store: "Home of Arts and Crafts",
-      product: "Handmade Earrings",
-      price: 350,
-      originalPrice: 420,
-      image: "https://likhaan.com/cdn/shop/files/Jumimo_by_Vickit_Chips_Stone_Choker_804796dd-0c4e-4c1e-bd27-9c77a4ce7021.jpg?v=1747852463&width=823",
-      category: "Fashion",
-      rating: 5,
-      sold: 280
     }
   ];
+  
   const item = {
   id: 4,
   name: "HABLON Premium Barong Tagalog",
@@ -550,6 +512,18 @@ const Home = () => {
     try {
       const response = await axios.get(`${API_URL}/api/v1/Seasonal Product/seasonal_products/active/latest`);
       setSeasonalProduct(response.data);
+    } catch (error) {
+      console.error("Error fetching product:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+
+const fetchBuyerInfo = async () => {
+    try {
+      const response = await axiosInstance.get(`/api/v1/Profile/buyer_profile/simpleinfo`);
+      setSimpleBuyerInfo(response.data);
     } catch (error) {
       console.error("Error fetching product:", error);
     } finally {
@@ -606,8 +580,10 @@ const Home = () => {
     useCallback(() => {
       fetchProduct();
       fetchCategory();
-      fetchLikes();
+      // fetchLikes();
       fetchSeasonalProduct();
+      fetchBuyerInfo();
+      fetchScrollableProduct();
     }, [])
   );
 
@@ -655,8 +631,10 @@ useEffect(() => {
     }
   }, [isFocused]);
 
-  const onRefresh = () => {
+  const onRefresh =async  () => {
     setRefreshing(true);
+    setPage(1); // reset to first page
+  await fetchScrollableProduct();
     fetchProduct();
   };
 
@@ -673,182 +651,153 @@ useEffect(() => {
   //   ? productsample 
   //   : productsample.filter(product => product.category === activeCategory);
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.primary }} edges={['top']}>
-      <StatusBar backgroundColor={COLORS.primary} barStyle="light-content" />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
-          />
-        }
-      >
-        {/* Header */}
-        <View style={style.HomeTopContainer}>
-          <View style={style.appBar}>
-            {userToken ? (
-              <View style={style.appBarright}>
-                <Ionicons name="location-outline" size={30} color={COLORS.background} />
-                <View>
-                  <Text style={{ color: COLORS.background, fontSize: 20, fontWeight: "bold" }}>
-                    Iloilo 
-                  </Text>
-                  <Text style={{ color: COLORS.background }}>Iloilo City</Text>
+ return (
+  <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.primary }} edges={['top']}>
+    <StatusBar backgroundColor={COLORS.primary} barStyle="light-content" />
+
+    <FlatList
+     data={scrollableproducts}
+  keyExtractor={(item) => item.id.toString()}
+  numColumns={2}
+  columnWrapperStyle={{
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+  }}
+  contentContainerStyle={{
+    paddingBottom: 20,
+    backgroundColor: "#fff", // ✅ makes inner scroll area white
+  }}
+  style={{
+    backgroundColor: "#fff", // ✅ makes the entire FlatList background white
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  }}
+  onEndReached={fetchScrollableProduct}
+  onEndReachedThreshold={0.5}
+  refreshing={refreshing}
+  renderItem={({ item }) => <StaticProductStyle data={[item]} />}
+  ListFooterComponent={
+    refreshing ? (
+      <ActivityIndicator
+        size="large"
+        color="#2563eb"
+        style={{ marginVertical: 20 }}
+      />
+    ) : null
+    }
+      ListHeaderComponent={
+        <>
+          {/* Header */}
+          <View style={style.HomeTopContainer}>
+            <View style={style.appBar}>
+              {userToken ? (
+                <View style={style.appBarright}>
+                  <Ionicons name="location-outline" size={30} color={COLORS.background} />
+                  <View>
+                    <Text style={{ color: COLORS.background, fontSize: 20, fontWeight: "bold" ,textTransform: "capitalize"}}>
+                      {simplebuyerinfo?.address || "No address available"}
+                    </Text>
+                    <Text style={{ color: COLORS.background, textTransform: "capitalize" }}>
+                      {`${simplebuyerinfo?.f_name || ""} ${simplebuyerinfo?.l_name || ""}`}
+                    </Text>
+                  </View>
                 </View>
+              ) : (
+                <View style={{ width: '50%', height: 40 }} />
+              )}
+              <View style={style.appBarleft}>
+                <TouchableOpacity
+                  onPress={() => ProtectedNavigation("UserLike", navigation)}
+                  activeOpacity={0.7}
+                  style={{ padding: 6 }}
+                >
+                  <FontAwesome name="heart-o" size={24} color={COLORS.background} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => ProtectedNavigation("MyCart", navigation)}
+                  activeOpacity={0.7}
+                  style={{ padding: 6 }}
+                >
+                  <Ionicons name="bag-handle-outline" size={24} color={COLORS.background} />
+                </TouchableOpacity>
               </View>
-            ) : (
-              <View style={{ width: '50%', height: 40 }} />
-            )}
-            <View style={style.appBarleft}>
-              <TouchableOpacity
-                onPress={() => ProtectedNavigation("UserLike", navigation)}
-                activeOpacity={0.7}
-                style={{ padding: 6 }}
-              >
-                <FontAwesome name="heart-o" size={24} color={COLORS.background} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => ProtectedNavigation("MyCart", navigation)}
-                activeOpacity={0.7}
-                style={{ padding: 6 }}
-              >
-                <Ionicons name="bag-handle-outline" size={24} color={COLORS.background} />
-              </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Search bar old*/}
-          {/* <View style={style.SearchContainer}>
-            <View style={[style.searchBarcontainer, {
-              backgroundColor: "#fff",
-              borderRadius: 10,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 2,
-            }]}>
-              <TouchableOpacity>
+            {/* Search Bar */}
+            <View style={style.SearchContainer}>
+              <TouchableOpacity
+                style={[style.searchBarcontainer, { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, flex: 1 }]}
+                onPress={() => navigation.navigate("Search")}
+                activeOpacity={0.7}
+              >
                 <FontAwesome name="search" style={style.searchIcon} size={24} color="black" />
+                <View style={style.searchwrapper}>
+                  <Text style={[style.textInput, { color: '#888' }]}>Search</Text>
+                </View>
               </TouchableOpacity>
-              <View style={style.searchwrapper}>
-                <TextInput placeholder="Search" style={style.textInput} />
-              </View>
+
+              <TouchableOpacity style={style.searchCamera} activeOpacity={0.7}>
+                <Ionicons name="camera-outline" size={20} color="black" />
+              </TouchableOpacity>
             </View>
-            
-            <TouchableOpacity style={style.searchCamera}>
-              <Ionicons name="camera-outline" size={20} color="black" />
-            </TouchableOpacity>
-          </View> */}
-
-        {/* Search bar new Redirect*/}
-        <View style={style.SearchContainer}>
-        <TouchableOpacity
-          style={[style.searchBarcontainer, {
-            backgroundColor: "#fff",
-            borderRadius: 10,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 2,
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 10,
-            flex: 1,
-          }]}
-          onPress={() => navigation.navigate("Search")} // Redirect here
-          activeOpacity={0.7}
-        >
-          <FontAwesome name="search" style={style.searchIcon} size={24} color="black" />
-          <View style={style.searchwrapper}>
-            <Text style={[style.textInput, { color: '#888' }]}>
-              Search
-            </Text>
           </View>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={style.searchCamera}
-          // onPress={() => navigation.navigate("CameraSearch")} // Redirect camera tap
-          activeOpacity={0.7}
-        >
-          <Ionicons name="camera-outline" size={20} color="black" />
-        </TouchableOpacity>
-      </View>
+         {/* Body */}
+<View style={[style.homeBody, { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, flex: 1 }]}>
+  <Animatable.View animation="fadeInUp" duration={600} style={{ padding: 20 }}>
 
-        </View>
-        
-
-        <View style={style.homeBody}>
-          <Animatable.View animation="fadeInUp" duration={600} style={{ padding: 20 }}>
-           {/* Categories Product */}
-          
-          <Categories />
-           
-            {/* SRP Monitoring */}
-            <Animatable.View animation="fadeIn" delay={100}>
-              <TouchableOpacity onPress={() => navigation.navigate("SRPDetails")}>
-                <SRPMonitoring />
-              </TouchableOpacity>
-            </Animatable.View>
-
-            {/* Seasional Product
-            <DinagyangProducts /> */}
-
-             {/* Seasional Product */}
-            <ProductsEnhanced data={seasonalproduct} />
-
-            {/* Filter Button */}
-            <TouchableOpacity 
-              style={styles.filterButton}
-              onPress={() => setShowFilterModal(true)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="filter" size={20} color={COLORS.primary} />
-              <Text style={styles.filterButtonText}>
-                {activeCategory === "All" ? "All Categories" : activeCategory}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={COLORS.primary} />
-            </TouchableOpacity>
-          
+    <Categories />
 
 
-         
+    <Animatable.View animation="fadeIn" delay={100}>
+      <TouchableOpacity onPress={() => navigation.navigate("SRPDetails")}>
+        <SRPMonitoring />
+      </TouchableOpacity>
+    </Animatable.View>
+    
+    <ProductsEnhanced data={seasonalproduct} />
 
-            {/* All Products Grid */}
-       <View style={styles.productsGrid}>
-        <StaticProductStyle data={filteredProducts} />
-      </View>
+    {/* Filter Button */}
+    <TouchableOpacity
+      style={styles.filterButton}
+      onPress={() => setShowFilterModal(true)}
+      activeOpacity={0.7}
+    >
+      <Ionicons name="filter" size={20} color={COLORS.primary} />
+      <Text style={styles.filterButtonText}>
+        {activeCategory === "All" ? "All Categories" : activeCategory}
+      </Text>
+      <Ionicons name="chevron-down" size={16} color={COLORS.primary} />
+    </TouchableOpacity>
 
+    {/* All Products Grid */}
+    <View style={styles.productsGrid}>
+  {filteredProducts && filteredProducts.length > 0 ? (
+    filteredProducts.map((item) => (
+      <StaticProductStyle key={item.id} data={[item]} />
+    ))
+  ) : (
+    <Text style={styles.emptyText}>No products available</Text>
+  )}
+</View>
 
-            {/* Additional Sections */}
-            <Animatable.View animation="fadeIn" delay={300}>
-              {/* <Slider /> */}
-            </Animatable.View>
-            <Animatable.View animation="fadeIn" delay={500}>
-
-
-            </Animatable.View>
-          </Animatable.View>
-        </View>
-      </ScrollView>
-
-      {/* Filter Modal */}
-    <CategoryModal
-  visible={showFilterModal}
-  categories={categories}
-  activeCategory={activeCategory}
-  onClose={() => setShowFilterModal(false)}
-  onSelectCategory={handleCategoryPress}
-/>
-    </SafeAreaView>
-  );
+    {/* Filter Modal */}
+    <Animatable.View animation="slideInUp" duration={300} style={styles.modalContent}>
+      <CategoryModal
+        visible={showFilterModal}
+        categories={categories}
+        activeCategory={activeCategory}
+        onClose={() => setShowFilterModal(false)}
+        onSelectCategory={handleCategoryPress}
+      />
+    </Animatable.View>
+  </Animatable.View>
+</View>
+        </>
+      }
+    />
+  </SafeAreaView>
+);
 };
 
 const styles = StyleSheet.create({
@@ -869,10 +818,11 @@ const styles = StyleSheet.create({
     fontWeight: '500'
   },
   productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 50
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    marginBottom: 2,
   },
   productCard: {
     width: '48%',

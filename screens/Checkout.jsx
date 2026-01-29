@@ -389,7 +389,9 @@ const Checkout = ({ route, navigation }) => {
         <View style={{ width: 24 }} /> {/* For alignment */}
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: 140 }} 
+      >
         {/* Delivery Address */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Delivery address</Text>
@@ -438,6 +440,8 @@ const Checkout = ({ route, navigation }) => {
           ))}
         </View>
 
+
+        
         {/* Tip Options */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Tip your rider</Text>
@@ -478,6 +482,34 @@ const Checkout = ({ route, navigation }) => {
             <Text style={styles.saveText}>Save for your next order</Text>
           </TouchableOpacity>
         </View>
+       
+       {/* Payment Method Section */}
+<View style={styles.sectionContainer}>
+  <Text style={styles.sectionTitle}>Payment Method</Text>
+
+  <TouchableOpacity
+    style={styles.paymentMethod}
+    onPress={() => setModalVisible(true)}
+  >
+    <MaterialCommunityIcons
+      name="credit-card-outline"
+      size={22}
+      color={COLORS.primary}
+    />
+    <Text style={styles.paymentMethodText}>
+      {selectedPayment ? selectedPayment : 'Select Payment Method'}
+    </Text>
+    <MaterialCommunityIcons
+      name="chevron-right"
+      size={22}
+      color={COLORS.primary}
+      style={{ marginLeft: 'auto' }}
+    />
+  </TouchableOpacity>
+</View>
+
+
+
 
         {/* Order Summary */}
         <View style={styles.sectionContainer}>
@@ -573,6 +605,23 @@ const Checkout = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  paymentMethod: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  paddingVertical: 12,
+  paddingHorizontal: 10,
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 6,
+  backgroundColor: '#fafafa',
+},
+paymentMethodText: {
+  flex: 1,
+  marginLeft: 10,
+  fontSize: 14,
+  color: COLORS.primary,
+},
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -758,14 +807,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'white',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  right: 0,
+  backgroundColor: 'white',
+  padding: 16,
+  borderTopWidth: 1,
+  borderTopColor: '#eee',
+  shadowColor: '#000',
+  shadowOpacity: 0.1,
+  shadowOffset: { width: 0, height: -2 },
+  shadowRadius: 4,
+  elevation: 5,
   },
   totalContainer: {
     flexDirection: 'row',

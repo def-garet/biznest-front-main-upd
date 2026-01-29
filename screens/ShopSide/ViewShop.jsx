@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 import API_URL  from '../../api/api_urls';
 import StaticProductStyle from '../Global/StaticProductStyle';
 
@@ -48,7 +49,7 @@ const ViewShop = ({ navigation, route }) => {
 
 const handleChatWithSeller = async () => {
   try {
-    const response = await axios.post(`${API_URL}/api/v1/chat/send_message`, {
+    const response = await axiosInstance.post(`${API_URL}/api/v1/chat/send_message`, {
       seller_id: seller_id,
       thread_id: null ,
        message: null, // or don't send this field

@@ -8,7 +8,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ActivityIndicator,
   Keyboard
 } from 'react-native';
@@ -20,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../style/theme';
 import axios from 'axios';
 import N8NAPI_URL from '../api/n8n_api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Chatbot = ({route}) => {
   const navigation = useNavigation();

@@ -198,6 +198,35 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+
+const customerRegister = async (fName, lName, email, password, rePassword, RegisterToken) => {
+  try {
+    const res = await axiosInstance.post(`/api/v1/Register%20Buyer/buyer_register`, {
+      fName,
+      lName,
+      email,
+      password,
+      rePassword,
+      RegisterToken,
+    });
+
+    // ✅ Always return a structured object
+    return {
+      success: true,
+      data: res.data,
+    };
+
+  } catch (e) {
+    console.log("Registration Error:", e.response ? e.response.data : e.message);
+
+    return {
+      success: false,
+      message: e.response?.data?.message || "Registration failed. Please try again.",
+    };
+  }
+};
+
+
   const attachInterceptor = () => {
     const interceptorId = axiosInstance.interceptors.response.use(
       response => response,
@@ -311,7 +340,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ userToken,sysRoles, login, logout, ProtectedNavigation, }}>
+    <AuthContext.Provider value={{ userToken,sysRoles, login, logout, ProtectedNavigation,customerRegister }}>
       {children}
     </AuthContext.Provider>
   );

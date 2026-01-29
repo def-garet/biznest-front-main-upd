@@ -152,7 +152,7 @@ const Profile = () => {
 
           <TouchableOpacity 
             style={styles.quickActionItem}
-            onPress={() => navigation.navigate("Favorites")}
+            onPress={() => navigation.navigate("UserLike")}
           >
             <View style={[styles.quickActionIcon, { backgroundColor: '#ffe8ec' }]}>
               <AntDesign name="hearto" size={20} color={COLORS.primary} />

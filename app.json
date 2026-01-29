@@ -2,7 +2,9 @@
   "expo": {
     "name": "BIZNest",
     "slug": "BIZNest",
-    "scheme": ["biznest"],
+    "scheme": [
+      "biznest"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "assets/imgs/biznest-new.png",
@@ -23,7 +25,9 @@
       },
       "softwareKeyboardLayoutMode": "pan",
       "package": "com.hotaka098.BIZNest",
-      "permissions": ["INTERNET"]
+      "permissions": [
+        "INTERNET"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -40,7 +44,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "router": {},

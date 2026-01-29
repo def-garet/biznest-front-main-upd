@@ -15,6 +15,7 @@ import { MaterialIcons, Feather } from '@expo/vector-icons'
 import { COLORS } from '../../../style/theme'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import axios from 'axios'
+import axiosInstance from '../../../api/axiosInstance'
 import API_URL  from '../../../api/api_urls'
 
 const ChatConversation = () => {
@@ -47,7 +48,7 @@ const ChatConversation = () => {
 
 useEffect(() => {
   if (chat.thread_id) {
-    axios.put(`${API_URL}/api/v1/chat/notifications/read/${chat.thread_id}`)
+    axiosInstance.put(`${API_URL}/api/v1/chat/notifications/read/${chat.thread_id}`)
       .then(() => console.log('✅ All notifications for this chat marked as read'))
       .catch(err => console.error('Failed to mark notifications', err));
   }
@@ -82,7 +83,7 @@ useEffect(() => {
     if (!chat.thread_id) return; // no thread yet
 
     try {
-      const response = await axios.get(`${API_URL}/api/v1/chat/get_messages/${chat.thread_id}`);
+      const response = await axiosInstance.get(`${API_URL}/api/v1/chat/get_messages/${chat.thread_id}`);
       const history = response.data.messages.map(msg => ({
         id: msg.id,
         text: msg.message,
@@ -104,7 +105,7 @@ useEffect(() => {
   if (!newMessage.trim()) return;
 
   try {
-    const response = await axios.post(`${API_URL}/api/v1/chat/send_message`, {
+    const response = await axiosInstance.post(`${API_URL}/api/v1/chat/send_message`, {
       thread_id: chat.thread_id, // could be null for first message
       seller_id: chat.seller_id,
       message: newMessage,

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -29,11 +30,13 @@ const COLORS_idea = {
   white: "#ffffff",
   headerBg: "#172d55",
 };
-
+  const { width } = Dimensions.get('window');
+const itemWidth = Math.min(width * 0.40, 200); // max 200px per card
 const StaticProductStyle = ({ data = [],  horizontalItem = false }) => {
   const navigation = useNavigation();
   const [likedItems, setLikedItems] = useState({});
   const { userToken } = useContext(AuthContext);
+
 
   useEffect(() => {
     const fetchLikes = async () => {
@@ -210,7 +213,7 @@ export default StaticProductStyle;
 
 const styles_idea = StyleSheet.create({
   productItem: {
-    width: "48%",
+    width: itemWidth ,
     backgroundColor: COLORS_idea.white,
     borderRadius: 12,
     overflow: "hidden",

@@ -332,7 +332,7 @@ const SELLER_API = API_URL + "/api/v1/Login%20Seller/seller_login"; // Ensure th
 const CustomerLogin = () => {
   const navigation = useNavigation();
   // Ensure sellerLogin is exposed in your AuthContext, or handle it here
-  const { login, sellerLogin } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
 
   const [tokenLogin, setTokenLogin] = useState(null);
   const [username, setUsername] = useState("");
@@ -347,18 +347,33 @@ const CustomerLogin = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Refresh token when userType changes
-  useEffect(() => {
+  // useEffect(() => {
+  //   Logintoken();
+  // }, [userType]);
+
+  // const Logintoken = async () => {
+  //   try {
+  //     const endpoint = userType === "buyer" ? BUYER_API : SELLER_API;
+  //     const response = await fetch(endpoint);
+  //     const data = await response.json();
+  //     setTokenLogin(data.loginToken);
+  //   } catch (error) {
+  //     console.error("Error fetching token:", error);
+  //   }
+  // };
+
+
+   useEffect(() => {
     Logintoken();
-  }, [userType]);
+  }, []);
 
   const Logintoken = async () => {
     try {
-      const endpoint = userType === "buyer" ? BUYER_API : SELLER_API;
-      const response = await fetch(endpoint);
+      const response = await fetch(BUYER_API);
       const data = await response.json();
       setTokenLogin(data.loginToken);
     } catch (error) {
-      console.error("Error fetching token:", error);
+      console.error("Error fetching data:", error);
     }
   };
 
@@ -373,7 +388,13 @@ const CustomerLogin = () => {
 
     try {
       if (userType === "buyer") {
-        result = await login(username, password, tokenLogin, navigation);
+       const result = await login(username, password, tokenLogin, navigation);
+        console.log("Login result:", result);
+        console.log("Token used:", username, password, tokenLogin, navigation);
+        if (!result) {
+          showLoginFailPopup();
+          Logintoken();
+        }
       } else {
         // Assuming sellerLogin exists in your context. 
         // If not, you might need to implement the fetch logic directly here for now.

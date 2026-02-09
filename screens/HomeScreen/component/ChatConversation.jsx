@@ -1,323 +1,388 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  Keyboard
-} from 'react-native'
-import { MaterialIcons, Feather } from '@expo/vector-icons'
-import { COLORS } from '../../../style/theme'
-import { useNavigation, useRoute } from '@react-navigation/native'
-import axios from 'axios'
-import axiosInstance from '../../../api/axiosInstance'
-import API_URL  from '../../../api/api_urls'
+  TouchableOpacity, 
+  TextInput, 
+  KeyboardAvoidingView, 
+  Platform, 
+  SafeAreaView, 
+  StatusBar,
+  ActivityIndicator
+} from 'react-native';
+import { MaterialIcons, Feather, Ionicons } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import axiosInstance from '../../../api/axiosInstance';
+import API_URL from '../../../api/api_urls';
+
+// Unified Theme Colors - Set Background to White
+const COLORS = {
+  primary: "#1E293B",    // Slate 800
+  secondary: "#2563EB",  // Blue 600
+  background: "#FFFFFF", // Pure White
+  surface: "#FFFFFF",    // Pure White for cards/containers
+  textPrimary: "#0F172A",
+  textSecondary: "#64748B",
+  border: "#E2E8F0",
+  white: "#FFFFFF",
+  inputBg: "#F1F5F9",    // Light gray for input fields
+};
 
 const ChatConversation = () => {
-  const navigation = useNavigation()
-  const route = useRoute()
-  const { chat } = route.params
-  const scrollViewRef = useRef(null)
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { chat } = route.params; 
+  const scrollViewRef = useRef(null);
   
+  const [threadId, setThreadId] = useState(chat.thread_id || null);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  // STATIC EXAMPLE DATA
   const [messages, setMessages] = useState([
-    // { 
-    //   id: 1, 
-    //   text: chat.message.includes('sent you an image') 
-    //     ? "Here's the image you requested:" 
-    //     : chat.message,
-    //   sender: 'store', 
-    //   time: chat.date 
-    // },
-    // { 
-    //   id: 2, 
-    //   text: chat.message.includes('sent you an image') 
-    //     ? "Thanks for sending the image!" 
-    //     : "Thanks for the message!", 
-    //   sender: 'me', 
-    //   time: 'Just now' 
-    // }
-  ])
-
-  const [newMessage, setNewMessage] = useState('')
-  const [keyboardHeight, setKeyboardHeight] = useState(0)
-
-useEffect(() => {
-  if (chat.thread_id) {
-    axiosInstance.put(`${API_URL}/api/v1/chat/notifications/read/${chat.thread_id}`)
-      .then(() => console.log('✅ All notifications for this chat marked as read'))
-      .catch(err => console.error('Failed to mark notifications', err));
-  }
-}, [chat.thread_id]);
-
-
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height)
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true })
-        }, 100)
-      }
-    )
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0)
-      }
-    )
-
-    return () => {
-      keyboardDidShowListener.remove()
-      keyboardDidHideListener.remove()
+    {
+      id: 'static-1',
+      text: `Welcome to ${chat.store || "BizNest"}! How can we help you with your order today?`,
+      sender: 'store',
+      time: 'Just now'
     }
-  }, [])
+  ]);
 
+  // 1. Mark Notifications as Read
   useEffect(() => {
-  const fetchMessages = async () => {
-    if (!chat.thread_id) return; // no thread yet
+    if (threadId) {
+      axiosInstance.put(`${API_URL}/api/v1/chat/notifications/read/${threadId}`)
+        .then(() => console.log('✅ Notifications read'))
+        .catch(err => console.error('Failed to mark read', err));
+    }
+  }, [threadId]);
+
+  // 2. Fetch Messages
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!threadId) {
+        setLoading(false);
+        return; 
+      }
+
+      try {
+        const response = await axiosInstance.get(`${API_URL}/api/v1/chat/get_messages/${threadId}`);
+        const history = response.data.messages.map(msg => ({
+          id: msg.id,
+          text: msg.message,
+          sender: msg.sender_id === chat.seller_id ? 'store' : 'me',
+          time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }));
+        
+        setMessages(history); 
+      } catch (err) {
+        console.error("Failed to fetch messages", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMessages();
+  }, [threadId, chat.seller_id]);
+
+  // 3. Send Message
+  const handleSend = async () => {
+    if (!newMessage.trim()) return;
+
+    const tempMessage = {
+      id: Date.now(),
+      text: newMessage,
+      sender: 'me',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages(prev => [...prev, tempMessage]);
+    setNewMessage('');
+    
+    setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
-      const response = await axiosInstance.get(`${API_URL}/api/v1/chat/get_messages/${chat.thread_id}`);
-      const history = response.data.messages.map(msg => ({
-        id: msg.id,
-        text: msg.message,
-        sender: msg.sender_id === chat.seller_id ? 'store' : 'me',
-        time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }));
-      setMessages(history);
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    } catch (err) {
-      console.error("Failed to fetch messages", err);
+      const response = await axiosInstance.post(`${API_URL}/api/v1/chat/send_message`, {
+        thread_id: threadId,
+        seller_id: chat.seller_id,
+        message: tempMessage.text,
+        message_type: "text",
+      });
+
+      if (!threadId && response.data.thread_id) {
+        setThreadId(response.data.thread_id);
+      }
+    } catch (error) {
+      console.error("Failed to send message", error);
     }
   };
 
-  fetchMessages();
-}, [chat.thread_id]);
-
-
-  const handleSend = async () => {
-  if (!newMessage.trim()) return;
-
-  try {
-    const response = await axiosInstance.post(`${API_URL}/api/v1/chat/send_message`, {
-      thread_id: chat.thread_id, // could be null for first message
-      seller_id: chat.seller_id,
-      message: newMessage,
-      message_type: "text",
-    });
-
-    const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    setMessages([...messages, {
-      id: messages.length + 1,
-      text: newMessage,
-      sender: 'me',
-      time: currentTime
-    }]);
-
-    setNewMessage('');
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-    
-    // Save returned thread_id if it was first message
-    if (!chat.thread_id) chat.thread_id = response.data.thread_id;
-
-  } catch (error) {
-    console.error("Failed to send message", error);
-  }
-};
-
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with back button - outside KeyboardAvoidingView */}
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+          {/* UPDATED: Changed from Feather 'arrow-left' to MaterialIcons 'arrow-back' */}
           <MaterialIcons name="arrow-back" size={24} color={COLORS.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{chat.store}</Text>
-        <View style={{ width: 24 }} />
+        
+        <View style={styles.headerInfo}>
+          <View style={styles.avatar}>
+             <Ionicons name="storefront" size={20} color={COLORS.secondary} />
+          </View>
+          <View>
+            <Text style={styles.headerTitle}>{chat.store || "Store Name"}</Text>
+            <Text style={styles.headerStatus}>Online</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.iconButton}>
+          <Feather name="more-vertical" size={24} color={COLORS.textSecondary} />
+        </TouchableOpacity>
       </View>
 
-      {/* Main content with KeyboardAvoidingView */}
+      {/* Main Chat Area */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : null}
-        style={styles.container}
-        keyboardVerticalOffset={Platform.select({
-          ios: 90,
-          android: 0
-        })}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        {/* Chat messages */}
-        <ScrollView 
+        <ScrollView
           style={styles.messagesContainer}
-          contentContainerStyle={[
-            styles.messagesContent,
-            { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 16 }
-          ]}
+          contentContainerStyle={styles.messagesContent}
           ref={scrollViewRef}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
+          showsVerticalScrollIndicator={false}
         >
-          {messages.map((message) => (
-            <View 
-              key={message.id} 
-              style={[
-                styles.messageBubble,
-                message.sender === 'me' ? styles.myMessage : styles.theirMessage
-              ]}
-            >
-              {chat.message.includes('sent you an image') && message.sender === 'store' ? (
-                <View style={styles.imagePlaceholder}>
-                  <Feather name="image" size={50} color={COLORS.primary} />
-                  <Text style={styles.imageText}>Image from {chat.store}</Text>
+          {loading && <ActivityIndicator size="small" color={COLORS.secondary} style={{margin: 20}} />}
+          
+          {messages.map((message) => {
+            const isMe = message.sender === 'me';
+            return (
+              <View 
+                key={message.id} 
+                style={[
+                  styles.messageRow,
+                  isMe ? styles.rowMe : styles.rowStore
+                ]}
+              >
+                {!isMe && (
+                  <View style={styles.smallAvatar}>
+                    <Text style={styles.avatarLetter}>{chat.store?.charAt(0) || "S"}</Text>
+                  </View>
+                )}
+                
+                <View 
+                  style={[
+                    styles.messageBubble,
+                    isMe ? styles.bubbleMe : styles.bubbleStore
+                  ]}
+                >
+                  <Text style={[
+                    styles.messageText,
+                    isMe ? styles.textMe : styles.textStore
+                  ]}>
+                    {message.text}
+                  </Text>
+                  <Text style={[
+                    styles.timeText,
+                    isMe ? styles.timeMe : styles.timeStore
+                  ]}>
+                    {message.time}
+                  </Text>
                 </View>
-              ) : (
-                <Text style={[
-                  styles.messageText,
-                  message.sender === 'me' && styles.myMessageText
-                ]}>
-                  {message.text}
-                </Text>
-              )}
-              <Text style={[
-                styles.messageTime,
-                message.sender === 'me' && styles.myMessageTime
-              ]}>
-                {message.time}
-              </Text>
-            </View>
-          ))}
+              </View>
+            );
+          })}
         </ScrollView>
 
-        {/* Message input */}
+        {/* Input Area */}
         <View style={styles.inputContainer}>
+          <TouchableOpacity style={styles.attachButton}>
+            <Feather name="plus" size={24} color={COLORS.secondary} />
+          </TouchableOpacity>
+
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
+            placeholderTextColor={COLORS.textSecondary}
             value={newMessage}
             onChangeText={setNewMessage}
             multiline
           />
-          <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-            <Feather name="send" size={24} color="white" />
+
+          <TouchableOpacity 
+            style={[styles.sendButton, !newMessage.trim() && styles.sendButtonDisabled]} 
+            onPress={handleSend}
+            disabled={!newMessage.trim()}
+          >
+            <Ionicons name="send" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb", // light gray background for contrast
+    backgroundColor: COLORS.background, // Pure white background
   },
+  
+  // Header
   header: {
-     flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: "white",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    marginTop: Platform.OS === "android" ? 35 : 0,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginLeft: 20,
-    flex: 1,
-    textAlign: 'center',
-   marginLeft: -5, // centers title visually despite back button
-
-  },
-  messagesContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  messagesContent: {
-    paddingVertical: 16,
-  },
-  messageBubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  myMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: COLORS.primary,
-    borderBottomRightRadius: 0,
-  },
-  theirMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#f5f5f5',
-    borderBottomLeftRadius: 0,
-  },
-  messageText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  myMessageText: {
-    color: 'white',
-  },
-  myMessageTime: {
-    color: 'rgba(255,255,255,0.7)',
-  },
-  messageTime: {
-    fontSize: 10,
-    color: '#888',
-    marginTop: 4,
-    textAlign: 'right',
-  },
-  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    elevation: 0, 
+  },
+  iconButton: {
     padding: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#f0f0f0',
-    backgroundColor: 'white',
+  },
+  headerInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    marginRight: 10,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  headerStatus: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '500',
+  },
+
+  // Messages Area
+  messagesContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  messagesContent: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    alignItems: 'flex-end',
+  },
+  rowMe: {
+    justifyContent: 'flex-end',
+  },
+  rowStore: {
+    justifyContent: 'flex-start',
+  },
+  smallAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    marginBottom: 2,
+  },
+  avatarLetter: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  messageBubble: {
+    maxWidth: '75%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  bubbleMe: {
+    backgroundColor: COLORS.secondary,
+    borderBottomRightRadius: 2,
+  },
+  bubbleStore: {
+    backgroundColor: '#F1F5F9',
+    borderBottomLeftRadius: 2,
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  textMe: {
+    color: '#FFFFFF',
+  },
+  textStore: {
+    color: COLORS.textPrimary,
+  },
+  timeText: {
+    fontSize: 10,
+    marginTop: 4,
+    alignSelf: 'flex-end',
+  },
+  timeMe: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  timeStore: {
+    color: COLORS.textSecondary,
+  },
+
+  // Input Area
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    padding: 12,
+    backgroundColor: COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  attachButton: {
+    padding: 10,
+    marginRight: 4,
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: COLORS.inputBg,
     borderRadius: 24,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    maxHeight: 120,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+    maxHeight: 100, 
     marginRight: 8,
   },
   sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  imagePlaceholder: {
-    alignItems: 'center',
-    padding: 10,
+  sendButtonDisabled: {
+    backgroundColor: COLORS.border,
   },
-  imageText: {
-    marginTop: 8,
-    color: COLORS.primary,
-    fontSize: 14,
-  }
-})
+});
 
-export default ChatConversation
+export default ChatConversation;

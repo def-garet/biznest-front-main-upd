@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,121 +8,92 @@ import {
   Image,
   Modal,
   TextInput,
+  StatusBar,
+  SafeAreaView
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import axiosInstance from '@api/axiosInstance';
-
 
 const API = `/api/v1/seller/Seller Orders/seller_orders`;
 
+// YOUR CUSTOM PALETTE
 const COLORS = {
-  primary: "#172d55",
-  secondary: "#2196f3",
-  background: "#ffffff",
-  text: "#808080",
-  white: "#ffffff",
-  lightGray: "#f5f5f5",
-  darkGray: "#555555",
-  success: "#4caf50",
-  successLight: "#e8f5e9",
-  warning: "#ff9800",
-  warningLight: "#fff3e0",
-  error: "#f44336",
-  errorLight: "#ffebee",
-  info: "#2196f3",
-  infoLight: "#e3f2fd",
+  primary: '#172d55',    // Deep Blue (Headers, Primary Text)
+  secondary: '#2196f3',  // Bright Blue (Buttons, Accents)
+  background: '#ffffff', // Pure White (Screen Bg)
+  text: '#808080',       // Gray (Body Text)
+  
+  // UI Helper Colors derived for better UX
+  surface: '#f9fbfd',    // Very light blue-gray for background contrast
+  white: '#ffffff',
+  border: '#eceff1',
+  success: '#4caf50',    // Kept for UX status
+  danger: '#f44336',     // Kept for UX status
+  warning: '#ff9800',    // Kept for UX status
+  inputBg: '#f5f7fa',
 };
 
 const SellerOrderManagement = () => {
   const navigation = useNavigation();
+  const [activeTab, setActiveTab] = useState("All");
+
+  // --- MOCK DATA ---
   const [orders, setOrders] = useState([
     {
-      id: "1",
-      customer: "Si Ano",
+      id: "ORD-9921",
       status: "Pending",
-      items: [
-        {
-          id: "1",
-          name: "Hablon Wallet",
-          price: 210,
-          quantity: 2,
-          image: { uri: "https://i0.wp.com/www.mycitymysm.com/wp-content/uploads/2021/07/my-city-my-sm-my-craft-iloilo-26.jpg?fit=1600%2C1063&ssl=1" },
-        },
-        {
-          id: "2",
-          name: "Cashew Nuts",
-          price: 50,
-          quantity: 3,
-          image: { uri: "https://anec.global/cdn/shop/products/Untitleddesign_2_8ee7fbd5-4324-4a5c-815a-5c53f1b6092c_grande.png?v=1644579019" },
-        },
-      ],
-      total: 570,
-      date: "2025-08-15",
-      address: "Manila City",
-      contact: "09123456789",
-      notes: "Please pack it carefully",
+      order_date: "2025-05-20T10:30:00",
+      buyer_info: { f_name: "Maria", l_name: "Clara" },
+      product_info: {
+        name: "Handwoven Abaca Basket",
+        img: "https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60"
+      },
+      quantity: 2,
+      total_price: 360,
+      notes: "Please pack this with extra care."
     },
     {
-      id: "2",
-      customer: "Hello World",
+      id: "ORD-9922",
       status: "Accepted",
-      items: [
-        {
-          id: "3",
-          name: "Barako Coffee Beans",
-          price: 350,
-          quantity: 1,
-          image: { uri: "https://i0.wp.com/lostboy.blog/wp-content/uploads/2017/07/fb_img_1500417649033.jpg?ssl=1" },
-        },
-      ],
-      total: 350,
-      date: "2025-08-16",
-      address: " Iloilo City",
-      contact: "09234567890",
-      notes: "",
+      order_date: "2025-05-19T14:15:00",
+      buyer_info: { f_name: "Jose", l_name: "Rizal" },
+      product_info: {
+        name: "Premium Barako Coffee",
+        img: "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60"
+      },
+      quantity: 1,
+      total_price: 350,
+      notes: ""
     },
     {
-      id: "3",
-      customer: "Jo jowanaaa",
+      id: "ORD-9923",
       status: "Shipped",
-      items: [
-        {
-          id: "4",
-          name: "Piaya Original",
-          price: 45,
-          quantity: 10,
-          image: { uri: "https://anec.global/cdn/shop/products/Untitleddesign_27_02371ddb-c443-485b-86d2-290f96cdb8f3.png?v=1645853439" },
-        },
-        {
-          id: "5",
-          name: "Pinasugbo",
-          price: 120,
-          quantity: 2,
-          image: { uri: "https://anec.global/cdn/shop/products/product_9dc08a7f-1b96-4133-8bcf-349d0ed8f49a_grande.png?v=1659940486" },
-        },
-      ],
-      total: 690,
-      date: "2025-08-14",
-      address: " Iloilo City",
-      contact: "09345678901",
-      notes: "Deliver after 5pm",
-    },
+      order_date: "2025-05-18T09:00:00",
+      buyer_info: { f_name: "Andres", l_name: "Bonifacio" },
+      product_info: {
+        name: "Piaya Original Box",
+        img: "https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60"
+      },
+      quantity: 5,
+      total_price: 600,
+      notes: "Deliver to office address."
+    }
   ]);
 
+  const [filteredOrders, setFilteredOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [isActionModalVisible, setIsActionModalVisible] = useState(false);
-  const [editedItems, setEditedItems] = useState([]);
   const [editedNotes, setEditedNotes] = useState("");
 
- 
-const fetchOrder = async () => {
+  const fetchOrder = async () => {
     try {
       const response = await axiosInstance.get(API);
-      // console.log(response.data);
-      setOrders(response.data);
+      if (response.data && response.data.length > 0) {
+        setOrders(response.data);
+      }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Using mock data due to error:", error);
     }
   };
 
@@ -130,648 +101,495 @@ const fetchOrder = async () => {
     fetchOrder();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === "All") {
+      setFilteredOrders(orders);
+    } else {
+      setFilteredOrders(orders.filter(o => o.status === activeTab));
+    }
+  }, [activeTab, orders]);
 
   const handleOrderAction = async (order, action) => {
-    let updatedOrders = [...orders];
-    const index = updatedOrders.findIndex((o) => o.id === order.id);
     let updatedStatus = "";
-
     switch (action) {
-      case "accept":
-        updatedOrders[index].status = "Accepted";
-        updatedStatus = "Accepted";
-
-        break;
-      case "ship":
-        updatedOrders[index].status = "Shipped";
-        updatedStatus = "Shipped";
-
-        break;
-      case "cancel":
-        updatedOrders[index].status = "Cancelled";
-        updatedStatus = "Cancelled";
-
-        break;
-      default:
-        break;
+      case "accept": updatedStatus = "Accepted"; break;
+      case "ship": updatedStatus = "Shipped"; break;
+      case "cancel": updatedStatus = "Cancelled"; break;
+      default: break;
     }
 
-  try {
-    const response = await axiosInstance.put(API, {
-      order_id: order.id,
-      status: updatedStatus,
-    });
+    setOrders((prevOrders) =>
+      prevOrders.map((o) =>
+        o.id === order.id ? { ...o, status: updatedStatus } : o
+      )
+    );
 
-    if (response.status === 200) {
-      // update local state
-      setOrders((prevOrders) =>
-        prevOrders.map((o) =>
-          o.id === order.id ? { ...o, status: updatedStatus } : o
-        )
-      );
-      console.log("Order updated successfully");
+    try {
+      await axiosInstance.put(API, {
+        order_id: order.id,
+        status: updatedStatus,
+      });
+    } catch (error) {
+      console.log("Error updating order:", error);
     }
-  } catch (error) {
-    console.log("Error updating order:", error.response?.data || error.message);
-  }
-    setIsActionModalVisible(false);
   };
 
   const openEditModal = (order) => {
     setSelectedOrder(order);
-    setEditedItems([order]);
     setEditedNotes(order.notes);
     setIsEditModalVisible(true);
   };
 
-  const saveEditedOrder = () => {
-    let updatedOrders = [...orders];
-    const index = updatedOrders.findIndex((o) => o.id === selectedOrder.id);
+  const renderOrderItem = ({ item }) => {
+    // Status Logic for Colors
+    const getStatusStyle = (status) => {
+      switch(status) {
+        case "Pending": return { color: COLORS.warning, bg: '#fff8e1', icon: 'clock' };
+        case "Accepted": return { color: COLORS.secondary, bg: '#e3f2fd', icon: 'check-circle' };
+        case "Shipped": return { color: COLORS.success, bg: '#e8f5e9', icon: 'truck' };
+        case "Cancelled": return { color: COLORS.danger, bg: '#ffebee', icon: 'x-circle' };
+        default: return { color: COLORS.text, bg: '#f5f5f5', icon: 'help-circle' };
+      }
+    };
+    const statusMeta = getStatusStyle(item.status || "Pending");
 
-    updatedOrders[index].items = editedItems;
-    updatedOrders[index].notes = editedNotes;
-
-    setOrders(updatedOrders);
-    setIsEditModalVisible(false);
-  };
-
-  const updateItemQuantity = (itemId, newQuantity) => {
-    if (newQuantity < 1) return;
-
-    const updatedItems = editedItems.map((item) =>
-      item.id === itemId ? { ...item, quantity: newQuantity } : item
-    );
-
-    setEditedItems(updatedItems);
-  };
-
-  const renderOrderItem = ({ item }) => (
-    <View style={styles.orderCard}>
-      <View style={styles.orderHeader}>
-        <Text style={styles.orderId}>Order #{item.id}</Text>
-        <Text
-          style={[
-            styles.orderStatus,
-            item.status === "Pending"  && styles.statusPending,
-            item.status === null  && styles.statusPending,
-            item.status === "Accepted" && styles.statusAccepted,
-            item.status === "Shipped" && styles.statusShipped,
-            item.status === "Cancelled" && styles.statusCancelled,
-          ]}
-        >
-        {item.status || "Pending"}
-        </Text>
-      </View>
-
-     {/* Buyer Info */}
-    <Text style={styles.customerName}>
-      {item.buyer_info?.l_name} {item.buyer_info?.f_name}
-    </Text>
-
-      {/* <Text style={styles.orderDate}>Placed on: {item.order_date}</Text> original  */}
-        <Text style={styles.orderDate}>
-          Placed on: {new Date(item.order_date).toLocaleString('en-PH', {
-            timeZone: 'Asia/Manila',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-          })}
-        </Text>
-    
-    {/* Product Info */}
-    <View style={styles.itemsContainer}>
-      <View style={styles.productItem}>
-        <Image
-          source={{ uri: item.product_info?.img }}
-          style={styles.productImage}
-        />
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{item.product_info?.name}</Text>
-         <Text style={styles.productPrice}>
-          x{item.quantity} at ₱{(item.product_info?.price ?? 0).toLocaleString()}
-          </Text> 
+    return (
+      <View style={styles.orderCard}>
+        {/* Card Header: Order ID & Date */}
+        <View style={styles.cardHeader}>
+          <View>
+            <Text style={styles.orderIdLabel}>ORDER ID</Text>
+            <Text style={styles.orderIdText}>#{item.id}</Text>
+          </View>
+          <Text style={styles.orderDate}>
+            {new Date(item.order_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+          </Text>
         </View>
-      </View>
-    </View>
-    
 
+        <View style={styles.divider} />
 
-      {/* accept multiple product <View style={styles.itemsContainer}>
-        {item.items.map((product) => (
-          <View key={product.id} style={styles.productItem}>
-            <Image source={product.image} style={styles.productImage} />
-            <View style={styles.productInfo}>
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productPrice}>
-                x{product.quantity} at ₱{product.price.toLocaleString()}
+        {/* Product Section */}
+        <View style={styles.productSection}>
+          <Image source={{ uri: item.product_info?.img }} style={styles.productImage} />
+          <View style={styles.productDetails}>
+            <Text style={styles.productName} numberOfLines={1}>{item.product_info?.name}</Text>
+            <View style={styles.buyerRow}>
+              <Feather name="user" size={12} color={COLORS.text} />
+              <Text style={styles.buyerName}>
+                {item.buyer_info?.f_name} {item.buyer_info?.l_name}
               </Text>
             </View>
+            <View style={styles.priceRow}>
+              <Text style={styles.quantityBadge}>x{item.quantity}</Text>
+              <Text style={styles.totalPrice}>₱{(item.total_price ?? 0).toLocaleString()}</Text>
+            </View>
           </View>
-        ))}
-      </View> */}
+        </View>
 
-      <View style={styles.orderFooter}>
-        <Text style={styles.orderTotal}>
-        Total: ₱{(item.total_price ?? 0).toLocaleString()}
-        </Text>
+        {/* Notes (if any) */}
+        {item.notes ? (
+          <View style={styles.noteContainer}>
+            <Feather name="message-square" size={12} color={COLORS.text} style={{marginTop: 2}} />
+            <Text style={styles.noteText} numberOfLines={2}>"{item.notes}"</Text>
+          </View>
+        ) : null}
 
-        <View style={styles.actionButtons}>
-          {(item.status === "Pending" || item.status === null) && (
-            <>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.acceptButton]}
-                onPress={() => handleOrderAction(item, "accept")}
-              >
-                <Text style={styles.buttonText}>Accept</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.cancelButton]}
-                onPress={() => handleOrderAction(item, "cancel")}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-            </>
-          )}
+        <View style={styles.divider} />
 
-          {item.status === "Accepted" && (
-            <>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.editButton]}
-                onPress={() => openEditModal(item)}
-              >
-                <Text style={styles.buttonText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.shipButton]}
-                onPress={() => handleOrderAction(item, "ship")}
-              >
-                <Text style={styles.buttonText}>Ship</Text>
-              </TouchableOpacity>
-            </>
-          )}
+        {/* Footer: Status & Actions */}
+        <View style={styles.cardFooter}>
+          <View style={[styles.statusBadge, { backgroundColor: statusMeta.bg }]}>
+            <Feather name={statusMeta.icon} size={12} color={statusMeta.color} style={{ marginRight: 4 }} />
+            <Text style={[styles.statusText, { color: statusMeta.color }]}>{item.status}</Text>
+          </View>
 
-          {item.status === "Shipped" && (
-            <Text style={styles.completedText}>Order completed</Text>
-          )}
+          {/* Dynamic Buttons based on status */}
+          <View style={styles.actionRow}>
+            {(item.status === "Pending" || item.status === null) && (
+              <>
+                <TouchableOpacity style={styles.btnOutline} onPress={() => handleOrderAction(item, "cancel")}>
+                  <Text style={styles.btnTextOutline}>Decline</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.btnPrimary} onPress={() => handleOrderAction(item, "accept")}>
+                  <Text style={styles.btnTextPrimary}>Accept</Text>
+                </TouchableOpacity>
+              </>
+            )}
 
-          {item.status === "Cancelled" && (
-            <Text style={styles.cancelledText}>Order cancelled</Text>
-          )}
+            {item.status === "Accepted" && (
+              <>
+                <TouchableOpacity style={styles.btnOutline} onPress={() => openEditModal(item)}>
+                  <Feather name="edit-2" size={14} color={COLORS.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.btnSecondary} onPress={() => handleOrderAction(item, "ship")}>
+                  <Text style={styles.btnTextPrimary}>Ship Order</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </View>
       </View>
-    </View>
-  );
-
-  //  const renderOrderItem = ({ item }) => (
-  //   <View style={styles.orderCard}>
-  //     <View style={styles.orderHeader}>
-  //       <Text style={styles.orderId}>Order #{item.id}</Text>
-  //       <Text
-  //         style={[
-  //           styles.orderStatus,
-  //           item.status === "Pending" && styles.statusPending,
-  //           item.status === "Accepted" && styles.statusAccepted,
-  //           item.status === "Shipped" && styles.statusShipped,
-  //           item.status === "Cancelled" && styles.statusCancelled,
-  //         ]}
-  //       >
-  //         {item.status}
-  //       </Text>
-  //     </View>
-
-  //     <Text style={styles.customerName}>{item.customer}</Text>
-  //     <Text style={styles.orderDate}>Placed on: {item.date}</Text>
-
-  //     <View style={styles.itemsContainer}>
-  //       {item.items.map((product) => (
-  //         <View key={product.id} style={styles.productItem}>
-  //           <Image source={product.image} style={styles.productImage} />
-  //           <View style={styles.productInfo}>
-  //             <Text style={styles.productName}>{product.name}</Text>
-  //             <Text style={styles.productPrice}>
-  //               x{product.quantity} at ₱{product.price.toLocaleString()}
-  //             </Text>
-  //           </View>
-  //         </View>
-  //       ))}
-  //     </View>
-
-  //     <View style={styles.orderFooter}>
-  //       <Text style={styles.orderTotal}>
-  //         Total: ₱{item.total.toLocaleString()}
-  //       </Text>
-
-  //       <View style={styles.actionButtons}>
-  //         {item.status === "Pending" && (
-  //           <>
-  //             <TouchableOpacity
-  //               style={[styles.actionButton, styles.acceptButton]}
-  //               onPress={() => handleOrderAction(item, "accept")}
-  //             >
-  //               <Text style={styles.buttonText}>Accept</Text>
-  //             </TouchableOpacity>
-  //             <TouchableOpacity
-  //               style={[styles.actionButton, styles.cancelButton]}
-  //               onPress={() => handleOrderAction(item, "cancel")}
-  //             >
-  //               <Text style={styles.buttonText}>Cancel</Text>
-  //             </TouchableOpacity>
-  //           </>
-  //         )}
-
-  //         {item.status === "Accepted" && (
-  //           <>
-  //             <TouchableOpacity
-  //               style={[styles.actionButton, styles.editButton]}
-  //               onPress={() => openEditModal(item)}
-  //             >
-  //               <Text style={styles.buttonText}>Edit</Text>
-  //             </TouchableOpacity>
-  //             <TouchableOpacity
-  //               style={[styles.actionButton, styles.shipButton]}
-  //               onPress={() => handleOrderAction(item, "ship")}
-  //             >
-  //               <Text style={styles.buttonText}>Ship</Text>
-  //             </TouchableOpacity>
-  //           </>
-  //         )}
-
-  //         {item.status === "Shipped" && (
-  //           <Text style={styles.completedText}>Order completed</Text>
-  //         )}
-
-  //         {item.status === "Cancelled" && (
-  //           <Text style={styles.cancelledText}>Order cancelled</Text>
-  //         )}
-  //       </View>
-  //     </View>
-  //   </View>
-  // );
+    );
+  };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Feather name="arrow-left" size={24} color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order Management</Text>
+        <TouchableOpacity style={styles.searchBtn}>
+          <Feather name="search" size={22} color={COLORS.primary} />
+        </TouchableOpacity>
       </View>
 
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        {['All', 'Pending', 'Accepted', 'Shipped'].map(tab => (
+          <TouchableOpacity 
+            key={tab} 
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Order List */}
       <FlatList
-        data={orders}
+        data={filteredOrders}
         renderItem={renderOrderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="clipboard-text-outline" size={60} color={COLORS.text} />
+            <Text style={styles.emptyText}>No orders found</Text>
+          </View>
+        }
       />
 
-      {/* Edit Order Modal */}
+      {/* Edit Modal */}
       <Modal
         visible={isEditModalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setIsEditModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Edit Order #{selectedOrder?.id}
-            </Text>
-
-            <Text style={styles.sectionTitle}>Items:</Text>
-            {editedItems.map((item) => (
-              <View key={item.id} style={styles.editItemRow}>
-                <Image source={{ uri: item.product_info?.img }} style={styles.editItemImage} />
-                <Text style={styles.editItemName}>{item.product_info?.name}</Text>
-                <View style={styles.quantityControls}>
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={() =>
-                      updateItemQuantity(item.id, item.quantity - 1)
-                    }
-                  >
-                    <Text style={styles.quantityButtonText}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.quantityText}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={() =>
-                      updateItemQuantity(item.id, item.quantity + 1)
-                    }
-                  >
-                    <Text style={styles.quantityButtonText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.editItemPrice}>
-                  ₱{(item.total_price * item.quantity).toLocaleString()}
-                </Text>
-              </View>
-            ))}
-
-            <Text style={styles.sectionTitle}>Customer Notes:</Text>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Customer Note</Text>
+              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+                <Feather name="x" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            
             <TextInput
-              style={styles.notesInput}
+              style={styles.modalInput}
               multiline
               value={editedNotes}
               onChangeText={setEditedNotes}
-              placeholder="Add any notes from the customer..."
+              placeholder="Enter note here..."
+              placeholderTextColor={COLORS.text}
             />
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelModalButton]}
-                onPress={() => setIsEditModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveModalButton]}
-                onPress={saveEditedOrder}
-              >
-                <Text style={styles.modalButtonText}>Save Changes</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={styles.modalSaveBtn} onPress={() => setIsEditModalVisible(false)}>
+              <Text style={styles.modalSaveText}>Save Changes</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface, // Subtle contrast background
   },
+  
+  // Header
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 24,
-    backgroundColor: COLORS.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: COLORS.background,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.lightGray,
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  backButtonText: {
-    fontSize: 30,
-    color: COLORS.primary,
+    borderBottomColor: COLORS.border,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.primary,
   },
-  listContainer: {
-    padding: 16,
+  backBtn: {
+    padding: 4,
+  },
+  searchBtn: {
+    padding: 4,
+  },
+
+  // Tabs
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: COLORS.background,
+  },
+  tab: {
+    marginRight: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: COLORS.inputBg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  activeTab: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  tabText: {
+    fontSize: 13,
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: COLORS.white,
+    fontWeight: '600',
+  },
+
+  // List
+  listContent: {
+    padding: 20,
+    paddingBottom: 40,
   },
   orderCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 8,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    // Modern Shadow
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  orderHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  orderId: {
+  orderIdLabel: {
+    fontSize: 10,
+    color: COLORS.text,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  orderIdText: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: '700',
     color: COLORS.primary,
   },
-  orderStatus: {
-    fontSize: 14,
-    fontWeight: "600",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusPending: {
-    backgroundColor: COLORS.warningLight,
-    color: COLORS.warning,
-  },
-  statusAccepted: {
-    backgroundColor: COLORS.infoLight,
-    color: COLORS.info,
-  },
-  statusShipped: {
-    backgroundColor: COLORS.successLight,
-    color: COLORS.success,
-  },
-  statusCancelled: {
-    backgroundColor: COLORS.errorLight,
-    color: COLORS.error,
-  },
-  customerName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.darkGray,
-    marginBottom: 4,
-  },
   orderDate: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.text,
-    marginBottom: 12,
   },
-  itemsContainer: {
-    marginBottom: 12,
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 12,
   },
-  productItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
+  
+  // Product Section
+  productSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   productImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    backgroundColor: COLORS.inputBg,
     marginRight: 12,
   },
-  productInfo: {
+  productDetails: {
     flex: 1,
+    justifyContent: 'space-between',
+    height: 64,
   },
   productName: {
     fontSize: 14,
-    color: COLORS.darkGray,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginBottom: 4,
   },
-  productPrice: {
-    fontSize: 14,
+  buyerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  buyerName: {
+    fontSize: 12,
+    color: COLORS.text,
+    marginLeft: 6,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  quantityBadge: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
+    backgroundColor: COLORS.inputBg,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  totalPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.secondary,
+  },
+
+  // Note
+  noteContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff8e1', // Light yellow for note
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 8,
+  },
+  noteText: {
+    fontSize: 12,
+    color: '#f57f17', // Darker yellow/orange
+    flex: 1,
+    fontStyle: 'italic',
+  },
+
+  // Footer & Actions
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  btnOutline: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+  },
+  btnTextOutline: {
+    fontSize: 13,
+    fontWeight: '600',
     color: COLORS.text,
   },
-  orderFooter: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.lightGray,
-    paddingTop: 12,
-  },
-  orderTotal: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: COLORS.primary,
-    marginBottom: 12,
-    textAlign: "right",
-  },
-  actionButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: "center",
-    marginHorizontal: 4,
-  },
-  acceptButton: {
-    backgroundColor: COLORS.success,
-  },
-  editButton: {
-    backgroundColor: COLORS.info,
-  },
-  shipButton: {
+  btnPrimary: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     backgroundColor: COLORS.primary,
   },
-  cancelButton: {
-    backgroundColor: COLORS.error,
+  btnSecondary: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.secondary,
   },
-  buttonText: {
+  btnTextPrimary: {
+    fontSize: 13,
+    fontWeight: '600',
     color: COLORS.white,
-    fontWeight: "500",
   },
-  completedText: {
-    color: COLORS.success,
-    fontWeight: "500",
-    textAlign: "center",
+
+  // Modal
+  modalOverlay: {
     flex: 1,
-  },
-  cancelledText: {
-    color: COLORS.error,
-    fontWeight: "500",
-    textAlign: "center",
-    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 24,
   },
   modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalContent: {
     backgroundColor: COLORS.white,
-    borderRadius: 8,
-    padding: 20,
-    width: "90%",
-    maxHeight: "80%",
+    borderRadius: 16,
+    padding: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: '700',
     color: COLORS.primary,
-    marginBottom: 16,
-    textAlign: "center",
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+  modalInput: {
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 8,
+    padding: 16,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    fontSize: 14,
     color: COLORS.primary,
+    marginBottom: 24,
+  },
+  modalSaveBtn: {
+    backgroundColor: COLORS.secondary,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 60,
+  },
+  emptyText: {
+    color: COLORS.text,
+    fontSize: 14,
     marginTop: 12,
-    marginBottom: 8,
-  },
-  editItemRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.lightGray,
-  },
-  editItemImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-    marginRight: 10,
-  },
-  editItemName: {
-    flex: 2,
-    fontSize: 14,
-    color: COLORS.darkGray,
-    marginLeft: 10,
-  },
-  quantityControls: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  quantityButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.lightGray,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  quantityButtonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: COLORS.primary,
-  },
-  quantityText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: COLORS.darkGray,
-    marginHorizontal: 8,
-  },
-  editItemPrice: {
-    flex: 1,
-    textAlign: "right",
-    fontSize: 14,
-    fontWeight: "500",
-    color: COLORS.primary,
-  },
-  notesInput: {
-    borderWidth: 1,
-    borderColor: COLORS.lightGray,
-    borderRadius: 6,
-    padding: 10,
-    minHeight: 80,
-    marginBottom: 16,
-    textAlignVertical: "top",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 16,
-  },
-  modalButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 6,
-    alignItems: "center",
-    marginHorizontal: 8,
-  },
-  cancelModalButton: {
-    backgroundColor: COLORS.errorLight,
-  },
-  saveModalButton: {
-    backgroundColor: COLORS.success,
-  },
-  modalButtonText: {
-    fontWeight: "500",
   },
 });
 

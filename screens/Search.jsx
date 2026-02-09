@@ -1,4 +1,4 @@
-import React, { useState,useRef,useEffect,useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   Text,
   View,
@@ -7,15 +7,28 @@ import {
   StyleSheet,
   Animated,
   Easing,
-  FlatList
+  FlatList,
+  StatusBar,
+  Platform
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { COLORS } from "../style/theme";
-import { Suggestions } from "./Global";
-import { useNavigation } from "@react-navigation/native";
-import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons, Feather } from "@expo/vector-icons";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { Suggestions } from "./Global"; 
+
+// Your Custom Palette
+const COLORS = {
+  primary: '#172d55',    // Deep Blue - Headings
+  secondary: '#2196f3',  // Bright Blue - Icons/Accents
+  background: '#ffffff', // Pure White
+  text: '#808080',       // Gray - Body text
+  
+  // UI Helpers derived from your palette
+  surface: '#ffffff',    
+  border: '#f0f0f0',     
+  inputBg: '#f8f9fa',    
+  danger: '#ff4444',
+};
 
 const Search = () => {
   const navigation = useNavigation();
@@ -25,29 +38,23 @@ const Search = () => {
   const [scaleValue] = useState(new Animated.Value(1));
   const inputRef = useRef(null);
 
- useFocusEffect(
-  React.useCallback(() => {
-    const timer = setTimeout(() => inputRef.current?.focus(), 500);
-    return () => clearTimeout(timer);
-  }, [])
-);
-
-// useFocusEffect(
-//   useCallback(() => {
-//     const timer = setTimeout(() => {
-//       inputRef.current?.focus();
-//     }, 300); // Adjust delay if needed
-//     return () => clearTimeout(timer);
-//   }, [])
-// );
-
+  // Auto-focus logic (Optional)
+  useFocusEffect(
+    useCallback(() => {
+      const timer = setTimeout(() => {
+        // inputRef.current?.focus(); 
+      }, 500);
+      return () => clearTimeout(timer);
+    }, [])
+  );
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim().length > 0) {
-      if (!searchHistory.includes(searchQuery.trim())) {
-        setSearchHistory((prevHistory) => [searchQuery.trim(), ...prevHistory]);
+      const term = searchQuery.trim();
+      if (!searchHistory.includes(term)) {
+        setSearchHistory((prevHistory) => [term, ...prevHistory].slice(0, 5));
       }
-      navigation.navigate('SearchResults', { searchTerm: searchQuery.trim() });
+      navigation.navigate('SearchResults', { searchTerm: term });
     }
   };
 
@@ -79,15 +86,15 @@ const Search = () => {
   };
 
   const suggestions = [
-    { text: "Foods", icon: "fast-food" },
-    { text: "Handmade Bags", icon: "bag-handle" },
-    { text: "Local Products", icon: "location" },
-    { text: "Artisan Crafts", icon: "brush" },
-    { text: "Philippine Delicacies", icon: "restaurant" }
+    { text: "Foods", icon: "fast-food-outline" },
+    { text: "Handmade Bags", icon: "bag-handle-outline" },
+    { text: "Local Products", icon: "location-outline" },
+    { text: "Artisan Crafts", icon: "brush-outline" },
+    { text: "Philippine Delicacies", icon: "restaurant-outline" }
   ];
 
   const categories = [
-    { name: "Local", icon: "location" },
+    { name: "Local", icon: "location-sharp" },
     { name: "Popular", icon: "star" },
     { name: "Handmade", icon: "brush" },
     { name: "Food", icon: "fast-food" }
@@ -98,120 +105,104 @@ const Search = () => {
     navigation.navigate('SearchResults', { searchTerm: text });
   };
 
+  // --- Render Sections ---
+
   const renderSection = () => {
     if (searchQuery.length > 0) return null;
 
     return (
-      <>
-        {/* Search Suggestions */}
-        <View style={styles.suggestionsContainer}>
-          <Text style={styles.sectionTitle}>Trending Searches</Text>
-          <FlatList
-            data={suggestions}
-            scrollEnabled={false}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <TouchableOpacity 
-                style={styles.suggestionItem}
-                onPress={() => handleSuggestionPress(item.text)}
-              >
-                <View style={styles.suggestionIcon}>
-                  <Ionicons name={item.icon} size={16} color={COLORS.primary} />
-                </View>
-                <Text style={styles.suggestionText}>{item.text}</Text>
-                <Ionicons name="chevron-forward" size={16} color="#ccc" />
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-
+      <View style={styles.contentContainer}>
+        
         {/* Recent Searches */}
         {searchHistory.length > 0 && (
-          <View style={styles.historyContainer}>
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Searches</Text>
               <TouchableOpacity onPress={clearSearchHistory}>
                 <Text style={styles.clearText}>Clear all</Text>
               </TouchableOpacity>
             </View>
-            <FlatList
-              data={searchHistory}
-              scrollEnabled={false}
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item }) => (
-                <View style={styles.historyItem}>
-                  <Ionicons 
-                    name="time" 
-                    size={16} 
-                    color={COLORS.primary} 
-                    style={styles.historyIcon}
-                  />
-                  <Text style={styles.historyText}>{item}</Text>
+            <View style={styles.historyList}>
+              {searchHistory.map((item, index) => (
+                <View key={index} style={styles.historyItem}>
+                  <TouchableOpacity 
+                    style={styles.historyContent} 
+                    onPress={() => handleSuggestionPress(item)}
+                  >
+                    <Feather name="clock" size={16} color={COLORS.text} style={styles.historyIcon} />
+                    <Text style={styles.historyText}>{item}</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.deleteButton}
                     onPress={() => removeSearchItem(item)}
                   >
-                    <Ionicons name="close" size={16} color="#999" />
+                    <Feather name="x" size={16} color={COLORS.text} />
                   </TouchableOpacity>
                 </View>
-              )}
-            />
+              ))}
+            </View>
           </View>
         )}
 
-        {/* Categories Section */}
+        {/* Trending Suggestions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Categories</Text>
-          <FlatList
-            data={categories}
-            scrollEnabled={false}
-            numColumns={2}
-            columnWrapperStyle={styles.categoryContainer}
-            keyExtractor={(item) => item.name}
-            renderItem={({ item }) => (
+          <Text style={styles.sectionTitle}>Trending Now</Text>
+          <View style={styles.suggestionsList}>
+            {suggestions.map((item, index) => (
               <TouchableOpacity 
-                style={styles.categoryItem}
+                key={index}
+                style={styles.suggestionItem}
+                onPress={() => handleSuggestionPress(item.text)}
+              >
+                <View style={styles.suggestionIconBox}>
+                  <Ionicons name={item.icon} size={18} color={COLORS.secondary} />
+                </View>
+                <Text style={styles.suggestionText}>{item.text}</Text>
+                <Feather name="arrow-up-right" size={16} color={COLORS.text} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Categories Grid */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Browse Categories</Text>
+          <View style={styles.categoryGrid}>
+            {categories.map((item, index) => (
+              <TouchableOpacity 
+                key={index}
+                style={styles.categoryCard}
                 onPress={() => handleSuggestionPress(item.name)}
               >
-                <View style={styles.categoryIcon}>
-                  <Ionicons name={item.icon} size={18} color={COLORS.primary} />
+                <View style={styles.categoryIconBox}>
+                  <Ionicons name={item.icon} size={22} color={COLORS.primary} />
                 </View>
                 <Text style={styles.categoryText}>{item.name}</Text>
               </TouchableOpacity>
-            )}
-          />
+            ))}
+          </View>
         </View>
-      </>
+      </View>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Search Bar */}
-      <Animated.View 
-        style={[
-          styles.searchContainer,
-          isFocused && styles.searchContainerFocused,
-          {
-            shadowColor: isFocused ? COLORS.primary : '#E3E3E3',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: isFocused ? 0.2 : 0.1,
-            shadowRadius: isFocused ? 8 : 4,
-            elevation: isFocused ? 8 : 4,
-          }
-        ]}
-      >
-        <View style={styles.searchInputContainer}>
-          <FontAwesome 
-            name="search" 
-            size={18} 
-            color={isFocused ? COLORS.primary : '#999'} 
-            style={styles.searchIcon}
-          />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      
+      {/* Search Header */}
+      <View style={styles.header}>
+        <Animated.View 
+          style={[
+            styles.searchBar,
+            isFocused && styles.searchBarFocused,
+          ]}
+        >
+          <Feather name="search" size={20} color={isFocused ? COLORS.secondary : COLORS.text} style={styles.searchIcon} />
           <TextInput
             ref={inputRef}
-            placeholder="Search products..."
-            placeholderTextColor="#999"
+            placeholder="Search products, shops..."
+            placeholderTextColor={COLORS.text}
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -220,33 +211,36 @@ const Search = () => {
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           />
-        </View>
-        <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+               <Feather name="x-circle" size={18} color={COLORS.text} />
+            </TouchableOpacity>
+          )}
+        </Animated.View>
+
+        {/* Scan/Action Button */}
+        <Animated.View style={{ transform: [{ scale: scaleValue }], marginLeft: 12 }}>
           <TouchableOpacity 
-            style={styles.cameraButton}
+            style={styles.actionButton}
             onPress={animateButton}
             activeOpacity={0.8}
           >
-            <Ionicons 
-              name="scan-outline" 
-              size={22} 
-              color={isFocused ? COLORS.primary : '#999'} 
-            />
+            <Ionicons name="scan" size={22} color={COLORS.primary} />
           </TouchableOpacity>
         </Animated.View>
-      </Animated.View>
+      </View>
 
       {/* Main Content */}
       <FlatList
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
-        data={[1]} // Single item to trigger render
+        data={[1]} // Single item to trigger render of body
         keyExtractor={() => "main-content"}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         renderItem={() => (
           <>
             {renderSection()}
-            {/* Suggestions Component */}
-            <View style={{ marginTop: 16 }}>
+            {/* Global Suggestions Component (Preserved) */}
+            <View style={styles.globalSuggestions}>
               <Suggestions />
             </View>
           </>
@@ -259,34 +253,33 @@ const Search = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
-    paddingHorizontal: 14,
+    backgroundColor: COLORS.background,
   },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  searchContainer: {
-    marginTop: 12,
+  
+  // Header
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 46,
     borderWidth: 1,
-    borderColor: '#E3E3E3',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 18,
+    borderColor: COLORS.border,
   },
-  searchContainerFocused: {
-    borderColor: COLORS.primary,
-  },
-  searchInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+  searchBarFocused: {
+    borderColor: COLORS.secondary,
+    backgroundColor: '#FFFFFF',
   },
   searchIcon: {
     marginRight: 10,
@@ -294,45 +287,27 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#333',
-    paddingVertical: 0,
+    color: COLORS.primary,
+    height: '100%',
   },
-  cameraButton: {
-    padding: 6,
-    marginLeft: 6,
-  },
-  suggestionsContainer: {
-    marginBottom: 18,
-  },
-  suggestionsList: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
-  },
-  suggestionIcon: {
-    backgroundColor: '#f0f7ff',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  actionButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: COLORS.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  suggestionText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#333',
+
+  // Content
+  contentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
-  historyContainer: {
-    marginBottom: 18,
+  section: {
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -342,71 +317,111 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
+    fontWeight: '700',
+    color: COLORS.primary,
     marginBottom: 12,
   },
   clearText: {
-    color: COLORS.primary,
     fontSize: 13,
+    color: COLORS.secondary,
+    fontWeight: '600',
   },
+
+  // History List
   historyList: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    overflow: 'hidden',
+    backgroundColor: COLORS.background,
   },
   historyItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    justifyContent: 'space-between',
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
+    borderBottomColor: COLORS.border,
+  },
+  historyContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   historyIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   historyText: {
-    flex: 1,
     fontSize: 14,
-    color: '#333',
+    color: COLORS.primary,
   },
   deleteButton: {
     padding: 4,
   },
-  section: {
-    marginBottom: 18,
+
+  // Suggestions List
+  suggestionsList: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    paddingVertical: 4,
   },
-  categoryContainer: {
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  categoryItem: {
-    width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 12,
+  suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  categoryIcon: {
-    backgroundColor: '#f0f7ff',
+  suggestionIconBox: {
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: '#E3F2FD', // Very light blue based on your secondary
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+
+  // Category Grid
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  categoryCard: {
+    width: '48%',
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    // Subtle shadow
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  categoryIconBox: {
     marginRight: 10,
   },
   categoryText: {
-    color: '#2c3e50',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+
+  // Global Footer
+  globalSuggestions: {
+    marginTop: 0,
+    paddingHorizontal: 16,
+    marginBottom: 20,
   },
 });
 

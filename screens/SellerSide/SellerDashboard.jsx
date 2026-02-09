@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
-  Modal,
   Image,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
+  StatusBar,
 } from "react-native";
-import React, { useState, useRef, useEffect,useContext } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import {
   Ionicons,
   MaterialIcons,
@@ -24,7 +24,6 @@ import {
 import { COLORS } from "../../style/theme";
 import { useNavigation } from "@react-navigation/native";
 import ProductManagement from "./ProductManagement";
-import API_URL  from "../../api/api_urls";
 import axios from "axios";
 import axiosInstance from '@api/axiosInstance';
 import N8NAPI_URL from "../../api/n8n_api";
@@ -36,35 +35,20 @@ const SellerDashboard = () => {
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState("analytics");
   const [chatMessage, setChatMessage] = useState("");
-  // const [chatMessages, setChatMessages] = useState(
-  // //   [
-  // //   {
-  // //     id: 1,
-  // //     text: "Hello! I'm your selling assistant. How can I help?",
-  // //     sender: "bot",
-  // //   },
-  // // ]
-  // );
   const [chatMessages, setChatMessages] = useState([]);
+  const [seller_id, setSellerId] = useState(null);
+  const { userToken } = useContext(AuthContext);
 
-  const[seller_id,setSellerId]=useState(null);
-  const {userToken} = useContext(AuthContext);
-  
-
-const fetchMessage = async (id) => {
+  const fetchMessage = async (id) => {
     try {
       const response = await axios.get(
-        // http://localhost:5678/webhook/706f713f-873b-437e-9dd0-791c9fbbb51d/get_AIHelper_SellerHistory/:seller_id
-        // http://localhost:5678/webhook-test/706f713f-873b-437e-9dd0-791c9fbbb51d/get_AIHelper_SellerHistory/:seller_id
         `${N8NAPI_URL}/webhook/706f713f-873b-437e-9dd0-791c9fbbb51d/get_AIHelper_SellerHistory/${id}`
       );
       setChatMessages(response.data.full_history);
-      console.log("Fetched chat history:", response.data.full_history);
     } catch (error) {
       console.error("Error fetching Message details:", error);
     }
-  }  
-
+  };
 
   const [products, setProducts] = useState({ product_info: [] });
   const [modalVisible, setModalVisible] = useState(false);
@@ -81,19 +65,18 @@ const fetchMessage = async (id) => {
   const flatListRef = useRef(null);
 
   useEffect(() => {
-   fetchData();
+    fetchData();
   }, []);
 
-
-const fetchData = async () => {
-  try {
-    const response = await fetchProducts(); // wait for products to finish
-    const id = response.seller_info.id;     // get id directly
-    await fetchMessage(id);                  // pass id
-  } catch (error) {
-    console.error(error);
-  }
-};
+  const fetchData = async () => {
+    try {
+      const response = await fetchProducts();
+      const id = response.seller_info.id;
+      await fetchMessage(id);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -105,8 +88,7 @@ const fetchData = async () => {
       const response = await axiosInstance.get(products_api);
       setProducts(response.data);
       setSellerId(response.data.seller_info.id);
-      return response.data; // return response so we can get seller_id
-
+      return response.data;
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -138,103 +120,60 @@ const fetchData = async () => {
     totalRevenue: salesData.reduce((sum, item) => sum + item.revenue, 0),
     conversionRate: `${(Math.random() * 5).toFixed(1)}%`,
     topProduct: salesData.length > 0
-      ? salesData.reduce((max, item) => 
-          item.sales > max.sales ? item : max, 
+      ? salesData.reduce((max, item) =>
+          item.sales > max.sales ? item : max,
           salesData[0]
         ).product
       : "No products",
   };
 
-  // const sendMessage = () => {
-  //   if (chatMessage.trim()) {
-      
-      
-  //     setChatMessages([
-  //       ...chatMessages,
-  //       { id: chatMessages.length + 1, text: chatMessage, sender: "user" },
-  //       {
-  //         id: chatMessages.length + 2,
-  //         text: "Thanks for your message! I'll analyze your data and get back to you soon.",
-  //         sender: "bot",
-  //       },
-  //     ]);
-  //     setChatMessage("");
-  //     setTimeout(() => {
-  //       flatListRef.current?.scrollToEnd({ animated: true });
-  //     }, 100);
-  //   }
-  // };
-
-const sendMessage = async () => {
-  if (chatMessage.trim()) {
-    // Add the user's message immediately
-    const userMsg = {
-      id: chatMessages.length + 1,
-      text: chatMessage,
-      sender: "user",
-      seller_id: seller_id,
-      userToken: userToken,
-    };
-
-    setChatMessages((prev) => [...prev, userMsg]);
-    setChatMessage("");
-    // Auto-scroll to bottom
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-
-    try {
-            // const res = await axios.post( `${N8NAPI_URL}/webhook/AI_Seller_Helper`, {
-// http://localhost:5678/webhook/c018e021-d270-4db5-9428-aab1b3cdce01/AI_Seller_Helper/:seller_id
-      // http://localhost:5678/webhook-test/c018e021-d270-4db5-9428-aab1b3cdce01/AI_Seller_Helper/:seller_id
-      const res = await axios.post( `${N8NAPI_URL}/webhook/c018e021-d270-4db5-9428-aab1b3cdce01/AI_Seller_Helper/${seller_id}`, {
-        userMsg,
-        
-      });
-
-      console.log("AI Response:", res.data);
-
-      // Handle the bot's reply
-      const botMsg = {
-        id: chatMessages.length + 2,
-        text: res.data.last_exchange.text || "Sorry, I couldn’t process your message.",
-        sender: "bot",
+  const sendMessage = async () => {
+    if (chatMessage.trim()) {
+      const userMsg = {
+        id: chatMessages.length + 1,
+        text: chatMessage,
+        sender: "user",
+        seller_id: seller_id,
+        userToken: userToken,
       };
 
-      // Add bot message to chat
-      setChatMessages((prev) => [...prev, botMsg]);
-
-      // Scroll again after receiving reply
+      setChatMessages((prev) => [...prev, userMsg]);
+      setChatMessage("");
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
 
-    } catch (error) {
-      console.error("Error sending message:", error);
+      try {
+        const res = await axios.post(`${N8NAPI_URL}/webhook/c018e021-d270-4db5-9428-aab1b3cdce01/AI_Seller_Helper/${seller_id}`, {
+          userMsg,
+        });
 
-      // Show error message in chat
-      const errorMsg = {
-        id: chatMessages.length + 2,
-        text: "⚠️ Error connecting to server. Please try again later.",
-        sender: "bot",
-      };
-      setChatMessages((prev) => [...prev, errorMsg]);
+        const botMsg = {
+          id: chatMessages.length + 2,
+          text: res.data.last_exchange.text || "Sorry, I couldn’t process your message.",
+          sender: "bot",
+        };
+
+        setChatMessages((prev) => [...prev, botMsg]);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+
+      } catch (error) {
+        console.error("Error sending message:", error);
+        const errorMsg = {
+          id: chatMessages.length + 2,
+          text: "⚠️ Error connecting to server. Please try again later.",
+          sender: "bot",
+        };
+        setChatMessages((prev) => [...prev, errorMsg]);
+      }
     }
-  }
-};
-
-
-
+  };
 
   const handleAddProduct = () => {
     setEditingProduct(null);
-    setProductForm({
-      name: "",
-      price: "",
-      stock: "",
-      description: "",
-      img: "",
-    });
+    setProductForm({ name: "", price: "", stock: "", description: "", img: "" });
     setModalVisible(true);
   };
 
@@ -245,33 +184,22 @@ const sendMessage = async () => {
       price: product.price.toString(),
       stock: product.stock.toString(),
       description: product.description,
-      img: product.img, 
+      img: product.img,
     });
     setModalVisible(true);
   };
 
   const handleSaveProduct = async () => {
     try {
-      if (editingProduct) {
-        const productData = {
-          product_id: editingProduct.id,
-          name: productForm.name,
-          price: parseFloat(productForm.price),
-          stock: parseInt(productForm.stock),
-          description: productForm.description,
-          image: productForm.img,
-        };
-        await axios.axiosInstance(products_api, productData);
-      } else {
-        const productData = {
-          name: productForm.name,
-          price: parseInt(productForm.price),
-          stock: parseInt(productForm.stock),
-          description: productForm.description,
-          image: productForm.img,
-        };
-        await axios.axiosInstance(products_api, productData);
-      }
+      const productData = {
+        name: productForm.name,
+        price: parseFloat(productForm.price),
+        stock: parseInt(productForm.stock),
+        description: productForm.description,
+        image: productForm.img,
+        ...(editingProduct && { product_id: editingProduct.id }),
+      };
+      await axios.axiosInstance(products_api, productData);
       fetchProducts();
       setModalVisible(false);
     } catch (error) {
@@ -289,184 +217,261 @@ const sendMessage = async () => {
     }
   };
 
+  // --- HEADER & TABS COMPONENT ---
+  const DashboardHeader = () => (
+    // Wrapped in a View to prevent vertical stretching in KeyboardAvoidingView
+    <View>
+      <View style={styles.topSection}>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryInfo}>
+            <Text style={styles.summaryLabel}>Today's Sales</Text>
+            <Text style={styles.summaryValue}>₱3,450</Text>
+            <View style={styles.trendRow}>
+              <Feather name="trending-up" size={14} color="#16A34A" />
+              <Text style={styles.trendText}>12% vs yesterday</Text>
+            </View>
+          </View>
+          <View style={styles.verticalDivider} />
+          <View style={styles.summaryInfo}>
+            <Text style={styles.summaryLabel}>Items Sold</Text>
+            <Text style={styles.summaryValue}>14</Text>
+            <View style={styles.trendRow}>
+              <Feather name="trending-down" size={14} color="#DC2626" />
+              <Text style={styles.trendTextRed}>3% vs yesterday</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.aiBanner}>
+          <View style={styles.aiBannerIcon}>
+            <FontAwesome5 name="earlybirds" size={18} color="white" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.aiBannerTitle}>AI Insight</Text>
+            <Text style={styles.aiBannerText}>
+              Your Handwoven Baskets are selling fast! Restock soon to prevent losing momentum.
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        style={styles.tabsContainer}
+        contentContainerStyle={{ flexGrow: 0 }} // Prevents stretching
+      >
+        {[
+          { id: "analytics", label: "Analytics", icon: "bar-chart-2" },
+          { id: "inventory", label: "Inventory", icon: "box" },
+          { id: "pricing", label: "Pricing", icon: "tag" },
+          { id: "products", label: "Products", icon: "grid" },
+          { id: "assistant", label: "Assistant", icon: "message-circle" },
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            style={[styles.tabButton, activeTab === tab.id && styles.activeTabButton]}
+            onPress={() => setActiveTab(tab.id)}
+          >
+            <Feather 
+              name={tab.icon} 
+              size={16} 
+              color={activeTab === tab.id ? "white" : "#64748b"} 
+              style={styles.tabIcon}
+            />
+            <Text style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  // --- TAB CONTENT ---
   const renderTabContent = () => {
     switch (activeTab) {
       case "analytics":
         return (
           <View style={styles.tabContent}>
             <View style={styles.analyticsGrid}>
-              <View style={styles.analyticsCard}>
-                <MaterialIcons name="trending-up" size={24} color={COLORS.primary} />
-                <Text style={styles.analyticsValue}>
-                  {analyticsData.totalSales}
-                </Text>
+              <View style={[styles.analyticsCard, { backgroundColor: '#F0F9FF' }]}>
+                <View style={[styles.iconBg, { backgroundColor: '#E0F2FE' }]}>
+                  <MaterialIcons name="trending-up" size={20} color="#0284C7" />
+                </View>
+                <Text style={styles.analyticsValue}>{analyticsData.totalSales}</Text>
                 <Text style={styles.analyticsLabel}>Total Sales</Text>
               </View>
-              <View style={styles.analyticsCard}>
-                <FontAwesome name="money" size={20} color={COLORS.primary} />
-                <Text style={styles.analyticsValue}>
-                  ₱{analyticsData.totalRevenue.toLocaleString()}
-                </Text>
+              <View style={[styles.analyticsCard, { backgroundColor: '#FDF4FF' }]}>
+                <View style={[styles.iconBg, { backgroundColor: '#FAE8FF' }]}>
+                  <FontAwesome name="money" size={18} color="#C026D3" />
+                </View>
+                <Text style={styles.analyticsValue}>₱{analyticsData.totalRevenue.toLocaleString()}</Text>
                 <Text style={styles.analyticsLabel}>Total Revenue</Text>
               </View>
-              <View style={styles.analyticsCard}>
-                <MaterialIcons name="compare-arrows" size={24} color={COLORS.primary} />
-                <Text style={styles.analyticsValue}>
-                  {analyticsData.conversionRate}
-                </Text>
+              <View style={[styles.analyticsCard, { backgroundColor: '#F0FDF4' }]}>
+                <View style={[styles.iconBg, { backgroundColor: '#DCFCE7' }]}>
+                  <MaterialIcons name="compare-arrows" size={20} color="#16A34A" />
+                </View>
+                <Text style={styles.analyticsValue}>{analyticsData.conversionRate}</Text>
                 <Text style={styles.analyticsLabel}>Conversion Rate</Text>
               </View>
-              <View style={styles.analyticsCard}>
-                <MaterialIcons name="star" size={24} color={COLORS.primary} />
-                <Text style={styles.analyticsValue}>
-                  {analyticsData.topProduct}
-                </Text>
+              <View style={[styles.analyticsCard, { backgroundColor: '#FFFBEB' }]}>
+                <View style={[styles.iconBg, { backgroundColor: '#FEF3C7' }]}>
+                  <MaterialIcons name="star" size={20} color="#D97706" />
+                </View>
+                <Text style={styles.analyticsValue} numberOfLines={1}>{analyticsData.topProduct}</Text>
                 <Text style={styles.analyticsLabel}>Top Product</Text>
               </View>
             </View>
 
-            <Text style={styles.sectionTitle}>Sales Performance</Text>
+            <Text style={styles.sectionHeader}>Sales Performance</Text>
             {salesData.length > 0 ? (
-              <FlatList
-                data={salesData || []}
-                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-                renderItem={({ item }) => (
-                  <View style={styles.salesItem}>
-                    <View style={{ flex: 2 }}>
-                      <Text style={styles.productName}>{item.product}</Text>
-                      <View style={styles.stockIndicatorContainer}>
-                        <View style={[
-                          styles.stockIndicator,
-                          item.stock < 5 ? styles.lowStockIndicator : styles.normalStockIndicator
-                        ]} />
-                        <Text style={styles.stockText}>
-                          {item.stock < 5 ? "Low stock" : "In stock"} ({item.stock})
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={{ flex: 1, alignItems: "flex-end" }}>
-                      <Text style={styles.salesText}>{item.sales} sold</Text>
-                      <Text style={styles.revenueText}>₱{item.revenue.toLocaleString()}</Text>
+              salesData.map((item) => (
+                <View key={item.id.toString()} style={styles.listItem}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName} numberOfLines={1}>{item.product}</Text>
+                    <View style={styles.stockBadge}>
+                      <View style={[styles.stockDot, item.stock < 5 ? styles.lowStockBg : styles.goodStockBg]} />
+                      <Text style={styles.stockText}>{item.stock < 5 ? "Low stock" : "In stock"} ({item.stock})</Text>
                     </View>
                   </View>
-                )}
-              />
+                  <View style={styles.itemMeta}>
+                    <Text style={styles.salesText}>{item.sales} sold</Text>
+                    <Text style={styles.revenueText}>₱{item.revenue.toLocaleString()}</Text>
+                  </View>
+                </View>
+              ))
             ) : (
               <View style={styles.emptyState}>
-                <Feather name="box" size={40} color="#ccc" />
-                <Text style={styles.emptyStateText}>No sales data available</Text>
+                <Feather name="bar-chart-2" size={32} color="#CBD5E1" />
+                <Text style={styles.emptyStateText}>No sales data yet</Text>
               </View>
             )}
           </View>
         );
+
       case "inventory":
         return (
           <View style={styles.tabContent}>
-            <Text style={styles.sectionTitle}>Current Inventory</Text>
+            <View style={styles.headerRow}>
+                <Text style={styles.sectionHeader}>Current Inventory</Text>
+                <TouchableOpacity onPress={handleAddProduct}>
+                    <Text style={styles.actionText}>+ Add New</Text>
+                </TouchableOpacity>
+            </View>
             {products.product_info?.length > 0 ? (
-              <FlatList
-                data={products.product_info || []}
-                    scrollEnabled={false} // FlatList won't scroll independently
-
-                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.inventoryItem}
-                    onPress={() => handleEditProduct(item)}
-                  >
-                    {item.img ? (
-                      <Image source={{ uri: item.img }} style={styles.productImage} />
-                    ) : (
-                      <View style={[styles.productImage, styles.productImagePlaceholder]}>
-                        <Feather name="image" size={24} color="#ccc" />
-                      </View>
-                    )}
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={styles.productName}>{item.name}</Text>
-                      <Text style={styles.productDescription} numberOfLines={2}>
-                        {item.description || "No description"}
-                      </Text>
+              products.product_info.map((item) => (
+                <TouchableOpacity key={item.id.toString()} style={styles.listItem} onPress={() => handleEditProduct(item)}>
+                  {item.img ? (
+                    <Image source={{ uri: item.img }} style={styles.productImage} />
+                  ) : (
+                    <View style={styles.productImagePlaceholder}>
+                      <Feather name="image" size={20} color="#94A3B8" />
                     </View>
-                    <View style={styles.stockContainer}>
-                      <View style={styles.stockIndicatorContainer}>
-                        <View style={[
-                          styles.stockIndicator,
-                          item.stock < 5 ? styles.lowStockIndicator : styles.normalStockIndicator
-                        ]} />
-                        <Text style={item.stock < 5 ? styles.lowStock : styles.normalStock}>
-                          {item.stock} left
-                        </Text>
-                      </View>
-                      <Text style={styles.priceText}>₱{item.price.toLocaleString()}</Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
-              />
+                  )}
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.itemSub} numberOfLines={1}>{item.description || "No description"}</Text>
+                  </View>
+                  <View style={styles.itemMeta}>
+                    <Text style={[styles.stockStatus, item.stock < 5 && styles.lowStockText]}>
+                      {item.stock} left
+                    </Text>
+                    <Text style={styles.priceText}>₱{item.price.toLocaleString()}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
             ) : (
               <View style={styles.emptyState}>
-                <Feather name="box" size={40} color="#ccc" />
-                <Text style={styles.emptyStateText}>No products in inventory</Text>
-                <TouchableOpacity 
-                  style={styles.addProductButton} 
-                  onPress={handleAddProduct}
-                >
-                  <Text style={styles.addProductButtonText}>Add Product</Text>
-                </TouchableOpacity>
+                <Feather name="package" size={32} color="#CBD5E1" />
+                <Text style={styles.emptyStateText}>Your inventory is empty</Text>
               </View>
             )}
           </View>
         );
+
       case "pricing":
         return (
           <View style={styles.tabContent}>
-            <Text style={styles.sectionTitle}>Pricing Suggestions</Text>
+            <Text style={styles.sectionHeader}>Pricing Suggestions</Text>
             {pricingSuggestions.length > 0 ? (
-              <FlatList
-                data={pricingSuggestions || []}
-                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-                renderItem={({ item }) => (
-                  <View style={styles.pricingItem}>
-                    <Text style={styles.productName}>{item.product}</Text>
-                    <View style={styles.priceRow}>
-                      <Text style={styles.currentPrice}>₱{item.current.toLocaleString()}</Text>
-                      <MaterialIcons
-                        name="trending-flat"
-                        size={20}
-                        color="#666"
-                      />
-                      <Text
-                        style={[
-                          styles.suggestedPrice,
-                          item.suggested > item.current
-                            ? styles.priceUp
-                            : item.suggested < item.current
-                            ? styles.priceDown
-                            : styles.priceSame,
-                        ]}
-                      >
-                        ₱{item.suggested.toLocaleString()}
-                      </Text>
-                    </View>
-                    <View style={styles.reasonContainer}>
-                      <Ionicons 
-                        name="information-circle-outline" 
-                        size={16} 
-                        color="#666" 
-                        style={styles.infoIcon}
-                      />
+              pricingSuggestions.map((item) => (
+                <View key={item.id.toString()} style={styles.listItem}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName} numberOfLines={1}>{item.product}</Text>
+                    <View style={styles.reasonTag}>
+                      <Feather name="info" size={12} color="#64748b" style={{ marginRight: 4 }} />
                       <Text style={styles.reasonText}>{item.reason}</Text>
                     </View>
                   </View>
-                )}
-              />
+                  <View style={styles.pricingMeta}>
+                    <Text style={styles.currentPrice}>₱{item.current.toLocaleString()}</Text>
+                    <Feather name="arrow-right" size={14} color="#94A3B8" style={{ marginHorizontal: 4 }} />
+                    <Text style={[styles.suggestedPrice, item.suggested > item.current ? styles.priceUp : styles.priceDown]}>
+                      ₱{item.suggested.toLocaleString()}
+                    </Text>
+                  </View>
+                </View>
+              ))
             ) : (
               <View style={styles.emptyState}>
-                <Feather name="tag" size={40} color="#ccc" />
-                <Text style={styles.emptyStateText}>No pricing suggestions available</Text>
+                <Feather name="tag" size={32} color="#CBD5E1" />
+                <Text style={styles.emptyStateText}>No suggestions available</Text>
               </View>
             )}
           </View>
         );
+
+      case "assistant":
+        return (
+          <View style={[styles.tabContent, { flex: 1, paddingHorizontal: 0, paddingBottom: 0 }]}>
+            <Text style={[styles.sectionHeader, { paddingHorizontal: 20 }]}>Selling Assistant</Text>
+            
+            {chatMessages.length > 0 ? (
+              <FlatList
+                data={chatMessages}
+                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+                contentContainerStyle={styles.chatContainer}
+                renderItem={({ item }) => (
+                  <View style={[styles.chatBubble, item.sender === "user" ? styles.userBubble : styles.botBubble]}>
+                    {item.sender === "bot" && (
+                      <View style={styles.botAvatar}>
+                        <FontAwesome5 name="earlybirds" size={14} color={COLORS.primary} />
+                      </View>
+                    )}
+                    <Text style={item.sender === "user" ? styles.userText : styles.botText}>{item.text}</Text>
+                  </View>
+                )}
+                ref={flatListRef}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+              />
+            ) : (
+              <View style={styles.emptyChat}>
+                <View style={styles.botAvatarLarge}>
+                  <FontAwesome5 name="earlybirds" size={32} color={COLORS.primary} />
+                </View>
+                <Text style={styles.welcomeText}>How can I help you sell today?</Text>
+                <Text style={styles.promptText}>Ask about sales, inventory, or pricing.</Text>
+              </View>
+            )}
+
+            <View style={styles.chatInputContainer}>
+              <TextInput
+                style={styles.chatInput}
+                value={chatMessage}
+                onChangeText={setChatMessage}
+                placeholder="Type a message..."
+                placeholderTextColor="#94A3B8"
+                onSubmitEditing={sendMessage}
+              />
+              <TouchableOpacity style={[styles.sendBtn, !chatMessage.trim() && styles.sendBtnDisabled]} onPress={sendMessage} disabled={!chatMessage.trim()}>
+                <Ionicons name="send" size={18} color="white" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+
       case "products":
         return (
           <ProductManagement
@@ -482,1841 +487,483 @@ const sendMessage = async () => {
             editingProduct={editingProduct}
           />
         );
-      case "assistant":
-        return (
-          <View style={styles.assistantContainer}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-              style={{ flex: 1 }}
-            >
-              <View style={styles.tabContent}>
-                <Text style={styles.sectionTitle}>Selling Assistant</Text>
 
-                {chatMessages.length > 1 ? (
-
-                  <FlatList
-  data={chatMessages.filter(Boolean)}
-  
-  keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-  renderItem={({ item }) => (
-    <View style={[styles.chatBubble, item.sender === "user" ? styles.userBubble : styles.botBubble]}>
-      {item.sender === "bot" && (
-        <View style={styles.botAvatar}>
-          <FontAwesome5 name="earlybirds" size={20} color="white" />
-        </View>
-      )}
-      <Text style={item.sender === "user" ? styles.userText : styles.botText}>{item.text}</Text>
-      {item.sender === "user" && (
-        <View style={styles.userAvatar}>
-          <Ionicons name="person" size={16} color="white" />
-        </View>
-      )}
-    </View>
-  )}
-  ref={flatListRef}
-  onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-  onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-/>
-
-
-//                   <FlatList
-//   data={chatMessages || []} // always an array
-//   keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-//   renderItem={({ item }) => item && (
-//     <View style={[styles.chatBubble, item.sender === "user" ? styles.userBubble : styles.botBubble]}>
-//       {item.sender === "bot" && <View style={styles.botAvatar}><FontAwesome5 name="earlybirds" size={20} color="white" /></View>}
-//       <Text style={item.sender === "user" ? styles.userText : styles.botText}>{item.text}</Text>
-//       {item.sender === "user" && <View style={styles.userAvatar}><Ionicons name="person" size={16} color="white" /></View>}
-//     </View>
-//   )}
-//   ref={flatListRef}
-//   onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-//   onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-// />
-
-//                   <FlatList
-//   data={chatMessages || []}
-//   keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-//   contentContainerStyle={{ paddingBottom: 80 }}
-//   renderItem={({ item }) =>
-//     item ? (
-//       <View style={[styles.chatBubble, item.sender === "user" ? styles.userBubble : styles.botBubble]}>
-//         {item.sender === "bot" && <View style={styles.botAvatar}><FontAwesome5 name="earlybirds" size={20} color="white" /></View>}
-//         <Text style={item.sender === "user" ? styles.userText : styles.botText}>{item.text}</Text>
-//         {item.sender === "user" && <View style={styles.userAvatar}><Ionicons name="person" size={16} color="white" /></View>}
-//       </View>
-//     ) : null
-//   }
-//   ref={flatListRef}
-//   onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-//   onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-// />
-            
-                  ///the frist message is bot welcome message, so we check length >1
-                  // <FlatList
-                  //   data={chatMessages || []}
-                  //   keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-                  //   contentContainerStyle={{ paddingBottom: 80 }}
-                  //   renderItem={({ item }) => (
-                  //     <View
-                  //       style={[
-                  //         styles.chatBubble,
-                  //         item.sender === "user"
-                  //           ? styles.userBubble
-                  //           : styles.botBubble,
-                  //       ]}
-                  //     >
-                  //       {item.sender === "bot" && (
-                  //         <View style={styles.botAvatar}>
-                  //           <FontAwesome5 name="earlybirds" size={20} color="white" />
-                  //         </View>
-                  //       )}
-                  //       <Text
-                  //         style={
-                  //           item.sender === "user"
-                  //             ? styles.userText
-                  //             : styles.botText
-                  //         }
-                  //       >
-                  //         {item.text}
-                  //       </Text>
-                  //       {item.sender === "user" && (
-                  //         <View style={styles.userAvatar}>
-                  //           <Ionicons name="person" size={16} color="white" />
-                  //         </View>
-                  //       )}
-                  //     </View>
-                  //   )}
-                  // ref={flatListRef}
-                  // onContentSizeChange={() =>
-                  //   flatListRef.current?.scrollToEnd({ animated: true })
-                  // }
-                  // onLayout={() =>
-                  //   flatListRef.current?.scrollToEnd({ animated: true })
-                  // }
-                  // />
-                ) : (
-                  <View style={styles.assistantEmptyState}>
-                    <View style={styles.botAvatarLarge}>
-                      <FontAwesome5 name="earlybirds" size={32} color="white" />
-                    </View>
-                    <Text style={styles.assistantWelcomeText}>Hi there! I'm your selling assistant.</Text>
-                    <Text style={styles.assistantPromptText}>Ask me about your sales, inventory, or pricing suggestions.</Text>
-                  </View>
-                )}
-
-                <View style={styles.chatInputContainer}>
-                  <TextInput
-                    style={styles.chatInput}
-                    value={chatMessage}
-                    onChangeText={setChatMessage}
-                    placeholder="Ask about your sales..."
-                    placeholderTextColor="#999"
-                    onSubmitEditing={sendMessage}
-                  />
-                  <TouchableOpacity
-                    style={styles.sendButton}
-                    onPress={sendMessage}
-                    disabled={!chatMessage.trim()}
-                  >
-                    <Ionicons 
-                      name="send" 
-                      size={20} 
-                      color={chatMessage.trim() ? "white" : "#ccc"} 
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </KeyboardAvoidingView>
-          </View>
-        );
-      default:
-        return null;
+      default: return null;
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      
+      {/* HEADER BAR */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color="#1E293B" />
         </TouchableOpacity>
-        <Text style={styles.header}>Seller Dashboard</Text>
+        <Text style={styles.headerTitle}>Dashboard</Text>
+        <TouchableOpacity style={styles.iconBtn} onPress={onRefresh}>
+          <Feather name="refresh-cw" size={20} color="#64748B" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
-          />
-        }
-      >
-        <FlatList
-  data={[]} // empty because items are in ListHeaderComponent
-  keyExtractor={(item, index) => index.toString()}
-  ListHeaderComponent={
-    <>
-
-        {/* Quick Stats Overview */}
-        <View style={styles.overviewCard}>
-          <View style={styles.overviewItem}>
-            <View style={styles.overviewIconContainer}>
-              <FontAwesome name="money" size={16} color="white" />
-            </View>
-            <Text style={styles.overviewLabel}>Today's Sales</Text>
-            <Text style={styles.overviewValue}>₱3,450</Text>
-            <View style={styles.overviewChangeContainer}>
-              <Ionicons name="arrow-up" size={12} color="#4CAF50" />
-              <Text style={styles.overviewChangePositive}>12% from yesterday</Text>
-            </View>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.overviewItem}>
-            <View style={styles.overviewIconContainer}>
-              <Feather name="shopping-cart" size={16} color="white" />
-            </View>
-            <Text style={styles.overviewLabel}>Items Sold</Text>
-            <Text style={styles.overviewValue}>14</Text>
-            <View style={styles.overviewChangeContainer}>
-              <Ionicons name="arrow-down" size={12} color="#F44336" />
-              <Text style={styles.overviewChangeNegative}>3% from yesterday</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* AI Insights */}
-        <View style={styles.aiCard}>
-          <View style={styles.aiHeader}>
-            <View style={styles.aiIconContainer}>
-              <FontAwesome name="lightbulb-o" size={16} color="white" />
-            </View>
-            <Text style={styles.aiTitle}>AI Insights</Text>
-          </View>
-          <Text style={styles.aiText}>
-            Your Handwoven Baskets are selling fast! Consider increasing
-            production. Wooden Sculptures have low stock - reorder soon to avoid
-            stockouts.
-          </Text>
-        </View>
-
-        {/* Tab Navigation */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabScrollContainer}
-          contentContainerStyle={styles.tabScrollContent}
+      {/* CONDITIONAL LAYOUT: 
+          Uses KeyboardAvoidingView for chat to prevent keyboard overlap.
+          Uses ScrollView for everything else to allow page scrolling. */}
+      {activeTab === "assistant" ? (
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+          <DashboardHeader />
+          {renderTabContent()}
+        </KeyboardAvoidingView>
+      ) : (
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
         >
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === "analytics" && styles.activeTab,
-            ]}
-            onPress={() => setActiveTab("analytics")}
-          >
-            <View style={[
-              styles.tabIconContainer,
-              activeTab === "analytics" && styles.activeTabIconContainer
-            ]}>
-              <MaterialIcons
-                name="analytics"
-                size={20}
-                color={activeTab === "analytics" ? COLORS.primary : "#666"}
-              />
-            </View>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "analytics" && styles.activeTabText,
-              ]}
-            >
-              Analytics
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === "inventory" && styles.activeTab,
-            ]}
-            onPress={() => setActiveTab("inventory")}
-          >
-            <View style={[
-              styles.tabIconContainer,
-              activeTab === "inventory" && styles.activeTabIconContainer
-            ]}>
-              <MaterialIcons
-                name="inventory"
-                size={20}
-                color={activeTab === "inventory" ? COLORS.primary : "#666"}
-              />
-            </View>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "inventory" && styles.activeTabText,
-              ]}
-            >
-              Inventory
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === "pricing" && styles.activeTab,
-            ]}
-            onPress={() => setActiveTab("pricing")}
-          >
-            <View style={[
-              styles.tabIconContainer,
-              activeTab === "pricing" && styles.activeTabIconContainer
-            ]}>
-              <FontAwesome
-                name="tags"
-                size={20}
-                color={activeTab === "pricing" ? COLORS.primary : "#666"}
-              />
-            </View>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "pricing" && styles.activeTabText,
-              ]}
-            >
-              Pricing
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === "products" && styles.activeTab,
-            ]}
-            onPress={() => setActiveTab("products")}
-          >
-            <View style={[
-              styles.tabIconContainer,
-              activeTab === "products" && styles.activeTabIconContainer
-            ]}>
-              <Feather
-                name="box"
-                size={20}
-                color={activeTab === "products" ? COLORS.primary : "#666"}
-              />
-            </View>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "products" && styles.activeTabText,
-              ]}
-            >
-              Products
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === "assistant" && styles.activeTab,
-            ]}
-            onPress={() => setActiveTab("assistant")}
-          >
-            <View style={[
-              styles.tabIconContainer,
-              activeTab === "assistant" && styles.activeTabIconContainer
-            ]}>
-              <AntDesign
-                name="message1"
-                size={20}
-                color={activeTab === "assistant" ? COLORS.primary : "#666"}
-              />
-            </View>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "assistant" && styles.activeTabText,
-              ]}
-            >
-              Assistant
-            </Text>
-          </TouchableOpacity>
+          <DashboardHeader />
+          {renderTabContent()}
         </ScrollView>
+      )}
 
-        {/* Tab Content */}
-        {renderTabContent()}
-
-    </>
-  }
-/>
-
-      </ScrollView>
-
-      {/* Add Product Floating Button */}
+      {/* FLOATING ACTION BUTTON */}
       {activeTab !== "assistant" && (
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={handleAddProduct}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={30} color="white" />
+        <TouchableOpacity style={styles.fab} onPress={handleAddProduct}>
+          <Feather name="plus" size={24} color="white" />
         </TouchableOpacity>
       )}
     </View>
   );
 };
 
+// --- STYLESHEET ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#FFFFFF",
   },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 16,
-    backgroundColor: "white",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+  scrollContent: {
+    paddingBottom: 100,
   },
-  backButton: {
-    marginRight: 16,
-  },
+
+  // Header
   header: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  scrollContainer: {
-    padding: 16,
-    paddingBottom: 80,
-  },
-  overviewCard: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  overviewItem: {
-    flex: 1,
-    alignItems: "flex-start",
-  },
-  overviewIconContainer: {
-    backgroundColor: COLORS.primary,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  overviewLabel: {
-    fontSize: 13,
-    color: "#666",
-    marginBottom: 4,
-  },
-  overviewValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
-  },
-  overviewChangeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  overviewChangePositive: {
-    fontSize: 12,
-    color: "#4CAF50",
-    marginLeft: 4,
-  },
-  overviewChangeNegative: {
-    fontSize: 12,
-    color: "#F44336",
-    marginLeft: 4,
-  },
-  divider: {
-    width: 1,
-    backgroundColor: "#eee",
-    marginHorizontal: 16,
-  },
-  aiCard: {
-    backgroundColor: "#E3F2FD",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  aiIconContainer: {
-    backgroundColor: COLORS.primary,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  aiHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  aiTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 12,
-    color: "#333",
-  },
-  aiText: {
-    fontSize: 14,
-    color: "#333",
-    lineHeight: 20,
-  },
-  tabScrollContainer: {
-    marginBottom: 16,
-    backgroundColor: "white",
-    borderRadius: 12,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: "#ffffff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
-  tabScrollContent: {
-    paddingHorizontal: 8,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  iconBtn: {
+    padding: 8,
+    borderRadius: 8,
+  },
+
+  // Top Section (Summary & AI)
+  topSection: {
+    padding: 20,
+  },
+  summaryCard: {
+    flexDirection: "row",
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    marginBottom: 16,
+  },
+  summaryInfo: {
+    flex: 1,
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginBottom: 8,
+  },
+  verticalDivider: {
+    width: 1,
+    backgroundColor: "#F1F5F9",
+    marginHorizontal: 20,
+  },
+  trendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  trendText: {
+    fontSize: 12,
+    color: "#16A34A",
+    marginLeft: 6,
+    fontWeight: "600",
+  },
+  trendTextRed: {
+    fontSize: 12,
+    color: "#DC2626",
+    marginLeft: 6,
+    fontWeight: "600",
+  },
+  aiBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  aiBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  aiBannerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  aiBannerText: {
+    fontSize: 13,
+    color: "#475569",
+    lineHeight: 18,
+  },
+
+  // Tabs
+  tabsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    flexGrow: 0,
   },
   tabButton: {
+    flexDirection: "row",
     alignItems: "center",
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    minWidth: 80,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    marginRight: 10,
   },
-  tabIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
+  activeTabButton: {
+    backgroundColor: COLORS.primary,
   },
-  activeTabIconContainer: {
-    backgroundColor: "#E3F2FD",
-  },
-  activeTab: {
-    // backgroundColor: "#E3F2FD",
+  tabIcon: {
+    marginRight: 6,
   },
   tabText: {
-    fontSize: 12,
-    marginTop: 6,
-    color: "#666",
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748B",
   },
   activeTabText: {
-    color: COLORS.primary,
-    fontWeight: "bold",
+    color: "white",
   },
+
+  // Content Area
   tabContent: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-    flex: 1,
+    paddingHorizontal: 20,
   },
-  assistantContainer: {
-    flex: 1,
-    backgroundColor: "white",
-    borderRadius: 12,
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1E293B",
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
-    color: "#333",
   },
+  actionText: {
+    color: COLORS.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+  // Analytics Grid
   analyticsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 24,
   },
   analyticsCard: {
     width: "48%",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+  },
+  iconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
     alignItems: "center",
+    marginBottom: 12,
   },
   analyticsValue: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: COLORS.primary,
-    marginVertical: 8,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 4,
   },
   analyticsLabel: {
     fontSize: 12,
-    color: "#666",
-  },
-  salesItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  productName: {
-    fontSize: 15,
+    color: "#64748B",
     fontWeight: "500",
-    color: "#333",
   },
-  productDescription: {
-    fontSize: 13,
-    color: "#666",
-    marginTop: 4,
-  },
-  stockIndicatorContainer: {
+
+  // List Items
+  listItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 6,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
-  stockIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  productImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  productImagePlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  itemInfo: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  itemName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 4,
+  },
+  itemSub: {
+    fontSize: 13,
+    color: "#94A3B8",
+  },
+  itemMeta: {
+    alignItems: "flex-end",
+  },
+  stockBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  stockDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 6,
   },
-  normalStockIndicator: {
-    backgroundColor: "#4CAF50",
-  },
-  lowStockIndicator: {
-    backgroundColor: "#F44336",
-  },
+  goodStockBg: { backgroundColor: "#16A34A" },
+  lowStockBg: { backgroundColor: "#DC2626" },
   stockText: {
     fontSize: 12,
-    color: "#666",
+    color: "#64748B",
   },
   salesText: {
-    fontSize: 14,
-    color: "#333",
+    fontSize: 13,
+    color: "#64748B",
+    marginBottom: 2,
   },
   revenueText: {
     fontSize: 14,
-    fontWeight: "bold",
-    color: COLORS.primary,
-    marginTop: 4,
+    fontWeight: "700",
+    color: "#1E293B",
   },
-  inventoryItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  productImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-  },
-  productImagePlaceholder: {
-    backgroundColor: "#f5f5f5",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  stockContainer: {
-    flexDirection: "column",
-    alignItems: "flex-end",
-    marginLeft: 12,
-  },
-  normalStock: {
+  stockStatus: {
     fontSize: 13,
-    color: "#666",
+    color: "#64748B",
+    marginBottom: 2,
   },
-  lowStock: {
-    fontSize: 13,
-    color: "#F44336",
-    fontWeight: "500",
+  lowStockText: {
+    color: "#DC2626",
+    fontWeight: "600",
   },
   priceText: {
     fontSize: 15,
-    fontWeight: "bold",
-    color: COLORS.primary,
-    marginTop: 4,
+    fontWeight: "700",
+    color: "#1E293B",
   },
-  pricingItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+
+  // Pricing Layout
+  reasonTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 8,
+  reasonText: {
+    fontSize: 11,
+    color: "#64748b",
+  },
+  pricingMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   currentPrice: {
-    fontSize: 16,
-    color: "#333",
-    marginRight: 8,
+    fontSize: 14,
+    color: "#94A3B8",
+    textDecorationLine: 'line-through',
   },
   suggestedPrice: {
     fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 8,
+    fontWeight: "700",
   },
-  priceUp: {
-    color: "#4CAF50",
-  },
-  priceDown: {
-    color: "#F44336",
-  },
-  priceSame: {
-    color: "#FFC107",
-  },
-  reasonContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  infoIcon: {
-    marginRight: 4,
-  },
-  reasonText: {
-    fontSize: 12,
-    color: "#666",
+  priceUp: { color: "#16A34A" },
+  priceDown: { color: "#DC2626" },
+
+  // Chat/Assistant
+  chatContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   chatBubble: {
-    maxWidth: "80%",
+    maxWidth: "85%",
     padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    flexDirection: "row",
-    alignItems: "flex-end",
+    borderRadius: 16,
+    marginBottom: 12,
   },
   botBubble: {
     alignSelf: "flex-start",
-    backgroundColor: "#E3F2FD",
-    borderTopLeftRadius: 0,
-  },
-  botAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 8,
-  },
-  botAvatarLarge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
+    backgroundColor: "#F1F5F9",
+    borderBottomLeftRadius: 4,
+    flexDirection: 'row',
   },
   userBubble: {
     alignSelf: "flex-end",
     backgroundColor: COLORS.primary,
-    borderTopRightRadius: 0,
+    borderBottomRightRadius: 4,
   },
-  userAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#666",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
+  botAvatar: {
+    marginRight: 8,
+    marginTop: 2,
   },
   botText: {
-    fontSize: 14,
-    color: "#333",
     flex: 1,
+    fontSize: 14,
+    color: "#1E293B",
+    lineHeight: 20,
   },
   userText: {
     fontSize: 14,
     color: "white",
+    lineHeight: 20,
+  },
+  emptyChat: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  botAvatarLarge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F0F9FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  welcomeText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 6,
+  },
+  promptText: {
+    fontSize: 14,
+    color: '#64748B',
   },
   chatInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 8,
-    paddingHorizontal: 8,
-    paddingBottom: Platform.OS === "ios" ? 30 : 8,
-    backgroundColor: "white",
+    padding: 16,
+    backgroundColor: "#ffffff",
     borderTopWidth: 1,
-    borderTopColor: "#eee",
+    borderTopColor: "#F1F5F9",
   },
   chatInput: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 24,
+    paddingHorizontal: 20,
     paddingVertical: 12,
     fontSize: 14,
+    color: "#1E293B",
   },
-  sendButton: {
+  sendBtn: {
     backgroundColor: COLORS.primary,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
+    marginLeft: 10,
   },
-  addButton: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
+  sendBtnDisabled: {
+    backgroundColor: "#CBD5E1",
   },
+
+  // Empty States
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
+    paddingVertical: 60,
   },
   emptyStateText: {
-    fontSize: 14,
-    color: "#999",
-    marginTop: 8,
+    fontSize: 15,
+    color: "#94A3B8",
+    marginTop: 12,
+    fontWeight: "500",
   },
-  addProductButton: {
-    marginTop: 16,
+
+  // Floating Action Button
+  fab: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: COLORS.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-  },
-  addProductButtonText: {
-    color: "white",
-    fontWeight: "500",
-  },
-  assistantEmptyState: {
-    flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
-  },
-  assistantWelcomeText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-    marginTop: 16,
-  },
-  assistantPromptText: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 8,
-    textAlign: "center",
-    paddingHorizontal: 40,
+    alignItems: "center",
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
 });
 
 export default SellerDashboard;
-
-
-
-// import {
-//   View,
-//   Text,
-//   ScrollView,
-//   StyleSheet,
-//   TouchableOpacity,
-//   FlatList,
-//   TextInput,
-//   Modal,
-//   Image,
-//   KeyboardAvoidingView,
-//   Platform,
-// } from "react-native";
-// import React, { useState, useRef, useEffect } from "react";
-// import {
-//   Ionicons,
-//   MaterialIcons,
-//   FontAwesome,
-//   AntDesign,
-//   Feather,
-// } from "@expo/vector-icons";
-// import { COLORS } from "../../style/theme";
-// import { useNavigation } from "@react-navigation/native";
-// import ProductManagement from "./ProductManagement";
-// import API_URL  from "../../api/api_urls";
-// import axios from "axios";
-
-// const products_api = API_URL + "/api/v1/seller/Manage Product/manage_product";
-
-// const SellerDashboard = () => {
-//   const navigation = useNavigation();
-//   const [activeTab, setActiveTab] = useState("analytics");
-//   const [chatMessage, setChatMessage] = useState("");
-//   const [chatMessages, setChatMessages] = useState([
-//     {
-//       id: 1,
-//       text: "Hello! I'm your selling assistant. How can I help?",
-//       sender: "bot",
-//     },
-//   ]);
-//   const [products, setProducts] = useState({ product_info: [] });
-//   const [modalVisible, setModalVisible] = useState(false);
-//   const [editingProduct, setEditingProduct] = useState(null);
-//   const [productForm, setProductForm] = useState({
-//     name: "",
-//     price: "",
-//     stock: "",
-//     description: "",
-//     img: "",
-//   });
-
-//   const flatListRef = useRef(null);
-
-//   useEffect(() => {
-//     fetchProducts();
-//   }, []);
-
-//   const fetchProducts = async () => {
-//     try {
-//       const response = await axios.get(products_api);
-//       setProducts(response.data);
-//     } catch (error) {
-//       console.error("Error fetching products:", error);
-//     }
-//   };
-
-//   const salesData = (products.product_info || []).map((product) => ({
-//     id: product.id,
-//     product: product.name,
-//     sales: product.total_quantity_sold || 0,
-//     revenue: product.total_price_sold || 0,
-//     stock: product.stock,
-//   }));
-
-//   const pricingSuggestions = (products.product_info || []).map((product) => ({
-//     id: product.id,
-//     product: product.name,
-//     current: product.price,
-//     suggested: Math.floor(product.price * (0.9 + Math.random() * 0.3)),
-//     reason: [
-//       "High demand",
-//       "Material costs",
-//       "Optimal price",
-//       "Low conversion",
-//     ][Math.floor(Math.random() * 4)],
-//   }));
-
-//   const analyticsData = {
-//     totalSales: salesData.reduce((sum, item) => sum + item.sales, 0),
-//     totalRevenue: salesData.reduce((sum, item) => sum + item.revenue, 0),
-//     conversionRate: `${(Math.random() * 5).toFixed(1)}%`,
-//     topProduct: salesData.length > 0
-//       ? salesData.reduce((max, item) => 
-//           item.sales > max.sales ? item : max, 
-//           salesData[0]
-//         ).product
-//       : "No products",
-//   };
-
-//   const sendMessage = () => {
-//     if (chatMessage.trim()) {
-//       setChatMessages([
-//         ...chatMessages,
-//         { id: chatMessages.length + 1, text: chatMessage, sender: "user" },
-//         {
-//           id: chatMessages.length + 2,
-//           text: "Thanks for your message! I'll analyze your data and get back to you soon.",
-//           sender: "bot",
-//         },
-//       ]);
-//       setChatMessage("");
-//       setTimeout(() => {
-//         flatListRef.current?.scrollToEnd({ animated: true });
-//       }, 100);
-//     }
-//   };
-
-//   const handleAddProduct = () => {
-//     setEditingProduct(null);
-//     setProductForm({
-//       name: "",
-//       price: "",
-//       stock: "",
-//       description: "",
-//       img: "",
-//     });
-//     setModalVisible(true);
-//   };
-
-//   const handleEditProduct = (product) => {
-//     setEditingProduct(product);
-//     setProductForm({
-//       name: product.name,
-//       price: product.price.toString(),
-//       stock: product.stock.toString(),
-//       description: product.description,
-//       img: product.img,
-//     });
-//     setModalVisible(true);
-//   };
-
-//   const handleSaveProduct = async () => {
-//     try {
-//       if (editingProduct) {
-//         const productData = {
-//           product_id: editingProduct.id,
-//           name: productForm.name,
-//           price: parseFloat(productForm.price),
-//           stock: parseInt(productForm.stock),
-//           description: productForm.description,
-//           image: productForm.img,
-//         };
-//         await axios.put(products_api, productData);
-//       } else {
-//         const productData = {
-//           name: productForm.name,
-//           price: parseInt(productForm.price),
-//           stock: parseInt(productForm.stock),
-//           description: productForm.description,
-//           image: productForm.img,
-//         };
-//         await axios.post(products_api, productData);
-//       }
-//       fetchProducts();
-//       setModalVisible(false);
-//     } catch (error) {
-//       console.error("Error saving product:", error);
-//     }
-//   };
-
-//   const handleDeleteProduct = async (id) => {
-//     try {
-//       await axios.delete(`${products_api}/${id}`);
-//       fetchProducts();
-//       setModalVisible(false);
-//     } catch (error) {
-//       console.error("Error deleting product:", error);
-//     }
-//   };
-
-//   const renderTabContent = () => {
-//     switch (activeTab) {
-//       case "analytics":
-//         return (
-//           <View style={styles.tabContent}>
-//             <View style={styles.analyticsGrid}>
-//               <View style={styles.analyticsCard}>
-//                 <Text style={styles.analyticsValue}>
-//                   {analyticsData.totalSales}
-//                 </Text>
-//                 <Text style={styles.analyticsLabel}>Total Sales</Text>
-//               </View>
-//               <View style={styles.analyticsCard}>
-//                 <Text style={styles.analyticsValue}>
-//                   ₱{analyticsData.totalRevenue.toLocaleString()}
-//                 </Text>
-//                 <Text style={styles.analyticsLabel}>Total Revenue</Text>
-//               </View>
-//               <View style={styles.analyticsCard}>
-//                 <Text style={styles.analyticsValue}>
-//                   {analyticsData.conversionRate}
-//                 </Text>
-//                 <Text style={styles.analyticsLabel}>Conversion Rate</Text>
-//               </View>
-//               <View style={styles.analyticsCard}>
-//                 <Text style={styles.analyticsValue}>
-//                   {analyticsData.topProduct}
-//                 </Text>
-//                 <Text style={styles.analyticsLabel}>Top Product</Text>
-//               </View>
-//             </View>
-
-//             <Text style={styles.sectionTitle}>Sales Performance</Text>
-//             <FlatList
-//               data={salesData}
-//               keyExtractor={(item) => item.id.toString()}
-//               renderItem={({ item }) => (
-//                 <View style={styles.salesItem}>
-//                   <View style={{ flex: 2 }}>
-//                     <Text style={styles.productName}>{item.product}</Text>
-//                     <Text style={styles.stockText}>
-//                       {item.stock < 5 ? "Low stock!" : "In stock"} ({item.stock}{" "}
-//                       left)
-//                     </Text>
-//                   </View>
-//                   <View style={{ flex: 1, alignItems: "flex-end" }}>
-//                     <Text style={styles.salesText}>{item.sales} sold</Text>
-//                     <Text style={styles.revenueText}>₱{item.revenue}</Text>
-//                   </View>
-//                 </View>
-//               )}
-//             />
-//           </View>
-//         );
-//       case "inventory":
-//         return (
-//           <View style={styles.tabContent}>
-//             <Text style={styles.sectionTitle}>Current Inventory</Text>
-//             <FlatList
-//               data={products.product_info || []}
-//               keyExtractor={(item) => item.id.toString()}
-//               renderItem={({ item }) => (
-//                 <TouchableOpacity
-//                   style={styles.inventoryItem}
-//                   onPress={() => handleEditProduct(item)}
-//                 >
-//                   <View style={{ flex: 1 }}>
-//                     <Text style={styles.productName}>{item.name}</Text>
-//                     <Text style={styles.productDescription}>
-//                       {item.description}
-//                     </Text>
-//                   </View>
-//                   <View style={styles.stockContainer}>
-//                     <Text
-//                       style={
-//                         item.stock < 5 ? styles.lowStock : styles.normalStock
-//                       }
-//                     >
-//                       {item.stock} remaining
-//                     </Text>
-//                     <Text style={styles.priceText}>₱{item.price}</Text>
-//                   </View>
-//                 </TouchableOpacity>
-//               )}
-//             />
-//           </View>
-//         );
-//       case "pricing":
-//         return (
-//           <View style={styles.tabContent}>
-//             <Text style={styles.sectionTitle}>Pricing Suggestions</Text>
-//             <FlatList
-//               data={pricingSuggestions}
-//               keyExtractor={(item) => item.id.toString()}
-//               renderItem={({ item }) => (
-//                 <View style={styles.pricingItem}>
-//                   <Text style={styles.productName}>{item.product}</Text>
-//                   <View style={styles.priceRow}>
-//                     <Text style={styles.currentPrice}>₱{item.current}</Text>
-//                     <MaterialIcons
-//                       name="trending_flat"
-//                       size={20}
-//                       color="#666"
-//                     />
-//                     <Text
-//                       style={[
-//                         styles.suggestedPrice,
-//                         item.suggested > item.current
-//                           ? styles.priceUp
-//                           : item.suggested < item.current
-//                           ? styles.priceDown
-//                           : null,
-//                       ]}
-//                     >
-//                       ₱{item.suggested}
-//                     </Text>
-//                   </View>
-//                   <Text style={styles.reasonText}>{item.reason}</Text>
-//                 </View>
-//               )}
-//             />
-//           </View>
-//         );
-//       case "products":
-//         return (
-//           <ProductManagement
-//             products={products}
-//             handleAddProduct={handleAddProduct}
-//             handleEditProduct={handleEditProduct}
-//             handleSaveProduct={handleSaveProduct}
-//             handleDeleteProduct={handleDeleteProduct}
-//             modalVisible={modalVisible}
-//             setModalVisible={setModalVisible}
-//             productForm={productForm}
-//             setProductForm={setProductForm}
-//             editingProduct={editingProduct}
-//           />
-//         );
-//       case "assistant":
-//         return (
-//           <View style={styles.assistantContainer}>
-//             <KeyboardAvoidingView
-//               behavior={Platform.OS === "ios" ? "padding" : "height"}
-//               keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-//               style={{ flex: 1 }}
-//             >
-//               <View style={styles.tabContent}>
-//                 <Text style={styles.sectionTitle}>Selling Assistant</Text>
-
-//                 <FlatList
-//                   data={chatMessages}
-//                   keyExtractor={(item) => item.id.toString()}
-//                   contentContainerStyle={{ paddingBottom: 80 }}
-//                   renderItem={({ item }) => (
-//                     <View
-//                       style={[
-//                         styles.chatBubble,
-//                         item.sender === "user"
-//                           ? styles.userBubble
-//                           : styles.botBubble,
-//                       ]}
-//                     >
-//                       <Text
-//                         style={
-//                           item.sender === "user"
-//                             ? styles.userText
-//                             : styles.botText
-//                         }
-//                       >
-//                         {item.text}
-//                       </Text>
-//                     </View>
-//                   )}
-//                   ref={flatListRef}
-//                   onContentSizeChange={() =>
-//                     flatListRef.current?.scrollToEnd({ animated: true })
-//                   }
-//                   onLayout={() =>
-//                     flatListRef.current?.scrollToEnd({ animated: true })
-//                   }
-//                 />
-
-//                 <View style={styles.chatInputContainer}>
-//                   <TextInput
-//                     style={styles.chatInput}
-//                     value={chatMessage}
-//                     onChangeText={setChatMessage}
-//                     placeholder="Ask about your sales..."
-//                     placeholderTextColor="#999"
-//                     onSubmitEditing={sendMessage}
-//                   />
-//                   <TouchableOpacity
-//                     style={styles.sendButton}
-//                     onPress={sendMessage}
-//                   >
-//                     <Ionicons name="send" size={20} color="white" />
-//                   </TouchableOpacity>
-//                 </View>
-//               </View>
-//             </KeyboardAvoidingView>
-//           </View>
-//         );
-//       default:
-//         return null;
-//     }
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       {/* Back Button Header */}
-//       <View style={styles.headerContainer}>
-//         <TouchableOpacity
-//           style={styles.backButton}
-//           onPress={() => navigation.goBack()}
-//         >
-//           <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
-//         </TouchableOpacity>
-//         <Text style={styles.header}>Seller Dashboard</Text>
-//       </View>
-
-//       <ScrollView contentContainerStyle={styles.scrollContainer}>
-//         {/* Main Analytics Overview */}
-//         <View style={styles.overviewCard}>
-//           <View style={styles.overviewItem}>
-//             <Text style={styles.overviewLabel}>Today's Sales</Text>
-//             <Text style={styles.overviewValue}>₱3,450</Text>
-//             <Text style={styles.overviewChangePositive}>
-//               ↑ 12% from yesterday
-//             </Text>
-//           </View>
-//           <View style={styles.overviewItem}>
-//             <Text style={styles.overviewLabel}>Items Sold</Text>
-//             <Text style={styles.overviewValue}>14</Text>
-//             <Text style={styles.overviewChangeNegative}>
-//               ↓ 3% from yesterday
-//             </Text>
-//           </View>
-//         </View>
-
-//         {/* AI Insights */}
-//         <View style={styles.aiCard}>
-//           <View style={styles.aiHeader}>
-//             <FontAwesome name="lightbulb-o" size={18} color={COLORS.primary} />
-//             <Text style={styles.aiTitle}>AI Insights</Text>
-//           </View>
-//           <Text style={styles.aiText}>
-//             Your Handwoven Baskets are selling fast! Consider increasing
-//             production. Wooden Sculptures have low stock - reorder soon to avoid
-//             stockouts.
-//           </Text>
-//         </View>
-
-//         {/* Tab Navigation */}
-//         <ScrollView
-//           horizontal
-//           showsHorizontalScrollIndicator={false}
-//           style={styles.tabScrollContainer}
-//           contentContainerStyle={styles.tabScrollContent}
-//         >
-//           <TouchableOpacity
-//             style={[
-//               styles.tabButton,
-//               activeTab === "analytics" && styles.activeTab,
-//             ]}
-//             onPress={() => setActiveTab("analytics")}
-//           >
-//             <MaterialIcons
-//               name="analytics"
-//               size={24}
-//               color={activeTab === "analytics" ? COLORS.primary : "#666"}
-//             />
-//             <Text
-//               style={[
-//                 styles.tabText,
-//                 activeTab === "analytics" && styles.activeTabText,
-//               ]}
-//             >
-//               Analytics
-//             </Text>
-//           </TouchableOpacity>
-
-//           <TouchableOpacity
-//             style={[
-//               styles.tabButton,
-//               activeTab === "inventory" && styles.activeTab,
-//             ]}
-//             onPress={() => setActiveTab("inventory")}
-//           >
-//             <MaterialIcons
-//               name="inventory"
-//               size={24}
-//               color={activeTab === "inventory" ? COLORS.primary : "#666"}
-//             />
-//             <Text
-//               style={[
-//                 styles.tabText,
-//                 activeTab === "inventory" && styles.activeTabText,
-//               ]}
-//             >
-//               Inventory
-//             </Text>
-//           </TouchableOpacity>
-
-//           <TouchableOpacity
-//             style={[
-//               styles.tabButton,
-//               activeTab === "pricing" && styles.activeTab,
-//             ]}
-//             onPress={() => setActiveTab("pricing")}
-//           >
-//             <FontAwesome
-//               name="tags"
-//               size={24}
-//               color={activeTab === "pricing" ? COLORS.primary : "#666"}
-//             />
-//             <Text
-//               style={[
-//                 styles.tabText,
-//                 activeTab === "pricing" && styles.activeTabText,
-//               ]}
-//             >
-//               Pricing
-//             </Text>
-//           </TouchableOpacity>
-
-//           <TouchableOpacity
-//             style={[
-//               styles.tabButton,
-//               activeTab === "products" && styles.activeTab,
-//             ]}
-//             onPress={() => setActiveTab("products")}
-//           >
-//             <Feather
-//               name="box"
-//               size={24}
-//               color={activeTab === "products" ? COLORS.primary : "#666"}
-//             />
-//             <Text
-//               style={[
-//                 styles.tabText,
-//                 activeTab === "products" && styles.activeTabText,
-//               ]}
-//             >
-//               Products
-//             </Text>
-//           </TouchableOpacity>
-
-//           <TouchableOpacity
-//             style={[
-//               styles.tabButton,
-//               activeTab === "assistant" && styles.activeTab,
-//             ]}
-//             onPress={() => setActiveTab("assistant")}
-//           >
-//             <AntDesign
-//               name="message1"
-//               size={24}
-//               color={activeTab === "assistant" ? COLORS.primary : "#666"}
-//             />
-//             <Text
-//               style={[
-//                 styles.tabText,
-//                 activeTab === "assistant" && styles.activeTabText,
-//               ]}
-//             >
-//               Assistant
-//             </Text>
-//           </TouchableOpacity>
-//         </ScrollView>
-
-//         {/* Tab Content */}
-//         {renderTabContent()}
-//       </ScrollView>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: "#f5f5f5",
-//   },
-//   headerContainer: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     padding: 16,
-//     paddingTop: 16, // Reduced from 40 to remove extra space
-//     backgroundColor: "white",
-//   },
-//   backButton: {
-//     marginRight: 16,
-//   },
-//   header: {
-//     fontSize: 24,
-//     fontWeight: "bold",
-//     color: "#333",
-//   },
-//   scrollContainer: {
-//     padding: 16,
-//     paddingBottom: 80,
-//   },
-//   overviewCard: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     marginBottom: 16,
-//     backgroundColor: "white",
-//     borderRadius: 12,
-//     padding: 16,
-//     shadowColor: "#000",
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 4,
-//     elevation: 2,
-//   },
-//   overviewItem: {
-//     flex: 1,
-//     alignItems: "center",
-//   },
-//   overviewLabel: {
-//     fontSize: 14,
-//     color: "#666",
-//     marginBottom: 4,
-//   },
-//   overviewValue: {
-//     fontSize: 22,
-//     fontWeight: "bold",
-//     color: "#333",
-//     marginBottom: 4,
-//   },
-//   overviewChangePositive: {
-//     fontSize: 12,
-//     color: "#4CAF50",
-//   },
-//   overviewChangeNegative: {
-//     fontSize: 12,
-//     color: "#F44336",
-//   },
-//   aiCard: {
-//     backgroundColor: "#E3F2FD",
-//     borderRadius: 12,
-//     padding: 16,
-//     marginBottom: 16,
-//   },
-//   aiHeader: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     marginBottom: 8,
-//   },
-//   aiTitle: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//     marginLeft: 8,
-//     color: "#333",
-//   },
-//   aiText: {
-//     fontSize: 14,
-//     color: "#333",
-//     lineHeight: 20,
-//   },
-//   tabScrollContainer: {
-//     marginBottom: 16,
-//     backgroundColor: "white",
-//     borderRadius: 12,
-//     paddingVertical: 12,
-//   },
-//   tabScrollContent: {
-//     paddingHorizontal: 8,
-//   },
-//   tabButton: {
-//     alignItems: "center",
-//     paddingHorizontal: 16,
-//     paddingVertical: 12,
-//     borderRadius: 8,
-//     marginHorizontal: 4,
-//     minWidth: 100,
-//   },
-//   activeTab: {
-//     backgroundColor: "#E3F2FD",
-//   },
-//   tabText: {
-//     fontSize: 14,
-//     marginTop: 8,
-//     color: "#666",
-//   },
-//   activeTabText: {
-//     color: COLORS.primary,
-//     fontWeight: "bold",
-//   },
-//   tabContent: {
-//     backgroundColor: "white",
-//     borderRadius: 12,
-//     padding: 16,
-//     marginBottom: 16,
-//     shadowColor: "#000",
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 4,
-//     elevation: 2,
-//     flex: 1,
-//   },
-//   assistantContainer: {
-//     flex: 1,
-//     backgroundColor: "white",
-//     borderRadius: 12,
-//     marginBottom: 16,
-//     shadowColor: "#000",
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 4,
-//     elevation: 2,
-//   },
-//   sectionTitle: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//     marginBottom: 16,
-//     color: "#333",
-//   },
-//   analyticsGrid: {
-//     flexDirection: "row",
-//     flexWrap: "wrap",
-//     justifyContent: "space-between",
-//     marginBottom: 16,
-//   },
-//   analyticsCard: {
-//     width: "48%",
-//     backgroundColor: "#f9f9f9",
-//     borderRadius: 8,
-//     padding: 12,
-//     marginBottom: 12,
-//     alignItems: "center",
-//   },
-//   analyticsValue: {
-//     fontSize: 20,
-//     fontWeight: "bold",
-//     color: COLORS.primary,
-//     marginBottom: 4,
-//   },
-//   analyticsLabel: {
-//     fontSize: 12,
-//     color: "#666",
-//   },
-//   salesItem: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     paddingVertical: 12,
-//     borderBottomWidth: 1,
-//     borderBottomColor: "#eee",
-//   },
-//   productName: {
-//     fontSize: 14,
-//     fontWeight: "500",
-//     color: "#333",
-//   },
-//   productDescription: {
-//     fontSize: 12,
-//     color: "#666",
-//     marginTop: 4,
-//   },
-//   stockText: {
-//     fontSize: 12,
-//     color: "#666",
-//     marginTop: 4,
-//   },
-//   salesText: {
-//     fontSize: 14,
-//     color: "#333",
-//   },
-//   revenueText: {
-//     fontSize: 14,
-//     fontWeight: "bold",
-//     color: COLORS.primary,
-//     marginTop: 4,
-//   },
-//   inventoryItem: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//     paddingVertical: 12,
-//     borderBottomWidth: 1,
-//     borderBottomColor: "#eee",
-//   },
-//   productItem: {
-//     flexDirection: "row",
-//     paddingVertical: 12,
-//     borderBottomWidth: 1,
-//     borderBottomColor: "#eee",
-//   },
-//   productImage: {
-//     width: 60,
-//     height: 60,
-//     borderRadius: 8,
-//     marginRight: 12,
-//   },
-//   productImagePlaceholder: {
-//     backgroundColor: "#f5f5f5",
-//     justifyContent: "center",
-//     alignItems: "center",
-//   },
-//   productInfo: {
-//     flex: 1,
-//   },
-//   productDetails: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     marginTop: 8,
-//   },
-//   stockContainer: {
-//     flexDirection: "column",
-//     alignItems: "flex-end",
-//   },
-//   normalStock: {
-//     fontSize: 14,
-//     color: "#666",
-//   },
-//   lowStock: {
-//     fontSize: 14,
-//     color: "#F44336",
-//   },
-//   priceText: {
-//     fontSize: 14,
-//     fontWeight: "bold",
-//     color: COLORS.primary,
-//   },
-//   pricingItem: {
-//     paddingVertical: 12,
-//     borderBottomWidth: 1,
-//     borderBottomColor: "#eee",
-//   },
-//   priceRow: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     marginVertical: 8,
-//   },
-//   currentPrice: {
-//     fontSize: 16,
-//     color: "#333",
-//     marginRight: 8,
-//   },
-//   suggestedPrice: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//     marginLeft: 8,
-//   },
-//   priceUp: {
-//     color: "#4CAF50",
-//   },
-//   priceDown: {
-//     color: "#F44336",
-//   },
-//   reasonText: {
-//     fontSize: 12,
-//     color: "#666",
-//   },
-//   chatBubble: {
-//     maxWidth: "80%",
-//     padding: 12,
-//     borderRadius: 12,
-//     marginBottom: 8,
-//   },
-//   botBubble: {
-//     alignSelf: "flex-start",
-//     backgroundColor: "#E3F2FD",
-//     borderTopLeftRadius: 0,
-//   },
-//   userBubble: {
-//     alignSelf: "flex-end",
-//     backgroundColor: COLORS.primary,
-//     borderTopRightRadius: 0,
-//   },
-//   botText: {
-//     fontSize: 14,
-//     color: "#333",
-//   },
-//   userText: {
-//     fontSize: 14,
-//     color: "white",
-//   },
-//   chatInputContainer: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     paddingTop: 8,
-//     paddingHorizontal: 8,
-//     paddingBottom: Platform.OS === "ios" ? 30 : 8,
-//     backgroundColor: "white",
-//     borderTopWidth: 1,
-//     borderTopColor: "#eee",
-//   },
-//   chatInput: {
-//     flex: 1,
-//     backgroundColor: "#f5f5f5",
-//     borderRadius: 20,
-//     paddingHorizontal: 16,
-//     paddingVertical: 12,
-//     fontSize: 14,
-//   },
-//   sendButton: {
-//     backgroundColor: COLORS.primary,
-//     width: 40,
-//     height: 40,
-//     borderRadius: 20,
-//     justifyContent: "center",
-//     alignItems: "center",
-//     marginLeft: 8,
-//   },
-//   addButton: {
-//     position: "absolute",
-//     bottom: 20,
-//     right: 20,
-//     width: 60,
-//     height: 60,
-//     borderRadius: 30,
-//     backgroundColor: COLORS.primary,
-//     justifyContent: "center",
-//     alignItems: "center",
-//     shadowColor: "#000",
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.3,
-//     shadowRadius: 4,
-//     elevation: 5,
-//   },
-//   modalContainer: {
-//     flex: 1,
-//     justifyContent: "center",
-//     alignItems: "center",
-//     backgroundColor: "rgba(0,0,0,0.5)",
-//   },
-//   modalContent: {
-//     width: "90%",
-//     backgroundColor: "white",
-//     borderRadius: 12,
-//     padding: 20,
-//   },
-//   modalTitle: {
-//     fontSize: 20,
-//     fontWeight: "bold",
-//     marginBottom: 20,
-//     color: "#333",
-//   },
-//   inputLabel: {
-//     fontSize: 14,
-//     marginBottom: 6,
-//     color: "#666",
-//   },
-//   textInput: {
-//     backgroundColor: "#f5f5f5",
-//     borderRadius: 8,
-//     padding: 12,
-//     marginBottom: 16,
-//     color: "#333",
-//   },
-//   saveButton: {
-//     backgroundColor: COLORS.primary,
-//     padding: 12,
-//     borderRadius: 8,
-//     alignItems: "center",
-//     marginTop: 10,
-//   },
-//   deleteButton: {
-//     backgroundColor: "#F44336",
-//     padding: 12,
-//     borderRadius: 8,
-//     alignItems: "center",
-//     marginTop: 10,
-//   },
-//   cancelButton: {
-//     padding: 12,
-//     borderRadius: 8,
-//     alignItems: "center",
-//     marginTop: 10,
-//     borderWidth: 1,
-//     borderColor: COLORS.primary,
-//   },
-//   buttonText: {
-//     color: "white",
-//     fontWeight: "bold",
-//   },
-// });
-
-// export default SellerDashboard;
-

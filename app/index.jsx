@@ -5,11 +5,11 @@ import { AuthProvider } from '../auth/AuthContext';
 import CustomerSignup from './CustomerSignup';
 import { ProductDetails,Setting,ProductByCategory, Profile, MyCart, UserLike, Notifications, Checkout, Chat,SellerChat, Chatbot} from '../screens';
 import { MyAddress,EditProfile, PurchaseHistory, CustomerService, OrderTracking, AccountSecurity, Coins, Vouchers} from '../screens/settings';
-import { StartSelling, SellerDashboard, SellerOrderManagement, ProductManagement, SalesReports, SellerTradeManagementScreen } from '../screens/SellerSide';
+import { StartSelling, SellerDashboard, SellerOrderManagement, ProductManagement, SalesReports, SellerTradeManagementScreen, SellerHome } from '../screens/SellerSide';
 import { ChatConversation,SellerChatConversation, SRPDetails } from '../screens/HomeScreen/component';
 import SplashScreen from './SplashScreen';
 import { TradeScreen, TradeOffer, TradeConfirmationScreen,AvailableTradesScreen } from '../screens/Trading';
-import { ViewShop, AllProducts, } from '../screens/ShopSide';
+import { ViewShop, AllProducts, ProductDetailsAR, ARLiveView } from '../screens/ShopSide';
 import { SearchResults } from '../screens/SearchComponents';
 import { DinagyangProducts } from '../screens/SeasonalCompenents';
 import Toast from 'react-native-toast-message';
@@ -67,6 +67,9 @@ export default function App({linking}) {
         <Stack.Screen name="Coins" component={Coins} options={{headerShown:false}} />
         <Stack.Screen name="Vouchers" component={Vouchers} options={{headerShown:false}} />
         <Stack.Screen name="SRPDetails" component={SRPDetails} options={{headerShown:false}} />
+        <Stack.Screen name="SellerHome" component={SellerHome} options={{headerShown:false}} />
+        <Stack.Screen name="ProductDetailsAR" component={ProductDetailsAR} options={{headerShown:false}} />
+        <Stack.Screen name="ARLiveView" component={ARLiveView} options={{headerShown:false}} />
         
       </Stack.Navigator>
       <Toast />

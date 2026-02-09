@@ -5,22 +5,46 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Image,
   TextInput,
   Alert,
   Switch,
   FlatList,
-  Dimensions
+  Dimensions,
+  Modal,
+  Platform,
+  KeyboardAvoidingView,
+  StatusBar
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import axiosInstance from '@api/axiosInstance';
-import API_URL  from '../../api/api_urls';
-const { width: screenWidth } = Dimensions.get('window');
+
+const { width } = Dimensions.get('window');
+const CARD_MARGIN = 10;
+const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding
+
+// --- API ENDPOINTS ---
 const products_api = "/api/v1/seller/Manage Product/manage_product";
 const trade_api = "/api/v1/seller/Seller Trade/seller_trade";
+
+// --- CUSTOM PALETTE ---
+const COLORS = {
+  primary: '#172d55',    // Deep Blue
+  secondary: '#2196f3',  // Bright Blue
+  background: '#ffffff', // Pure White
+  text: '#808080',       // Gray
+  surface: '#ffffff',
+  border: '#f0f0f0',
+  inputBg: '#f8f9fa',
+  success: '#4caf50',
+  warning: '#ff9800',
+  danger: '#f44336',
+  darkText: '#0f172a',
+  lightBlue: '#e3f2fd',
+};
 
 const SellerTradeManagementScreen = () => {
   const navigation = useNavigation();
@@ -29,399 +53,260 @@ const SellerTradeManagementScreen = () => {
   const [tradeableProducts, setTradeableProducts] = useState([]);
   const [tradeOffers, setTradeOffers] = useState([]);
   const [isAddProductModal, setIsAddProductModal] = useState(false);
-  
-  // New product form state
+  const [products, setProducts] = useState([]); // Inventory products for picker
+
+  // Form State
   const [newProduct, setNewProduct] = useState({
     product_id: '',
     name: '',
     description: '',
     value: '',
-    // category: '',
-    // image: '',
     isActive: true
   });
 
-  const [products, setProducts] = useState([]);
+  // --- MOCK DATA LOADER ---
+  useEffect(() => {
+    // 1. Mock Tradeable Products (Your Store)
+    setTradeableProducts([
+      {
+        id: 'TP-001',
+        name: 'Artisanal Coffee Set',
+        value: '₱450.00',
+        image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&q=80',
+        isActive: true,
+        note: 'Includes 2 mugs and 1 pack of beans.'
+      },
+      {
+        id: 'TP-002',
+        name: 'Handwoven Banig',
+        value: '₱850.00',
+        image: 'https://images.unsplash.com/photo-1616627547584-bf28cee262db?w=400&q=80',
+        isActive: true,
+        note: 'Brand new, never used.'
+      },
+      {
+        id: 'TP-003',
+        name: 'Dried Mangoes (Box)',
+        value: '₱300.00',
+        image: 'https://images.unsplash.com/photo-1601493700631-2b16ec4b4716?w=400&q=80',
+        isActive: false,
+        note: 'Out of stock temporarily.'
+      },
+    ]);
 
-  
+    // 2. Mock Offers (Incoming)
+    setTradeOffers([
+      {
+        id: 'OFF-101',
+        status: 'pending',
+        user: { name: 'Elena Gilbert', rating: 4.9 },
+        userProduct: { 
+          name: 'Vintage Lamp', 
+          value: '₱500', 
+          image: 'https://images.unsplash.com/photo-1507473888900-52e1ad14db39?w=200' 
+        },
+        requestedProduct: { 
+          name: 'Artisanal Coffee Set', 
+          value: '₱450' 
+        },
+        message: 'Hello! I love your coffee set. Would you trade for my vintage lamp?'
+      },
+      {
+        id: 'OFF-102',
+        status: 'accepted',
+        user: { name: 'Damon S.', rating: 4.5 },
+        userProduct: { 
+          name: 'Leather Journal', 
+          value: '₱800', 
+          image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=200' 
+        },
+        requestedProduct: { 
+          name: 'Handwoven Banig', 
+          value: '₱850' 
+        },
+        message: ''
+      }
+    ]);
+
+    // 3. Mock Inventory for Picker
+    setProducts([
+      { id: 'P-001', name: 'Artisanal Coffee Set', price: 450 },
+      { id: 'P-002', name: 'Handwoven Banig', price: 850 },
+      { id: 'P-003', name: 'Dried Mangoes', price: 300 },
+      { id: 'P-004', name: 'Coconut Oil', price: 150 },
+    ]);
+
+    // Uncomment below to fetch real data
+    // fetchProducts();
+    // fetchTradeProducts();
+  }, []);
+
   const fetchProducts = async () => {
     try {
       const response = await axiosInstance.get(products_api);
-      setProducts(response.data.product_info);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    }
+      if (response.data?.product_info) setProducts(response.data.product_info);
+    } catch (error) { console.error(error); }
   };
-
-    useEffect(() => {
-      fetchProducts();
-    }, []);
-  
-  
-
-
-
-  // Mock categories
-  const categories = [
-    'Food & Beverages',
-    'Handicrafts',
-    'Coffee & Tea',
-    'Snacks',
-    'Home Decor',
-    'Personal Care',
-    'Fashion',
-    'Others'
-  ];
-
-  // Sample initial tradeable products
-  const sampleProducts = [
-    {
-      id: '1',
-      name: 'Artisanal Coffee Beans',
-      description: 'Premium locally sourced coffee beans',
-      value: '₱350',
-      category: 'Coffee & Tea',
-      image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60',
-      isActive: true,
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      name: 'Handwoven Basket',
-      description: 'Traditional handwoven native basket',
-      value: '₱180',
-      category: 'Handicrafts',
-      image: 'https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60',
-      isActive: true,
-      createdAt: '2024-01-10'
-    }
-  ];
-
-  // Sample trade offers
-  const sampleTradeOffers = [
-    {
-      id: 'offer1',
-      user: {
-        name: 'Maria Santos',
-        rating: 4.8
-      },
-      userProduct: {
-        name: 'Handmade Wallet',
-        value: '₱250',
-        image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&auto=format&fit=crop&q=60'
-      },
-      requestedProduct: {
-        name: 'Artisanal Coffee Beans',
-        value: '₱350'
-      },
-      message: 'I would love to trade my handmade wallet for your coffee beans!',
-      status: 'pending',
-      createdAt: '2024-01-20'
-    }
-  ];
 
   const fetchTradeProducts = async () => {
-  try {
-    const response = await axiosInstance.get(trade_api);
-    setTradeableProducts(response.data);
-  } catch (error) {
-    console.error("Error fetching trade products:", error);
-  }
-};
-
-  useEffect(() => {
-    // Load sample data
-    // setTradeableProducts(sampleProducts);
-    fetchTradeProducts();
-
-    setTradeOffers(sampleTradeOffers);
-  }, []);
-
-  
-
-const handleAddProduct = async () => {
-  if (!newProduct.product_id || !newProduct.value) {
-    Alert.alert('Missing Information', 'Please fill in all required fields');
-    return;
-  }
-
-  try {
-    const payload = {
-      product_id: newProduct.product_id,
-      trade_price: parseFloat(newProduct.value),
-      note: newProduct.description || "",
-      is_active: newProduct.isActive
-    };
-
-    const response = await axiosInstance.post(trade_api, payload);
-
-    if (response.status === 201) {
-      Alert.alert('Success', 'Trade product added successfully!');
-      setIsAddProductModal(false);
-      setNewProduct({
-        product_id: '',
-        name: '',
-        description: '',
-        value: '',
-        isActive: true
-      });
-      fetchTradeProducts(); // Refresh the list
-    }
-  } catch (error) {
-    console.error("Error adding trade product:", error);
-    Alert.alert('Error', 'Failed to add trade product. Please try again.');
-  }
-};
-
-
-
-  // const handleAddProduct = () => {
-  //   if (!newProduct.name || !newProduct.value || !newProduct.category) {
-  //     Alert.alert('Missing Information', 'Please fill in all required fields');
-  //     return;
-  //   }
-
-  //   const product = {
-  //     id: `product-${Date.now()}`,
-  //     ...newProduct,
-  //     createdAt: new Date().toISOString().split('T')[0]
-  //   };
-
-  //   setTradeableProducts(prev => [product, ...prev]);
-  //   setNewProduct({
-  //     name: '',
-  //     description: '',
-  //     value: '',
-  //     category: '',
-  //     image: '',
-  //     isActive: true
-  //   });
-  //   setIsAddProductModal(false);
-    
-  //   Alert.alert('Success', 'Product added successfully!');
-  // };
-
-  // const toggleProductStatus = (productId) => {
-  //   setTradeableProducts(prev =>
-  //     prev.map(product =>
-  //       product.id === productId
-  //         ? { ...product, isActive: !product.isActive }
-  //         : product
-  //     )
-  //   );
-  // };
-
-  const toggleProductStatus = async (productId) => {
-  // Optimistic UI: immediately toggle on frontend
-  setTradeableProducts(prev =>
-    prev.map(product =>
-      product.id === productId
-        ? { ...product, isActive: !product.isActive }
-        : product
-    )
-  );
-
-  // Find the updated product to know new status
-  const updatedProduct = tradeableProducts.find(p => p.id === productId);
-  const newStatus = !updatedProduct.isActive;
-
-  try {
-    const payload = {
-      trade_product_id: productId,
-      is_active: newStatus,
-    };
-
-    const response = await axiosInstance.put(trade_api, payload);
-    if (response.status === 200) {
-      console.log("✅ Product status updated:", response.data);
-    } else {
-      throw new Error("Failed to update");
-    }
-  } catch (error) {
-    console.error("Error updating trade status:", error);
-    Alert.alert("Error", "Could not update trade product status.");
-    // Revert the UI change on error
-    setTradeableProducts(prev =>
-      prev.map(product =>
-        product.id === productId
-          ? { ...product, isActive: !product.isActive } // revert
-          : product
-      )
-    );
-  }
-};
-
-
-  const handleTradeOffer = (offerId, action) => {
-    setTradeOffers(prev =>
-      prev.map(offer =>
-        offer.id === offerId
-          ? { ...offer, status: action }
-          : offer
-      )
-    );
-
-    if (action === 'accepted') {
-      Alert.alert('Offer Accepted', 'The trade offer has been accepted!');
-    } else if (action === 'declined') {
-      Alert.alert('Offer Declined', 'The trade offer has been declined.');
-    }
+    try {
+      const response = await axiosInstance.get(trade_api);
+      if (response.data) setTradeableProducts(response.data);
+    } catch (error) { console.error(error); }
   };
 
-  // const deleteProduct = (productId) => {
-  //   Alert.alert(
-  //     'Delete Product',
-  //     'Are you sure you want to remove this product from trade?',
-  //     [
-  //       { text: 'Cancel', style: 'cancel' },
-  //       {
-  //         text: 'Delete',
-  //         style: 'destructive',
-  //         onPress: () => {
-  //           setTradeableProducts(prev =>
-  //             prev.filter(product => product.id !== productId)
-  //           );
-  //         }
-  //       }
-  //     ]
-  //   );
-  // };
+  // --- Handlers ---
+  const handleAddProduct = async () => {
+    if (!newProduct.product_id || !newProduct.value) {
+      Alert.alert('Incomplete', 'Please select a product and enter its value.');
+      return;
+    }
+    // Optimistic Add
+    const newEntry = {
+      id: `NEW-${Date.now()}`,
+      name: newProduct.name,
+      value: `₱${parseFloat(newProduct.value).toFixed(2)}`,
+      image: 'https://via.placeholder.com/150', // Placeholder for demo
+      isActive: newProduct.isActive,
+      note: newProduct.description
+    };
+    setTradeableProducts([newEntry, ...tradeableProducts]);
+    setIsAddProductModal(false);
+    
+    // API Call logic here...
+  };
 
-const deleteProduct = (productId) => {
-  Alert.alert(
-    "Delete Product",
-    "Are you sure you want to remove this product from trade?",
-    [
+  const toggleProductStatus = (productId) => {
+    setTradeableProducts(prev => prev.map(p => 
+      p.id === productId ? { ...p, isActive: !p.isActive } : p
+    ));
+  };
+
+  const deleteProduct = (productId) => {
+    Alert.alert("Remove", "Stop trading this product?", [
       { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const response = await axiosInstance.delete(trade_api, {
-              data: { trade_product_id: productId }, // ✅ send as JSON body
-              headers: { "Content-Type": "application/json" },
-            });
+      { 
+        text: "Remove", 
+        style: "destructive", 
+        onPress: () => setTradeableProducts(prev => prev.filter(p => p.id !== productId)) 
+      }
+    ]);
+  };
 
-            if (response.status === 200) {
-              setTradeableProducts(prev =>
-                prev.filter(product => product.id !== productId)
-              );
-              Alert.alert("Deleted", "Trade product deleted successfully!");
-            } else {
-              throw new Error("Failed to delete");
-            }
-          } catch (error) {
-            console.error("Error deleting trade product:", error);
-            Alert.alert("Error", "Could not delete trade product.");
-          }
-        },
-      },
-    ]
-  );
-};
+  const handleTradeOffer = (offerId, action) => {
+    setTradeOffers(prev => prev.map(offer => 
+      offer.id === offerId ? { ...offer, status: action } : offer
+    ));
+  };
 
-
+  // --- Render Components ---
 
   const renderProductItem = ({ item }) => (
-    <View style={styles.productCard}>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <View style={styles.productInfo}>
-        <View style={styles.productHeader}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <View style={styles.headerRight}>
+    <TouchableOpacity 
+      style={styles.productCard} 
+      activeOpacity={0.9}
+      onPress={() => {}}
+    >
+      <View style={styles.imageWrapper}>
+        <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="cover" />
+        <View style={[styles.statusTag, item.isActive ? styles.statusActive : styles.statusInactive]}>
+          <Text style={styles.statusTagText}>{item.isActive ? 'Active' : 'Hidden'}</Text>
+        </View>
+      </View>
+      
+      <View style={styles.cardBody}>
+        <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.productValue}>{item.value}</Text>
+        
+        <View style={styles.cardFooter}>
+          <View style={styles.switchContainer}>
+            <Text style={styles.switchLabel}>{item.isActive ? 'On' : 'Off'}</Text>
             <Switch
               value={item.isActive}
               onValueChange={() => toggleProductStatus(item.id)}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={item.isActive ? '#2563eb' : '#f4f3f4'}
+              trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
+              thumbColor={item.isActive ? COLORS.secondary : '#f4f3f4'}
+              style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }} 
             />
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => deleteProduct(item.id)}
-            >
-              <Feather name="trash-2" size={16} color="#dc2626" />
-            </TouchableOpacity>
           </View>
+          <TouchableOpacity style={styles.iconButton} onPress={() => deleteProduct(item.id)}>
+            <Feather name="trash-2" size={16} color={COLORS.danger} />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.productDescription}>{item.note}</Text>
-        <View style={styles.productDetails}>
-          <Text style={styles.productValue}>{item.value}</Text>
-          <Text style={styles.productCategory}>{item.category}</Text>
-        </View>
-        <Text style={styles.productStatus}>
-          Status: <Text style={{ color: item.isActive ? '#059669' : '#dc2626' }}>
-            {item.isActive ? 'Available for Trade' : 'Not Available'}
-          </Text>
-        </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   const renderTradeOffer = ({ item }) => (
-    <View style={styles.tradeOfferCard}>
+    <View style={styles.offerCard}>
+      {/* Trader Header */}
       <View style={styles.offerHeader}>
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{item.user.name}</Text>
-          <View style={styles.ratingContainer}>
-            <Feather name="star" size={14} color="#f59e0b" />
-            <Text style={styles.rating}>{item.user.rating}</Text>
+        <View style={styles.traderRow}>
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>{item.user.name.charAt(0)}</Text>
+          </View>
+          <View>
+            <Text style={styles.traderName}>{item.user.name}</Text>
+            <View style={styles.ratingRow}>
+              <Ionicons name="star" size={12} color="#F59E0B" />
+              <Text style={styles.ratingText}>{item.user.rating}</Text>
+            </View>
           </View>
         </View>
-        <Text style={[styles.offerStatus, 
-          item.status === 'pending' ? styles.statusPending :
-          item.status === 'accepted' ? styles.statusAccepted :
-          styles.statusDeclined
+        <View style={[styles.statusBadge, 
+          item.status === 'pending' ? styles.bgPending : 
+          item.status === 'accepted' ? styles.bgAccepted : styles.bgDeclined
         ]}>
-          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-        </Text>
-      </View>
-
-      <View style={styles.tradeItems}>
-        <View style={styles.tradeItem}>
-          <Text style={styles.itemLabel}>User Offers:</Text>
-          <View style={styles.itemWithImage}>
-            <Image source={{ uri: item.userProduct.image }} style={styles.itemImage} />
-            <View style={styles.itemTextContainer}>
-              <Text style={styles.itemName}>{item.userProduct.name}</Text>
-              <Text style={styles.itemValue}>{item.userProduct.value}</Text>
-            </View>
-          </View>
-        </View>
-
-        <Feather name="repeat" size={20} color="#2563eb" style={styles.exchangeIcon} />
-
-        <View style={styles.tradeItem}>
-          <Text style={styles.itemLabel}>For Your:</Text>
-          <View style={styles.itemWithImage}>
-            <View style={[styles.itemImage, styles.placeholderImage]}>
-              <Feather name="package" size={20} color="#64748b" />
-            </View>
-            <View style={styles.itemTextContainer}>
-              <Text style={styles.itemName}>{item.requestedProduct.name}</Text>
-              <Text style={styles.itemValue}>{item.requestedProduct.value}</Text>
-            </View>
-          </View>
+          <Text style={[styles.statusText,
+             item.status === 'pending' ? {color: COLORS.warning} :
+             item.status === 'accepted' ? {color: COLORS.success} : {color: COLORS.danger}
+          ]}>{item.status}</Text>
         </View>
       </View>
 
-      {item.message && (
-        <Text style={styles.offerMessage}>"{item.message}"</Text>
-      )}
+      {/* Exchange Visual */}
+      <View style={styles.exchangeBox}>
+        <View style={styles.exchangeItem}>
+          <Image source={{ uri: item.userProduct.image }} style={styles.exchangeImg} />
+          <Text style={styles.exchangeLabel} numberOfLines={1}>{item.userProduct.name}</Text>
+          <Text style={styles.exchangeVal}>{item.userProduct.value}</Text>
+        </View>
 
+        <View style={styles.exchangeArrow}>
+          <View style={styles.arrowCircle}>
+            <Feather name="arrow-right" size={18} color={COLORS.white} />
+          </View>
+        </View>
+
+        <View style={styles.exchangeItem}>
+          <View style={[styles.exchangeImg, styles.myProductImg]}>
+             <Feather name="box" size={24} color={COLORS.primary} />
+          </View>
+          <Text style={styles.exchangeLabel} numberOfLines={1}>{item.requestedProduct.name}</Text>
+          <Text style={styles.exchangeVal}>{item.requestedProduct.value}</Text>
+        </View>
+      </View>
+
+      {item.message ? (
+        <View style={styles.messageBubble}>
+          <Text style={styles.messageText}>"{item.message}"</Text>
+        </View>
+      ) : null}
+
+      {/* Actions */}
       {item.status === 'pending' && (
-        <View style={styles.offerActions}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.declineButton]}
+        <View style={styles.actionGrid}>
+          <TouchableOpacity 
+            style={[styles.btn, styles.btnDecline]} 
             onPress={() => handleTradeOffer(item.id, 'declined')}
           >
-            <Text style={styles.declineText}>Decline</Text>
+            <Text style={[styles.btnText, { color: COLORS.danger }]}>Decline</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.acceptButton]}
+          <TouchableOpacity 
+            style={[styles.btn, styles.btnAccept]} 
             onPress={() => handleTradeOffer(item.id, 'accepted')}
           >
-            <Text style={styles.acceptText}>Accept Trade</Text>
+            <Text style={[styles.btnText, { color: "white"}]}>Accept Trade</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -429,748 +314,567 @@ const deleteProduct = (productId) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Feather name="arrow-left" size={24} color="#0f172a" />
+        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
         </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.title}>Trade Management</Text>
-          <Text style={styles.subtitle}>Manage your tradeable products</Text>
+        <Text style={styles.headerTitle}>Trade Center</Text>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => setIsAddProductModal(true)}>
+          <Feather name="plus" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Modern Tabs */}
+      <View style={styles.tabsContainer}>
+        <View style={styles.tabsBackground}>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'products' && styles.activeTab]} 
+            onPress={() => setActiveTab('products')}
+          >
+            <Text style={[styles.tabText, activeTab === 'products' && styles.activeTabText]}>My Items</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'offers' && styles.activeTab]} 
+            onPress={() => setActiveTab('offers')}
+          >
+            <Text style={[styles.tabText, activeTab === 'offers' && styles.activeTabText]}>Offers</Text>
+            {tradeOffers.filter(o => o.status === 'pending').length > 0 && (
+              <View style={styles.badge} />
+            )}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setIsAddProductModal(true)}
-        >
-          <Feather name="plus" size={20} color="#FFF" />
-        </TouchableOpacity>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'products' && styles.activeTab]}
-          onPress={() => setActiveTab('products')}
-        >
-          <Feather
-            name="package"
-            size={18}
-            color={activeTab === 'products' ? '#2563eb' : '#64748b'}
-          />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'products' && styles.activeTabText
-          ]}>
-            Products ({tradeableProducts.length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'offers' && styles.activeTab]}
-          onPress={() => setActiveTab('offers')}
-        >
-          <Feather
-            name="gift"
-            size={18}
-            color={activeTab === 'offers' ? '#2563eb' : '#64748b'}
-          />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'offers' && styles.activeTabText
-          ]}>
-            Offers ({tradeOffers.filter(o => o.status === 'pending').length})
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Content */}
+      {/* Content Area */}
       <View style={styles.content}>
         {activeTab === 'products' ? (
-          tradeableProducts.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Feather name="package" size={64} color="#cbd5e1" />
-              <Text style={styles.emptyStateTitle}>No Tradeable Products</Text>
-              <Text style={styles.emptyStateText}>
-                Add products that customers can trade for
-              </Text>
-              <TouchableOpacity
-                style={styles.addProductButton}
-                onPress={() => setIsAddProductModal(true)}
-              >
-                <Text style={styles.addProductButtonText}>Add Your First Product</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <FlatList
-              data={tradeableProducts}
-              renderItem={renderProductItem}
-              keyExtractor={item => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-            />
-          )
+          <FlatList
+            key="grid" // Force re-render when switching tabs
+            data={tradeableProducts}
+            renderItem={renderProductItem}
+            keyExtractor={item => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.columnWrapper}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="tag-off-outline" size={60} color={COLORS.border} />
+                <Text style={styles.emptyText}>No items listed for trade.</Text>
+              </View>
+            }
+          />
         ) : (
-          tradeOffers.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Feather name="gift" size={64} color="#cbd5e1" />
-              <Text style={styles.emptyStateTitle}>No Trade Offers</Text>
-              <Text style={styles.emptyStateText}>
-                When customers send trade offers, they will appear here
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={tradeOffers}
-              renderItem={renderTradeOffer}
-              keyExtractor={item => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-            />
-          )
+          <FlatList
+            key="list" // Force re-render when switching tabs
+            data={tradeOffers}
+            renderItem={renderTradeOffer}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Feather name="inbox" size={60} color={COLORS.border} />
+                <Text style={styles.emptyText}>No trade offers yet.</Text>
+              </View>
+            }
+          />
         )}
       </View>
 
-      {/* Add Product Modal */}
-      {isAddProductModal && (
+      {/* Modal */}
+      <Modal
+        visible={isAddProductModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsAddProductModal(false)}
+      >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Tradeable Product</Text>
-              <TouchableOpacity
-                onPress={() => setIsAddProductModal(false)}
-                style={styles.modalCloseButton}
-              >
-                <Feather name="x" size={24} color="#0f172a" />
+              <Text style={styles.modalTitle}>List Item for Trade</Text>
+              <TouchableOpacity onPress={() => setIsAddProductModal(false)}>
+                <Feather name="x" size={24} color={COLORS.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalContent}>
-
-              {/* Product Name Picker */}
-                        <View style={styles.formGroup}>
-              <Text style={styles.label}>Product Name *</Text>
+            <ScrollView contentContainerStyle={styles.modalBody}>
+              <Text style={styles.label}>Select Product</Text>
               <View style={styles.pickerWrapper}>
-          <Picker
-  selectedValue={newProduct.product_id}
-  onValueChange={(itemValue) => {
-    const selected = products.find(p => p.id === itemValue);
-    if (selected) {
-      setNewProduct(prev => ({
-        ...prev,
-        product_id: selected.id,
-        name: selected.name,
-        value: selected.price ? selected.price.toString() : '' // convert to string
-      }));
-    } else {
-      setNewProduct(prev => ({
-        ...prev,
-        product_id: '',
-        name: '',
-        value: ''
-      }));
-    }
-  }}
-  style={styles.picker}
->
-  <Picker.Item label="Select a product" value="" />
-  {products.map(product => (
-    <Picker.Item
-      key={product.id}
-      label={product.name}
-      value={product.id}
-    />
-  ))}
-</Picker>
-
-              </View>
-            </View>
-              
-              {/* Description Input */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Description</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Describe your product..."
-                  multiline
-                  numberOfLines={3}
-                  value={newProduct.description}
-                  onChangeText={(text) => setNewProduct(prev => ({ ...prev, description: text }))}
-                />
-              </View>
-              
-{/*       tO BE ADDED LATER            
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Trade Quantity *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="1"
-              value={newTradeProduct.trade_quantity}
-              keyboardType="numeric"
-              onChangeText={(text) =>
-                setNewTradeProduct(prev => ({ ...prev, trade_quantity: text }))
-              }
-            />
-          </View> */}
-
-            
-            {/* Expanded value input */}
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Estimated Value *</Text>
-<TextInput
-  style={styles.input}
-  placeholder="₱0.00"
-  value={newProduct.value}
-  onChangeText={(text) => setNewProduct(prev => ({ ...prev, value: text }))}
-  keyboardType="numeric"
-/>
-
-
-
-              </View>
-
-              {/* <View style={styles.formGroup}>
-                <Text style={styles.label}>Category *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
-                  {categories.map(category => (
-                    <TouchableOpacity
-                      key={category}
-                      style={[
-                        styles.categoryChip,
-                        newProduct.category === category && styles.selectedCategoryChip
-                      ]}
-                      onPress={() => setNewProduct(prev => ({ ...prev, category }))}
-                    >
-                      <Text style={[
-                        styles.categoryText,
-                        newProduct.category === category && styles.selectedCategoryText
-                      ]}>
-                        {category}
-                      </Text>
-                    </TouchableOpacity>
+                <Picker
+                  selectedValue={newProduct.product_id}
+                  onValueChange={(itemValue) => {
+                    const selected = products.find(p => p.id === itemValue);
+                    if (selected) {
+                      setNewProduct(prev => ({
+                        ...prev,
+                        product_id: selected.id,
+                        name: selected.name,
+                        value: selected.price ? selected.price.toString() : ''
+                      }));
+                    }
+                  }}
+                  style={{color: COLORS.primary}}
+                >
+                  <Picker.Item label="Choose from inventory..." value="" />
+                  {products.map(p => (
+                    <Picker.Item key={p.id} label={p.name} value={p.id} />
                   ))}
-                </ScrollView>
-              </View> */}
+                </Picker>
+              </View>
 
-              {/* <View style={styles.formGroup}>
-                <Text style={styles.label}>Product Image URL (Optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="https://example.com/image.jpg"
-                  value={newProduct.image}
-                  onChangeText={(text) => setNewProduct(prev => ({ ...prev, image: text }))}
+              <Text style={styles.label}>Estimated Trade Value (₱)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="0.00"
+                value={newProduct.value}
+                onChangeText={t => setNewProduct({...newProduct, value: t})}
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.label}>Condition / Notes</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="e.g. Brand new, includes box..."
+                multiline
+                numberOfLines={3}
+                value={newProduct.description}
+                onChangeText={t => setNewProduct({...newProduct, description: t})}
+              />
+
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabelModal}>Make Active Immediately</Text>
+                <Switch
+                  value={newProduct.isActive}
+                  onValueChange={v => setNewProduct({...newProduct, isActive: v})}
+                  trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
+                  thumbColor={newProduct.isActive ? COLORS.secondary : '#f4f3f4'}
                 />
-              </View> */}
-
-              <View style={styles.formGroup}>
-                <View style={styles.switchContainer}>
-                  <Text style={styles.label}>Available for Trade</Text>
-                  <Switch
-                    value={newProduct.isActive}
-                    onValueChange={(value) => setNewProduct(prev => ({ ...prev, isActive: value }))}
-                    trackColor={{ false: '#767577', true: '#81b0ff' }}
-                    thumbColor={newProduct.isActive ? '#2563eb' : '#f4f3f4'}
-                  />
-                </View>
               </View>
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setIsAddProductModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleAddProduct}
-              >
-                <Text style={styles.saveButtonText}>Add Product</Text>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleAddProduct}>
+                <Text style={styles.saveBtnText}>List Item</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
-      )}
+      </Modal>
+
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-
-  //product name picker styles
-  pickerWrapper: {
-  borderWidth: 1,
-  borderColor: '#e2e8f0',
-  borderRadius: 8,
-  overflow: 'hidden',
-},
-picker: {
-  height: 50,
-  width: '100%',
-  color: '#0f172a',
-},
-// end 
-
-
-
-
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.background,
   },
+  
+  // Header
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  headerContent: {
-    flex: 1,
-    marginLeft: 8,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '400',
-  },
-  addButton: {
-    backgroundColor: '#2563eb',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    gap: 6,
-  },
-  activeTab: {
-    backgroundColor: '#f8fafc',
-    borderBottomWidth: 2,
-    borderBottomColor: '#2563eb',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748b',
-  },
-  activeTabText: {
-    color: '#2563eb',
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-  },
-  listContent: {
-    padding: 16,
-    gap: 12,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  addProductButton: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  addProductButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  // Product Card Styles
-  productCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-    flexDirection: 'row',
-  },
-  productImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
-    flex: 1,
-    marginRight: 12,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  deleteButton: {
-    padding: 6,
-    backgroundColor: '#fef2f2',
-    borderRadius: 6,
-  },
-  productDescription: {
-    fontSize: 13,
-    color: '#64748b',
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  productDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  productValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2563eb',
-  },
-  productCategory: {
-    fontSize: 12,
-    color: '#64748b',
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  productStatus: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  // Trade Offer Styles
-  tradeOfferCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  offerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 2,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rating: {
-    fontSize: 12,
-    color: '#64748b',
-    marginLeft: 4,
-  },
-  offerStatus: {
-    fontSize: 12,
-    fontWeight: '500',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginLeft: 8,
-  },
-  statusPending: {
-    backgroundColor: '#fef3c7',
-    color: '#d97706',
-  },
-  statusAccepted: {
-    backgroundColor: '#dcfce7',
-    color: '#059669',
-  },
-  statusDeclined: {
-    backgroundColor: '#fecaca',
-    color: '#dc2626',
-  },
-  tradeItems: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  tradeItem: {
-    flex: 1,
-  },
-  itemLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 6,
-    fontWeight: '500',
-  },
-  itemWithImage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemImage: {
-    width: 45,
-    height: 45,
-    borderRadius: 8,
-    marginRight: 10,
-  },
-  itemTextContainer: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f172a',
-    marginBottom: 2,
-  },
-  itemValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2563eb',
-  },
-  placeholderImage: {
-    backgroundColor: '#f1f5f9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  exchangeIcon: {
-    marginHorizontal: 4,
-  },
-  offerMessage: {
-    fontSize: 14,
-    color: '#475569',
-    fontStyle: 'italic',
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  offerActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  declineButton: {
-    borderColor: '#fecaca',
-    backgroundColor: '#fef2f2',
-  },
-  declineText: {
-    color: '#dc2626',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  acceptButton: {
-    borderColor: '#bbf7d0',
-    backgroundColor: '#f0fdf4',
-  },
-  acceptText: {
-    color: '#059669',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  // Modal Styles
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    width: '100%',
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    backgroundColor: COLORS.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: COLORS.border,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  headerBtn: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: COLORS.inputBg,
+  },
+
+  // Tabs
+  tabsContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.background,
+  },
+  tabsBackground: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  activeTab: {
+    backgroundColor: COLORS.background,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  activeTabText: {
+    color: COLORS.primary,
+  },
+  badge: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.danger,
+  },
+
+  // Content
+  content: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+  },
+  listContent: {
+    padding: 20,
+    paddingBottom: 80,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+
+  // --- Product Card ---
+  productCard: {
+    width: CARD_WIDTH,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  imageWrapper: {
+    height: 110,
+    backgroundColor: COLORS.inputBg,
+    position: 'relative',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  statusTag: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  statusActive: { backgroundColor: 'rgba(255,255,255,0.9)' },
+  statusInactive: { backgroundColor: '#fee2e2' },
+  statusTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+  },
+  cardBody: {
+    padding: 10,
+  },
+  productName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.darkText,
+    marginBottom: 4,
+  },
+  productValue: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  switchLabel: {
+    fontSize: 10,
+    color: COLORS.text,
+  },
+  iconButton: {
+    padding: 4,
+    backgroundColor: '#fff1f2',
+    borderRadius: 4,
+  },
+
+  // --- Offer Card ---
+  offerCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  offerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  traderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  avatarPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.lightBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: COLORS.secondary,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  traderName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.darkText,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 11,
+    color: COLORS.text,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  bgPending: { backgroundColor: '#fff7ed' },
+  bgAccepted: { backgroundColor: '#f0fdf4' },
+  bgDeclined: { backgroundColor: '#fef2f2' },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  
+  // Exchange Visuals
+  exchangeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  exchangeItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  exchangeImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginBottom: 6,
+    backgroundColor: COLORS.white,
+  },
+  myProductImg: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  exchangeLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.darkText,
+    textAlign: 'center',
+  },
+  exchangeVal: {
+    fontSize: 10,
+    color: COLORS.secondary,
+    fontWeight: '700',
+  },
+  exchangeArrow: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  arrowCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageBubble: {
+    backgroundColor: '#f1f5f9',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  messageText: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontStyle: 'italic',
+  },
+  actionGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  btn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnDecline: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  btnAccept: {
+    backgroundColor: COLORS.primary,
+  },
+  btnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#0f172a',
+    fontWeight: '700',
+    color: COLORS.primary,
   },
-  modalCloseButton: {
-    padding: 4,
-  },
-  modalContent: {
-    padding: 20,
-    maxHeight: 400,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    gap: 12,
-  },
-  // Form Styles
-  formGroup: {
-    marginBottom: 16,
+  modalBody: {
+    paddingBottom: 20,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f172a',
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
     marginBottom: 8,
+    marginTop: 16,
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    backgroundColor: COLORS.inputBg,
+    overflow: 'hidden',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
-    color: '#0f172a',
+    backgroundColor: COLORS.inputBg,
+    fontSize: 15,
+    color: COLORS.primary,
   },
   textArea: {
-    minHeight: 80,
+    height: 80,
     textAlignVertical: 'top',
   },
-  categoriesScroll: {
+  switchRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 12,
   },
-  categoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f1f5f9',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+  switchLabelModal: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
-  selectedCategoryChip: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+  modalFooter: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#64748b',
-  },
-  selectedCategoryText: {
-    color: '#ffffff',
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
+  saveBtn: {
+    backgroundColor: COLORS.secondary,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
   },
-  cancelButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '600',
+  saveBtnText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
-  saveButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#2563eb',
+
+  // Empty
+  emptyContainer: {
     alignItems: 'center',
+    marginTop: 60,
   },
-  saveButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+  emptyText: {
+    color: COLORS.text,
+    marginTop: 12,
   },
 });
 

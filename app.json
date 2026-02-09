@@ -16,7 +16,10 @@
       "backgroundColor": "#172d55"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera to place items in your room."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +29,8 @@
       "softwareKeyboardLayoutMode": "pan",
       "package": "com.hotaka098.BIZNest",
       "permissions": [
-        "INTERNET"
+        "INTERNET",
+        "CAMERA"
       ]
     },
     "web": {
@@ -45,7 +49,13 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to place items in your room."
+        }
+      ]
     ],
     "extra": {
       "router": {},

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   View, 
   Text, 
@@ -8,23 +8,29 @@ import {
   TouchableOpacity, 
   Dimensions,
   Animated,
-  Easing
+  Easing,
+  StatusBar,
+  SafeAreaView
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import axiosInstance from '@api/axiosInstance';
 import N8NAPI_URL from "../../api/n8n_api";
 import { StaticProductStyle } from "../Global";
 
-const COLORS_idea = {
-  primary: '#172d55',
-  secondary: '#2196f3',
-  background: '#f8f9fa',
-  text: '#6c757d',
+// Your Custom Palette Applied
+const COLORS = {
+  primary: '#172d55',    // Deep Blue - Active Buttons & Headers
+  secondary: '#2196f3',  // Bright Blue - Accents & Icons
+  background: '#ffffff', // Pure White
+  text: '#808080',       // Gray - Body Text
+  
+  // UI Helpers derived from your palette
+  textPrimary: '#172d55', 
+  surface: '#f8f9fa',
   border: '#e0e0e0',
   white: '#ffffff',
-  headerBg: '#172d55',
-  highlight: '#ff6b6b'
+  inputBg: '#f1f5f9',
 };
 
 const { width } = Dimensions.get('window');
@@ -33,7 +39,7 @@ const SearchResults = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { searchTerm } = route.params;
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [product, setProduct] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
@@ -50,7 +56,7 @@ const SearchResults = () => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
-      easing: Easing.ease,
+      easing: Easing.out(Easing.ease),
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
@@ -67,7 +73,6 @@ const SearchResults = () => {
         : [];
       setProduct(products);
       setAllProducts(products);
-      console.log("Fetched products:", products);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -99,11 +104,9 @@ const SearchResults = () => {
         filtered = filtered.filter(item => item.discount);
         break;
     }
-
     setProduct(filtered);
   };
 
-  // ✅ Sort function for dropdown
   const handleSortSelect = (sortOption) => {
     setSelectedSort(sortOption);
     setShowSortModal(false);
@@ -130,150 +133,323 @@ const SearchResults = () => {
         sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
     }
-
     setProduct(sorted);
-  };
-
-  const handleProductPress = (product) => {
-    navigation.navigate("ProductDetails", { product_id: product.id });
   };
 
   if (loading) {
     return (
-      <View style={styles_idea.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS_idea.primary} />
-        <Text style={styles_idea.loadingText}>Loading products...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Searching for "{searchTerm}"...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles_idea.container}>
-      {/* Header */}
-      <View style={styles_idea.header}>
-        <View style={styles_idea.headerContent}>
-          <TouchableOpacity 
-            style={styles_idea.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS_idea.white} />
-          </TouchableOpacity>
-          <Text style={styles_idea.headerTitle}>Results for "{searchTerm}"</Text>
-          <TouchableOpacity 
-            style={styles_idea.filterIcon}
-            onPress={() => setShowSortModal(true)}
-          >
-            <Ionicons name="filter" size={20} color={COLORS_idea.white} />
-          </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+
+      {/* 1. Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.iconBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <Feather name="arrow-left" size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle} numberOfLines={1}>"{searchTerm}"</Text>
+          <Text style={styles.headerSubtitle}>{product.length} results found</Text>
         </View>
+
+        <TouchableOpacity 
+          style={styles.iconBtn}
+          onPress={() => setShowSortModal(true)}
+        >
+          <Feather name="sliders" size={22} color={COLORS.textPrimary} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles_idea.content}>
-        {/* Filter Buttons */}
+      {/* 2. Filters & Sort Bar */}
+      <View style={styles.filterSection}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
-          style={styles_idea.filterContainer}
-          contentContainerStyle={styles_idea.filterContent}
+          contentContainerStyle={styles.filterContent}
         >
-          {['Latest', 'Top Sales', 'Price', 'Free Shipping', 'Preferred', 'Near Me', 'Discount'].map((filter) => (
+          {['Latest', 'Top Sales', 'Price', 'Free Shipping', 'Preferred', 'Discount'].map((filter) => (
             <TouchableOpacity 
               key={filter}
               style={[
-                styles_idea.filterButton, 
-                activeFilter === filter && styles_idea.activeFilter
+                styles.filterChip, 
+                activeFilter === filter && styles.activeFilterChip
               ]}
               onPress={() => handleFilterSelect(filter)}
             >
               <Text style={[
-                styles_idea.filterText, 
-                activeFilter === filter && styles_idea.activeFilterText
+                styles.filterText, 
+                activeFilter === filter && styles.activeFilterText
               ]}>
                 {filter}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
+      </View>
 
-        {/* Results and Sort by */}
-        <View style={styles_idea.resultsContainer}>
-          <Text style={styles_idea.resultsText}>
-            {product.length} results found
-          </Text>
-          <TouchableOpacity 
-            style={styles_idea.sortButton}
-            onPress={() => setShowSortModal(true)}
-          >
-            <Text style={styles_idea.sortText}>Sort by: {selectedSort}</Text>
-            <Ionicons name="chevron-down" size={16} color={COLORS_idea.primary} />
-          </TouchableOpacity>
-        </View>
+      {/* 3. Sort Indicator */}
+      <View style={styles.sortIndicatorRow}>
+        <Text style={styles.resultsText}>
+          Showing results for <Text style={styles.boldText}>{searchTerm}</Text>
+        </Text>
+        <TouchableOpacity 
+          style={styles.sortTrigger}
+          onPress={() => setShowSortModal(true)}
+        >
+          <Text style={styles.sortTriggerText}>{selectedSort}</Text>
+          <Feather name="chevron-down" size={14} color={COLORS.secondary} />
+        </TouchableOpacity>
+      </View>
 
-        {/* Product Grid */}
-        <StaticProductStyle data={product} />
+      {/* 4. Product Grid */}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {product.length > 0 ? (
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <StaticProductStyle data={product} />
+          </Animated.View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Feather name="search" size={64} color={COLORS.border} />
+            <Text style={styles.emptyTitle}>No results found</Text>
+            <Text style={styles.emptyText}>Try searching for a different keyword.</Text>
+          </View>
+        )}
       </ScrollView>
 
-      {/* Sort Modal */}
+      {/* 5. Sort Modal */}
       {showSortModal && (
-        <View style={styles_idea.modalOverlay}>
-          <View style={styles_idea.modalContainer}>
-            <Text style={styles_idea.modalTitle}>Sort by</Text>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalBackdrop} 
+            activeOpacity={1} 
+            onPress={() => setShowSortModal(false)} 
+          />
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Sort By</Text>
+              <TouchableOpacity onPress={() => setShowSortModal(false)}>
+                <Feather name="x" size={24} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            
             {['Recommended', 'Latest', 'Top Sales', 'Price: Low to High', 'Price: High to Low', 'Rating'].map((option) => (
               <TouchableOpacity
                 key={option}
-                style={styles_idea.sortOption}
+                style={styles.sortOption}
                 onPress={() => handleSortSelect(option)}
               >
                 <Text style={[
-                  styles_idea.sortOptionText,
-                  selectedSort === option && styles_idea.selectedSortOption
+                  styles.sortOptionText,
+                  selectedSort === option && styles.selectedSortOptionText
                 ]}>
                   {option}
                 </Text>
                 {selectedSort === option && (
-                  <Ionicons name="checkmark" size={20} color={COLORS_idea.primary} />
+                  <Feather name="check" size={20} color={COLORS.primary} />
                 )}
               </TouchableOpacity>
             ))}
-            <TouchableOpacity
-              style={styles_idea.closeButton}
-              onPress={() => setShowSortModal(false)}
-            >
-              <Text style={styles_idea.closeButtonText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
-const styles_idea = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS_idea.background },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, color: COLORS_idea.text },
-  header: { paddingTop: 40, paddingBottom: 12, paddingHorizontal: 16, backgroundColor: COLORS_idea.headerBg },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: 'bold', color: COLORS_idea.white },
-  content: { paddingHorizontal: 12 },
-  filterContainer: { marginVertical: 16 },
-  filterContent: { paddingHorizontal: 4 },
-  filterButton: { paddingHorizontal: 16, paddingVertical: 8, marginRight: 8, borderRadius: 16, backgroundColor: COLORS_idea.white, borderWidth: 1, borderColor: COLORS_idea.border },
-  activeFilter: { backgroundColor: COLORS_idea.primary, borderColor: COLORS_idea.primary },
-  filterText: { color: COLORS_idea.primary },
-  activeFilterText: { color: COLORS_idea.white },
-  resultsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  resultsText: { fontSize: 14, color: COLORS_idea.text },
-  sortButton: { flexDirection: 'row', alignItems: 'center' },
-  sortText: { fontSize: 14, color: COLORS_idea.primary, fontWeight: '500', marginRight: 4 },
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 20 },
-  modalContainer: { backgroundColor: COLORS_idea.white, borderRadius: 12, padding: 20, width: '80%' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 20, color: COLORS_idea.primary },
-  sortOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS_idea.border },
-  sortOptionText: { fontSize: 16, color: COLORS_idea.text },
-  selectedSortOption: { color: COLORS_idea.primary, fontWeight: 'bold' },
-  closeButton: { marginTop: 20, padding: 12, backgroundColor: COLORS_idea.primary, borderRadius: 8, alignItems: 'center' },
-  closeButtonText: { color: COLORS_idea.white, fontWeight: 'bold' },
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: COLORS.background 
+  },
+  
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surface,
+  },
+  iconBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: COLORS.text,
+  },
+
+  // Filters
+  filterSection: {
+    paddingVertical: 12,
+    backgroundColor: COLORS.background,
+  },
+  filterContent: {
+    paddingHorizontal: 16,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginRight: 8,
+  },
+  activeFilterChip: {
+    backgroundColor: COLORS.primary, // Changed to Primary
+    borderColor: COLORS.primary,
+  },
+  filterText: {
+    fontSize: 13,
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  activeFilterText: {
+    color: COLORS.white,
+    fontWeight: '600',
+  },
+
+  // Sort Indicator
+  sortIndicatorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: COLORS.background,
+  },
+  resultsText: {
+    fontSize: 13,
+    color: COLORS.text,
+  },
+  boldText: {
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+  },
+  sortTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sortTriggerText: {
+    fontSize: 13,
+    color: COLORS.secondary,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+
+  // Content
+  scrollContent: {
+    paddingBottom: 20,
+    backgroundColor: COLORS.surface, 
+    minHeight: '100%',
+    paddingTop: 10,
+  },
+  
+  // Loading & Empty
+  loadingContainer: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center",
+    backgroundColor: COLORS.background
+  },
+  loadingText: { 
+    marginTop: 12, 
+    color: COLORS.text 
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 100,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginTop: 16,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.text,
+    marginTop: 8,
+  },
+
+  // Modal
+  modalOverlay: { 
+    position: 'absolute', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0, 
+    zIndex: 20,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContainer: { 
+    backgroundColor: COLORS.white, 
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20, 
+    padding: 20, 
+    width: '100%',
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surface,
+    paddingBottom: 12,
+  },
+  modalTitle: { 
+    fontSize: 18, 
+    fontWeight: '700', 
+    color: COLORS.textPrimary 
+  },
+  sortOption: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingVertical: 14, 
+    borderBottomWidth: 1, 
+    borderBottomColor: COLORS.surface 
+  },
+  sortOptionText: { 
+    fontSize: 16, 
+    color: COLORS.text 
+  },
+  selectedSortOptionText: { 
+    color: COLORS.primary, 
+    fontWeight: '700' 
+  },
 });
 
 export default SearchResults;

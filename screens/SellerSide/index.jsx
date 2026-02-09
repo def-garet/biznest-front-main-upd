@@ -4,6 +4,7 @@ import ProductManagement from "./ProductManagement"
 import SellerOrderManagement from "./SellerOrderManagement"
 import SalesReports from "./SalesReports"
 import SellerTradeManagementScreen from "./SellerTradeManagementScreen"
+import SellerHome from "./SellerHome"
 export {
     StartSelling,
     SellerDashboard,
@@ -11,4 +12,6 @@ export {
     SellerOrderManagement,
     SalesReports,
     SellerTradeManagementScreen,
+    SellerHome
+    
 }

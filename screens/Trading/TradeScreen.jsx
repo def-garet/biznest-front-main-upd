@@ -1,1752 +1,3 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  Modal,
-  Image,
-  TextInput,
-  Alert,
-  FlatList,
-  Dimensions,
-  Animated,
-  Platform,
-} from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { TradeContext } from "./TradeComponent/TradeContext";
-import { useNavigation } from "@react-navigation/native";
-import axiosInstance from '@api/axiosInstance';
-import API_URL  from "../../api/api_urls";
-const trade_api = "/api/v1/seller/Seller Trade/seller_trade";
-
-
-
-const { width: screenWidth } = Dimensions.get('window');
-
-// Create animated components
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
-const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
-
-const TradeScreen = () => {
-  const tradeContext = useContext(TradeContext);
-  const navigation = useNavigation();
-
-  const {
-    activeTrades = [],
-    tradeHistory = [],
-    tradeOffers = [],
-    initMockData,
-    createTradeOffer,
-    acceptTrade,
-    rejectTrade,
-    completeTrade,
-  } = tradeContext || {};
-
-  const [activeTab, setActiveTab] = useState("browse");
-  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
-  const [selectedUserProduct, setSelectedUserProduct] = useState(null);
-  const [selectedShopProduct, setSelectedShopProduct] = useState(null);
-  const [notes, setNotes] = useState("");
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-
-  const headerHeight = 180;
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const lastScrollY = useRef(0);
-  const scrollDirection = useRef('down');
-  
-  // Improved animation: hide completely when scrolling down, show when scrolling up
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, headerHeight],
-    outputRange: [0, -headerHeight],
-    extrapolate: 'clamp',
-  });
-  const [categories, setCategories] = useState([]);
-
-  // const categories = [
-  //   { id: 'all', name: 'All Products' },
-  //   { id: 'food', name: 'Food & Beverages' },
-  //   { id: 'handicrafts', name: 'Handicrafts' },
-  //   { id: 'coffee', name: 'Coffee & Tea' },
-  //   { id: 'snacks', name: 'Snacks' },
-  //   { id: 'home', name: 'Home Decor' },
-  // ];
-
-  const fetchCategory = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/api/v1/Category/biznest_api`);
-    // Append fetched categories while keeping the default "All"
-    setCategories([{ id: 'all', name: "All" }, ...response.data]);
-    
-  } catch (error) {
-    console.error("Error fetching product:", error);
-  } finally {
-    setRefreshing(false);
-  }
-};
-
-
-  const [userProducts, setUserProducts] = useState([]);
-  
-  const fetchUserProducts = async () => {
-    try {
-      const response = await axiosInstance.get(trade_api);
-      setUserProducts(response.data);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    }
-  };
-
-  // const userProducts = [
-  //   {
-  //     id: "u1",
-  //     name: "Hablon Wallet",
-  //     image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&auto=format&fit=crop&q=60",
-  //     value: "₱250",
-  //   },
-  //   {
-  //     id: "u2",
-  //     name: "Barako Coffee",
-  //     image: "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60",
-  //     value: "₱350",
-  //   },
-  //   {
-  //     id: "u3",
-  //     name: "Piaya Original",
-  //     image: "https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60",
-  //     value: "₱120",
-  //   },
-  //   {
-  //     id: "u4",
-  //     name: "Handwoven Basket",
-  //     image: "https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60",
-  //     value: "₱180",
-  //   },
-  // ];
-
-  // const availableProducts = [
-  //   {
-  //     id: '1',
-  //     name: 'Artisanal Coffee Beans',
-  //     description: 'Premium locally sourced coffee beans from the highlands',
-  //     value: '₱350',
-  //     category: 'coffee',
-  //     image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60',
-  //     shop: {
-  //       name: 'Madge Coffee',
-  //       image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
-  //       rating: 4.8,
-  //       location: 'Iloilo City'
-  //     },
-  //     tradeFor: ['Handicrafts', 'Snacks', 'Home Decor'],
-  //     isAvailable: true
-  //   },
-  //   {
-  //     id: '2',
-  //     name: 'Handwoven Basket',
-  //     description: 'Traditional handwoven native basket made from local materials',
-  //     value: '₱180',
-  //     category: 'handicrafts',
-  //     image: 'https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60',
-  //     shop: {
-  //       name: 'Native Crafts',
-  //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-  //       rating: 4.6,
-  //       location: 'Guimaras'
-  //     },
-  //     tradeFor: ['Coffee & Tea', 'Food Items'],
-  //     isAvailable: true
-  //   },
-  //   {
-  //     id: '3',
-  //     name: 'Biscocho Original',
-  //     description: 'Crispy, buttery toasted bread with sugar coating',
-  //     value: '₱60',
-  //     category: 'snacks',
-  //     image: 'https://images.unsplash.com/photo-1517705008128-361805f42e86?w=300&auto=format&fit=crop&q=60',
-  //     shop: {
-  //       name: 'Iloilo Biscocho Haus',
-  //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-  //       rating: 4.7,
-  //       location: 'Iloilo City'
-  //     },
-  //     tradeFor: ['Coffee & Tea', 'Other Snacks'],
-  //     isAvailable: true
-  //   },
-  //   {
-  //     id: '4',
-  //     name: 'Barako Coffee Blend',
-  //     description: 'Strong and aromatic Batangas Barako coffee blend',
-  //     value: '₱280',
-  //     category: 'coffee',
-  //     image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=300&auto=format&fit=crop&q=60',
-  //     shop: {
-  //       name: 'Coffee Origins',
-  //       image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
-  //       rating: 4.9,
-  //       location: 'Bacolod'
-  //     },
-  //     tradeFor: ['Handicrafts', 'Home Decor', 'Specialty Foods'],
-  //     isAvailable: true
-  //   },
-  //   {
-  //     id: '5',
-  //     name: 'Handmade Ceramic Mug',
-  //     description: 'Artisanal ceramic mug with traditional designs',
-  //     value: '₱220',
-  //     category: 'home',
-  //     image: 'https://images.unsplash.com/photo-1570211776045-af3a51026f4b?w=300&auto=format&fit=crop&q=60',
-  //     shop: {
-  //       name: 'Clay Creations',
-  //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-  //       rating: 4.5,
-  //       location: 'Antique'
-  //     },
-  //     tradeFor: ['Coffee & Tea', 'Snacks', 'Other Handicrafts'],
-  //     isAvailable: true
-  //   },
-  //   {
-  //     id: '6',
-  //     name: 'Piaya Original',
-  //     description: 'Sweet unleavened flatbread with muscovado filling',
-  //     value: '₱120',
-  //     category: 'snacks',
-  //     image: 'https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60',
-  //     shop: {
-  //       name: 'Iloilo Delights',
-  //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-  //       rating: 4.8,
-  //       location: 'Iloilo City'
-  //     },
-  //     tradeFor: ['Coffee & Tea', 'Other Local Snacks'],
-  //     isAvailable: true
-  //   },
-  //   {
-  //     id: '7',
-  //     name: 'Native Placemat Set',
-  //     description: 'Set of 4 handwoven placemats with traditional patterns',
-  //     value: '₱200',
-  //     category: 'home',
-  //     image: 'https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60',
-  //     shop: {
-  //       name: 'Native Crafts',
-  //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-  //       rating: 4.6,
-  //       location: 'Guimaras'
-  //     },
-  //     tradeFor: ['Coffee & Tea', 'Food Items', 'Snacks'],
-  //     isAvailable: true
-  //   },
-  //   {
-  //     id: '8',
-  //     name: 'Specialty Tea Collection',
-  //     description: 'Assorted local herbal teas from the region',
-  //     value: '₱180',
-  //     category: 'coffee',
-  //     image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&auto=format&fit=crop&q=60',
-  //     shop: {
-  //       name: 'Tea Haven',
-  //       image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
-  //       rating: 4.7,
-  //       location: 'Iloilo City'
-  //     },
-  //     tradeFor: ['Handicrafts', 'Home Decor', 'Coffee'],
-  //     isAvailable: true
-  //   }
-  // ];
-
-  const [availableProducts, setAvailableProducts] = useState([]);
-
-    const fetchAvailableProducts = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/api/v1/seller/Tradable Products/tradable_products`);
-      setAvailableProducts(response.data);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    }
-  };
-// const fetchAvailableProducts = async () => {
-//   try {
-//     const response = await axios.get(trade_api);
-//     const data = response.data;
-
-//     // Transform backend data to match frontend shape
-//     const transformed = data.map((item) => ({
-//       id: item.id.toString(),
-//       name: item.name,
-//       description: item.description,
-//       value: item.value,
-//       category: item.category, // this is category id from backend
-//       image: item.image,
-//       shop: {
-//         name: item.shop?.name || "Unknown Shop",
-//         image: item.shop?.image || "https://via.placeholder.com/150",
-//         rating: item.shop?.rating || 0,
-//         location: item.shop?.location || "Unknown Location",
-//       },
-//       tradeFor: item.tradeFor || [], // from backend note array
-//       isAvailable: true,
-//     }));
-
-//     setAvailableProducts(transformed);
-//   } catch (error) {
-//     console.error("Error fetching available products:", error);
-//   }
-// };
-
-
-const [tradesFromBackend, setTradesFromBackend] = useState([]);
-
-// const fetchTrades = async () => {
-//   try {
-//     const response = await axios.get(`${API_URL}/api/v1/seller/Trade/trade`);
-//     // transform backend data to match frontend format
-//     const transformed = response.data.map((trade) => ({
-//       id: trade.id.toString(),
-//       from: trade.from_seller.name, // or trade.from_seller.f_name + " " + trade.from_seller.l_name
-//       recipient: trade.to_seller.name,
-//       status: trade.status,
-//       itemsOffered: [{
-//         name: trade.offered_product.name,
-//         value: trade.offered_product.value, // or price
-//         image: trade.offered_product.image,
-//       }],
-//       itemsRequested: [{
-//         name: trade.requested_product.name,
-//         price: trade.requested_product.value, // or price
-//         image: trade.requested_product.image,
-//       }],
-//       message: trade.message,
-//     }));
-//     setTradesFromBackend(transformed);
-//   } catch (error) {
-//     console.error("Error fetching trades:", error);
-//   }
-// };
-
-  const fetchTrades = async () => {
-    try {
-      const response = await axiosInstance.get(`/api/v1/seller/Trade/trade`);
-      setTradesFromBackend(response.data);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    }
-  };
-
-
-  const mockTradeOffers = [
-    {
-      id: 'offer1',
-      from: "Madge Coffee",
-      status: "pending",
-      itemsOffered: [{
-        name: "Artisanal Coffee Beans",
-        value: "₱350",
-        image: "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60"
-      }],
-      itemsRequested: [{
-        name: "Hablon Wallet",
-        price: "₱250",
-        image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&auto=format&fit=crop&q=60"
-      }],
-      message: "Would love to trade our premium coffee beans for your handmade wallet!"
-    }
-  ];
-
-  const mockActiveTrades = [
-    {
-      id: 'active1',
-      recipient: "Native Crafts",
-      status: "active",
-      itemsOffered: [{
-        name: "Barako Coffee",
-        value: "₱350",
-        image: "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60"
-      }],
-      itemsRequested: [{
-        name: "Handwoven Basket",
-        price: "₱180",
-        image: "https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60"
-      }]
-    }
-  ];
-
-  const mockTradeHistory = [
-    {
-      id: 'history1',
-      recipient: "Iloilo Biscocho Haus",
-      status: "completed",
-      itemsOffered: [{
-        name: "Piaya Original",
-        value: "₱120",
-        image: "https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60"
-      }],
-      itemsRequested: [{
-        name: "Biscocho Original",
-        price: "₱60",
-        image: "https://images.unsplash.com/photo-1517705008128-361805f42e86?w=300&auto=format&fit=crop&q=60"
-      }]
-    }
-  ];
-
-  useEffect(() => {
-  fetchUserProducts();
-  fetchCategory();
-  fetchAvailableProducts();
-  fetchTrades();
-
-    if (initMockData) {
-      initMockData();
-    }
-  }, []);
-
-  // const displayTradeOffers = tradeOffers.length > 0 ? tradeOffers : mockTradeOffers;
-  // const displayActiveTrades = activeTrades.length > 0 ? activeTrades : mockActiveTrades;
-  // const displayTradeHistory = tradeHistory.length > 0 ? tradeHistory : mockTradeHistory;
-  const displayTradeOffers = tradeOffers.length > 0 
-  ? tradeOffers 
-  : tradesFromBackend.filter(trade => trade.status === "pending");
-
-const displayActiveTrades = activeTrades.length > 0 
-  ? activeTrades 
-  : tradesFromBackend.filter(trade => trade.status === "active");
-
-const displayTradeHistory = tradeHistory.length > 0 
-  ? tradeHistory 
-  : tradesFromBackend.filter(trade => trade.status === "completed");
-
-  const filteredProducts = availableProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.shop.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory && product.isAvailable;
-  });
-
-  // const handleCreateTrade = () => {
-  //   if (!selectedUserProduct || !selectedShopProduct) {
-  //     Alert.alert(
-  //       "Missing Information",
-  //       "Please select both products to trade"
-  //     );
-  //     return;
-  //   }
-
-  //   const newTrade = {
-  //     id: `trade-${Date.now()}`,
-  //     shop: {
-  //       name: selectedShopProduct.shop,
-  //       image: selectedShopProduct.shopImage,
-  //       rating: 4.5,
-  //     },
-  //     userProduct: selectedUserProduct,
-  //     shopProduct: selectedShopProduct,
-  //     notes,
-  //     status: "pending",
-  //     createdAt: new Date().toISOString(),
-  //   };
-
-  //   if (createTradeOffer) {
-  //     createTradeOffer(newTrade);
-  //   }
-
-  //   setIsCreateModalVisible(false);
-  //   resetSelection();
-
-  //   Alert.alert(
-  //     "Trade Offer Created",
-  //     "Your trade offer has been sent successfully!",
-  //     [{ text: "OK" }]
-  //   );
-  // };
-
-  const handleCreateTrade = async () => {
-  if (!selectedUserProduct || !selectedShopProduct) {
-    Alert.alert("Missing Information", "Please select both products to trade");
-    return;
-  }
-
-  // Prepare payload for backend
-  const payload = {
-    from_seller_id: selectedUserProduct.seller_id, // you need seller_id from your product object
-    to_seller_id: selectedShopProduct.seller_id,   // likewise
-    offered_product_id: selectedUserProduct.product_id,
-    requested_product_id: selectedShopProduct.product_id,
-    message: notes,
-  };
-  // console.log("Trade Payload:", payload);
-
-  try {
-    const response = await axiosInstance.post(`/api/v1/seller/Trade/trade`, payload);
-    
-    if (response.status === 201) {
-      // Optional: add trade to local state
-      const createdTrade = response.data.trade;
-      if (createTradeOffer) createTradeOffer(createdTrade);
-      fetchTrades(); // Refresh trades from backend
-      setIsCreateModalVisible(false);
-      resetSelection();
-
-      Alert.alert(
-        "Trade Offer Created",
-        "Your trade offer has been sent successfully!",
-        [{ text: "OK" }]
-      );
-    } else {
-      Alert.alert("Error", "Failed to create trade offer.");
-    }
-  } catch (error) {
-    console.error("Error creating trade offer:", error);
-    Alert.alert("Error", "Something went wrong while creating trade offer.");
-  }
-};
-
-
-
-
-
-  const resetSelection = () => {
-    setSelectedUserProduct(null);
-    setSelectedShopProduct(null);
-    setNotes("");
-  };
-
-  const handleInitiateTrade = (product) => {
-    setIsCreateModalVisible(true);
-    const shopProduct = {
-      id: product.id,
-      name: product.name,
-      image: product.image,
-      price: product.value,
-      shop: product.shop.name,
-      shopImage: product.shop.image,
-      seller_id: product.shop.seller_id,
-      product_id: product.product_id,
-    };
-    setSelectedShopProduct(shopProduct);
-  };
-
-
-  const handleTradeAction = async (tradeId, action) => {
-  try {
-    const response = await axiosInstance.put(`/api/v1/seller/Trade/trade`, {
-      trade_id: tradeId,
-      action: action,
-    });
-    if (response.status === 200) {
-      let message = "";
-      if (action === "accept") message = "Trade Accepted";
-      if (action === "reject") message = "Trade Declined";
-      if (action === "complete") message = "Trade Completed";
-
-      Alert.alert(message, `Trade has been ${action}!`);
-      fetchTrades();
-
-    }
-  } catch (error) {
-    console.error("Error updating trade:", error);
-    Alert.alert("Error", "Could not update trade.");
-  }
-};
-
-// Usage
-// handleTradeAction(tradeId, "accept");
-// handleTradeAction(tradeId, "reject");
-// handleTradeAction(tradeId, "complete");
-
-
-  const handleAcceptTrade = (tradeId) => {
-    if (acceptTrade) {
-      acceptTrade(tradeId);
-    }
-    Alert.alert("Trade Accepted", "You have accepted the trade offer!");
-  };
-
-  const handleRejectTrade = (tradeId) => {
-    if (rejectTrade) {
-      rejectTrade(tradeId);
-    }
-    Alert.alert("Trade Declined", "You have declined the trade offer.");
-  };
-
-  const handleCompleteTrade = (tradeId) => {
-    if (completeTrade) {
-      completeTrade(tradeId);
-    }
-    Alert.alert("Trade Completed", "The trade has been marked as complete!");
-  };
-
-  const renderProductItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.productCard}
-      onPress={() => handleInitiateTrade(item)}
-    >
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.productDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-        
-        <View style={styles.shopInfo}>
-          <Image source={{ uri: item.shop.image }} style={styles.shopImage} />
-          <View style={styles.shopDetails}>
-            <Text style={styles.shopName} numberOfLines={1}>{item.shop.name}</Text>
-            <View style={styles.shopRating}>
-              <Feather name="star" size={12} color="#f59e0b" />
-              <Text style={styles.ratingText}>{item.shop.rating}</Text>
-              <Text style={styles.shopLocation}>• {item.shop.location}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.productDetails}>
-          <Text style={styles.productValue}>{item.value}</Text>
-          <View style={styles.tradeForContainer}>
-            <Text style={styles.tradeForLabel}>Trade for: </Text>
-            <Text style={styles.tradeForItems} numberOfLines={1}>
-              {item.tradeFor.join(', ')}
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.tradeButton}
-          onPress={() => handleInitiateTrade(item)}
-        >
-          <Feather name="repeat" size={16} color="#FFF" />
-          <Text style={styles.tradeButtonText}>Trade</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderTradeCard = ({ trade, tab }) => (
-    <View key={trade.id} style={styles.tradeCard}>
-      <View style={styles.tradeHeader}>
-        <Text style={styles.shopName}>
-          {tab === "offers" ? trade.from : trade.recipient}
-        </Text>
-        <Text
-          style={[
-            styles.tradeStatus,
-            {
-              backgroundColor:
-                trade.status === "pending"
-                  ? "#fef3c7"
-                  : trade.status === "active"
-                  ? "#dbeafe"
-                  : "#dcfce7",
-            },
-          ]}
-        >
-          {trade.status?.charAt(0).toUpperCase() + trade.status?.slice(1)}
-        </Text>
-      </View>
-
-      <View style={styles.tradeItems}>
-        <View style={styles.item}>
-          <Text style={styles.itemLabel}>You give:</Text>
-          <View style={styles.itemWithImage}>
-            <Image
-              source={{ uri: trade.itemsOffered?.[0]?.image }}
-              style={styles.itemImage}
-            />
-            <View>
-              <Text style={styles.itemName}>
-                {trade.itemsOffered?.[0]?.name}
-              </Text>
-              <Text style={styles.itemValue}>
-                {trade.itemsOffered?.[0]?.value}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <Feather
-          name="repeat"
-          size={16}
-          color="#94a3b8"
-          style={styles.exchangeIcon}
-        />
-
-        <View style={styles.item}>
-          <Text style={styles.itemLabel}>You get:</Text>
-          <View style={styles.itemWithImage}>
-            <Image
-              source={{ uri: trade.itemsRequested?.[0]?.image }}
-              style={styles.itemImage}
-            />
-            <View>
-              <Text style={styles.itemName}>
-                {trade.itemsRequested?.[0]?.name}
-              </Text>
-              <Text style={styles.itemValue}>
-                {trade.itemsRequested?.[0]?.price}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {trade.message && (
-        <Text style={styles.tradeMessage}>"{trade.message}"</Text>
-      )}
-
-      {tab === "offers" && (
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.button, styles.declineButton]}
-            onPress={() => handleTradeAction(trade.id, "reject")}
-          >
-            <Text style={styles.declineText}>Decline</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, styles.acceptButton]}
-            onPress={() => handleTradeAction(trade.id, "accept")}
-          >
-            <Text style={styles.acceptText}>Accept</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {tab === "active" && (
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.button, styles.completeButton]}
-            onPress={() => handleTradeAction(trade.id, "complete")}
-          >
-            <Text style={styles.completeText}>Mark Complete</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
-
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { 
-      useNativeDriver: true,
-      listener: (event) => {
-        const currentScrollY = event.nativeEvent.contentOffset.y;
-        scrollDirection.current = currentScrollY > lastScrollY.current ? 'down' : 'up';
-        lastScrollY.current = currentScrollY;
-      }
-    }
-  );
-
-  const renderBrowseContent = () => (
-    <View style={styles.browseContainer}>
-      {filteredProducts.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Feather name="package" size={64} color="#cbd5e1" />
-          <Text style={styles.emptyStateTitle}>No Products Found</Text>
-          <Text style={styles.emptyStateText}>
-            {searchQuery || selectedCategory !== 'all' 
-              ? 'Try adjusting your search or filters'
-              : 'No products available for trade at the moment'
-            }
-          </Text>
-        </View>
-      ) : (
-        <AnimatedFlatList
-          data={filteredProducts}
-          renderItem={renderProductItem}
-          keyExtractor={item => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.gridContent}
-          numColumns={2}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        />
-      )}
-    </View>
-  );
-
-  const renderContent = () => {
-    let data = [];
-    let emptyMessage = "";
-
-    switch (activeTab) {
-      case "browse":
-        return renderBrowseContent();
-      case "offers":
-        data = displayTradeOffers;
-        emptyMessage = "No trade offers available";
-        break;
-      case "active":
-        data = displayActiveTrades;
-        emptyMessage = "No active trades";
-        break;
-      case "history":
-        data = displayTradeHistory;
-        emptyMessage = "No trade history";
-        break;
-      default:
-        data = [];
-    }
-
-    if (data.length === 0 && activeTab !== "browse") {
-      return (
-        <View style={styles.emptyState}>
-          <Feather name="shopping-bag" size={64} color="#cbd5e1" />
-          <Text style={styles.emptyStateTitle}>{emptyMessage}</Text>
-          <Text style={styles.emptyStateText}>
-            {activeTab === "offers"
-              ? "When shops send you trade offers, they will appear here."
-              : activeTab === "active"
-              ? "Your ongoing trades will appear here."
-              : "Your completed trades will appear here."}
-          </Text>
-          {activeTab === "offers" && (
-            <TouchableOpacity
-              style={styles.createTradeButton}
-              onPress={() => setIsCreateModalVisible(true)}
-            >
-              <Text style={styles.createTradeButtonText}>
-                Create Your First Trade
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      );
-    }
-
-    if (activeTab !== "browse") {
-      return (
-        <AnimatedScrollView 
-          style={styles.tradesContainer} 
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        >
-          <View style={styles.tradesList}>
-            {data.map((trade) => renderTradeCard({ trade, tab: activeTab }))}
-          </View>
-        </AnimatedScrollView>
-      );
-    }
-  };
-
-  const getTabCount = (tab) => {
-    switch (tab) {
-      case "browse":
-        return "";
-      case "offers":
-        return displayTradeOffers.length;
-      case "active":
-        return displayActiveTrades.length;
-      case "history":
-        return displayTradeHistory.length;
-      default:
-        return 0;
-    }
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header that will completely hide when scrolling down */}
-      <Animated.View 
-        style={[
-          styles.headerContainer,
-          {
-            transform: [{ translateY: headerTranslateY }],
-          }
-        ]}
-      >
-        <View style={styles.header}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Feather name="arrow-left" size={24} color="#0f172a" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.title}>Trade Center</Text>
-            <Text style={styles.subtitle}>
-              Exchange products with local shops
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.newTradeButton}
-            onPress={() => setIsCreateModalVisible(true)}
-          >
-            <Feather name="plus" size={20} color="#FFF" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.tabs}>
-          {[
-            { key: "browse", label: "Browse", icon: "grid" },
-            { key: "offers", label: "Offers", icon: "gift" },
-            { key: "active", label: "Active", icon: "refresh-cw" },
-            { key: "history", label: "History", icon: "check-circle" },
-          ].map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Feather
-                name={tab.icon}
-                size={16}
-                color={activeTab === tab.key ? "#2563eb" : "#64748b"}
-              />
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === tab.key && styles.activeTabText,
-                ]}
-              >
-                {tab.label} {getTabCount(tab.key) && `(${getTabCount(tab.key)})`}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.searchSection}>
-          <View style={styles.searchContainer}>
-            <Feather name="search" size={20} color="#64748b" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search products, shops, or categories..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity 
-                onPress={() => setSearchQuery('')}
-                style={styles.clearButton}
-              >
-                <Feather name="x" size={20} color="#64748b" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.categoriesWrapper}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoriesContainer}
-              contentContainerStyle={styles.categoriesContent}
-            >
-              {categories.map(category => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === category.id && styles.selectedCategoryChip
-                  ]}
-                  onPress={() => setSelectedCategory(category.id)}
-                >
-                  <Text style={[
-                    styles.categoryText,
-                    selectedCategory === category.id && styles.selectedCategoryText
-                  ]}>
-                    {category.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Content with proper spacing */}
-      <View style={styles.content}>
-        {renderContent()}
-      </View>
-
-      <Modal
-        visible={isCreateModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => {
-          setIsCreateModalVisible(false);
-          resetSelection();
-        }}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => {
-                setIsCreateModalVisible(false);
-                resetSelection();
-              }}
-              style={styles.modalCloseButton}
-            >
-              <Feather name="x" size={24} color="#0f172a" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Create Trade Offer</Text>
-            <View style={styles.modalCloseButton} />
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            <Text style={styles.sectionTitle}>Select Your Product</Text>
-            <Text style={styles.sectionDescription}>
-              Choose which product you want to trade
-            </Text>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.productsScroll}
-            >
-              {userProducts.map((product) => (
-                <TouchableOpacity
-                  key={product.id}
-                  style={[
-                    styles.modalProductCard,
-                    selectedUserProduct?.id === product.id &&
-                      styles.selectedProductCard,
-                  ]}
-                  onPress={() => setSelectedUserProduct(product)}
-                >
-                  <Image
-                    source={{ uri: product.image }}
-                    style={styles.modalProductImage}
-                  />
-                  <View style={styles.modalProductInfo}>
-                    <Text style={styles.modalProductName}>{product.name}</Text>
-                    <Text style={styles.modalProductPrice}>{product.value}</Text>
-                  </View>
-                  {selectedUserProduct?.id === product.id && (
-                    <View style={styles.selectedBadge}>
-                      <Feather name="check" size={16} color="#FFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <Text style={styles.sectionTitle}>Select Product to Receive</Text>
-            <Text style={styles.sectionDescription}>
-              Choose which product you want in return
-            </Text>
-
-            {selectedShopProduct && (
-              <View style={styles.preSelectedProduct}>
-                <Image
-                  source={{ uri: selectedShopProduct.image }}
-                  style={styles.preSelectedImage}
-                />
-                <View style={styles.preSelectedInfo}>
-                  <Text style={styles.preSelectedName}>{selectedShopProduct.name}</Text>
-                  <Text style={styles.preSelectedPrice}>{selectedShopProduct.price}</Text>
-                  <Text style={styles.preSelectedShop}>{selectedShopProduct.shop}</Text>
-                </View>
-                <Feather name="check" size={20} color="#059669" />
-              </View>
-            )}
-
-            {!selectedShopProduct && (
-              <Text style={styles.noProductSelected}>
-                Select a product from the Browse tab to trade for
-              </Text>
-            )}
-
-            <Text style={styles.sectionTitle}>Add Note (Optional)</Text>
-            <TextInput
-              style={styles.notesInput}
-              placeholder="Add a message to the shop owner..."
-              placeholderTextColor="#94a3b8"
-              multiline
-              numberOfLines={3}
-              value={notes}
-              onChangeText={setNotes}
-            />
-
-            {(selectedUserProduct || selectedShopProduct) && (
-              <View style={styles.tradeSummary}>
-                <Text style={styles.summaryTitle}>Trade Summary</Text>
-                <View style={styles.summaryContent}>
-                  <View style={styles.summaryItem}>
-                    <Image
-                      source={{ uri: selectedUserProduct?.image }}
-                      style={styles.summaryImage}
-                    />
-                    <View>
-                      <Text style={styles.summaryName}>
-                        You give: {selectedUserProduct?.name}
-                      </Text>
-                      <Text style={styles.summaryValue}>
-                        {selectedUserProduct?.value}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Feather
-                    name="repeat"
-                    size={20}
-                    color="#2563eb"
-                    style={styles.summaryIcon}
-                  />
-
-                  <View style={styles.summaryItem}>
-                    <Image
-                      source={{ uri: selectedShopProduct?.image }}
-                      style={styles.summaryImage}
-                    />
-                    <View>
-                      <Text style={styles.summaryName}>
-                        You get: {selectedShopProduct?.name}
-                      </Text>
-                      <Text style={styles.summaryValue}>
-                        {selectedShopProduct?.price}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-
-          <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={[
-                styles.createButton,
-                (!selectedUserProduct || !selectedShopProduct) &&
-                  styles.createButtonDisabled,
-              ]}
-              onPress={handleCreateTrade}
-              disabled={!selectedUserProduct || !selectedShopProduct}
-            >
-              <Text style={styles.createButtonText}>Create Trade Offer</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
-  headerContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: "#ffffff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  backButton: {
-    padding: 4,
-    marginRight: 8,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#64748b",
-    fontWeight: "400",
-  },
-  newTradeButton: {
-    backgroundColor: "#2563eb",
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  tabs: {
-    flexDirection: "row",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  tab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    marginHorizontal: 2,
-    borderRadius: 8,
-  },
-  activeTab: {
-    backgroundColor: "#f8fafc",
-  },
-  tabText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#64748b",
-    marginLeft: 4,
-  },
-  activeTabText: {
-    color: "#2563eb",
-    fontWeight: "600",
-  },
-  searchSection: {
-    backgroundColor: '#ffffff',
-    paddingBottom: 8,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    margin: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#0f172a',
-    paddingVertical: 4,
-  },
-  clearButton: {
-    padding: 4,
-    marginLeft: 8,
-  },
-  categoriesWrapper: {
-    maxHeight: 50,
-    marginBottom: 8,
-  },
-  categoriesContainer: {
-    marginHorizontal: 16,
-  },
-  categoriesContent: {
-    paddingRight: 16,
-    gap: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  selectedCategoryChip: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748b',
-  },
-  selectedCategoryText: {
-    color: '#ffffff',
-  },
-  content: {
-    marginTop: Platform.OS === 'android' ? 140 : 180,
-    flex: 1,
-  },
-  // FIXED: Remove paddingTop from containers and use contentContainerStyle instead
-  browseContainer: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  gridContent: {
-    // marginTop: Platform.OS === 'android' ? 140 : 0,
-    paddingBottom: 200,
-    paddingTop: 180, // This creates space for the header
-    padding: 8,
-  },
-  tradesContainer: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  tradesList: {
-    paddingTop: 180, // This creates space for the header
-    padding: 16,
-  },
-  productCard: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    marginBottom: 12, // vertical spacing between rows
-    marginHorizontal: 8, //
-    borderRadius: 12,
-    margin: 8,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  productImage: {
-    width: '100%',
-    height: 120,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  productDescription: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 8,
-    lineHeight: 16,
-  },
-  shopInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  shopImage: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  shopDetails: {
-    flex: 1,
-  },
-  shopName: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#0f172a',
-  },
-  shopRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  ratingText: {
-    fontSize: 10,
-    color: '#f59e0b',
-    marginLeft: 2,
-    marginRight: 4,
-  },
-  shopLocation: {
-    fontSize: 10,
-    color: '#64748b',
-  },
-  productDetails: {
-    marginBottom: 8,
-  },
-  productValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#059669',
-    marginBottom: 4,
-  },
-  tradeForContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  tradeForLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#64748b',
-  },
-  tradeForItems: {
-    fontSize: 10,
-    color: '#0f172a',
-    flex: 1,
-  },
-  tradeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2563eb',
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 'auto',
-  },
-  tradeButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  tradeCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  tradeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  tradeStatus: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  tradeItems: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  item: {
-    flex: 1,
-  },
-  itemLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 4,
-  },
-  itemWithImage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f172a',
-  },
-  itemValue: {
-    fontSize: 12,
-    color: '#059669',
-    fontWeight: '600',
-  },
-  exchangeIcon: {
-    marginHorizontal: 12,
-  },
-  tradeMessage: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: '#64748b',
-    marginBottom: 12,
-    paddingHorizontal: 8,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  declineButton: {
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-  },
-  acceptButton: {
-    backgroundColor: '#f0f9ff',
-    borderWidth: 1,
-    borderColor: '#bae6fd',
-  },
-  completeButton: {
-    backgroundColor: '#f0fdf4',
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-  },
-  declineText: {
-    color: '#dc2626',
-    fontWeight: '600',
-  },
-  acceptText: {
-    color: '#2563eb',
-    fontWeight: '600',
-  },
-  completeText: {
-    color: '#059669',
-    fontWeight: '600',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 48,
-    paddingTop: 180, // Space for header
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#475569',
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  createTradeButton: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  createTradeButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  modalCloseButton: {
-    width: 24,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 16,
-  },
-  productsScroll: {
-    marginBottom: 24,
-  },
-  modalProductCard: {
-    width: 140,
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 12,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  selectedProductCard: {
-    borderColor: '#2563eb',
-    backgroundColor: '#f0f9ff',
-  },
-  modalProductImage: {
-    width: '100%',
-    height: 80,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  modalProductInfo: {
-    alignItems: 'center',
-  },
-  modalProductName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f172a',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  modalProductPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#059669',
-  },
-  selectedBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#2563eb',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  preSelectedProduct: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0fdf4',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-  },
-  preSelectedImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  preSelectedInfo: {
-    flex: 1,
-  },
-  preSelectedName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  preSelectedPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#059669',
-    marginBottom: 2,
-  },
-  preSelectedShop: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  noProductSelected: {
-    fontSize: 14,
-    color: '#94a3b8',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 32,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    marginBottom: 24,
-  },
-  notesInput: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#0f172a',
-    minHeight: 80,
-    textAlignVertical: 'top',
-    marginBottom: 24,
-  },
-  tradeSummary: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 12,
-  },
-  summaryContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  summaryImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  summaryName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#059669',
-  },
-  summaryIcon: {
-    marginHorizontal: 16,
-  },
-  modalFooter: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  createButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  createButtonDisabled: {
-    backgroundColor: '#cbd5e1',
-  },
-  createButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
-
-export default TradeScreen;
-
-
-
 // import React, { useContext, useState, useEffect, useRef } from "react";
 // import {
 //   View,
@@ -1761,12 +12,23 @@ export default TradeScreen;
 //   Alert,
 //   FlatList,
 //   Dimensions,
+//   Animated,
+//   Platform,
 // } from "react-native";
 // import { Feather } from "@expo/vector-icons";
 // import { TradeContext } from "./TradeComponent/TradeContext";
 // import { useNavigation } from "@react-navigation/native";
+// import axiosInstance from '@api/axiosInstance';
+// import API_URL  from "../../api/api_urls";
+// const trade_api = "/api/v1/seller/Seller Trade/seller_trade";
+
+
 
 // const { width: screenWidth } = Dimensions.get('window');
+
+// // Create animated components
+// const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
+// const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 // const TradeScreen = () => {
 //   const tradeContext = useContext(TradeContext);
@@ -1790,182 +52,291 @@ export default TradeScreen;
 //   const [notes, setNotes] = useState("");
 //   const [searchQuery, setSearchQuery] = useState('');
 //   const [selectedCategory, setSelectedCategory] = useState('all');
-//   const [showHeader, setShowHeader] = useState(true);
 
-//   // Categories for filtering
-//   const categories = [
-//     { id: 'all', name: 'All Products' },
-//     { id: 'food', name: 'Food & Beverages' },
-//     { id: 'handicrafts', name: 'Handicrafts' },
-//     { id: 'coffee', name: 'Coffee & Tea' },
-//     { id: 'snacks', name: 'Snacks' },
-//     { id: 'home', name: 'Home Decor' },
-//   ];
+//   const headerHeight = 180;
+//   const scrollY = useRef(new Animated.Value(0)).current;
+//   const lastScrollY = useRef(0);
+//   const scrollDirection = useRef('down');
+  
+//   // Improved animation: hide completely when scrolling down, show when scrolling up
+//   const headerTranslateY = scrollY.interpolate({
+//     inputRange: [0, headerHeight],
+//     outputRange: [0, -headerHeight],
+//     extrapolate: 'clamp',
+//   });
+//   const [categories, setCategories] = useState([]);
 
-//   const userProducts = [
-//     {
-//       id: "u1",
-//       name: "Hablon Wallet",
-//       image:
-//         "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&auto=format&fit=crop&q=60",
-//       value: "₱250",
-//     },
-//     {
-//       id: "u2",
-//       name: "Barako Coffee",
-//       image:
-//         "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60",
-//       value: "₱350",
-//     },
-//     {
-//       id: "u3",
-//       name: "Piaya Original",
-//       image:
-//         "https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60",
-//       value: "₱120",
-//     },
-//     {
-//       id: "u4",
-//       name: "Handwoven Basket",
-//       image:
-//         "https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60",
-//       value: "₱180",
-//     },
-//   ];
+//   // const categories = [
+//   //   { id: 'all', name: 'All Products' },
+//   //   { id: 'food', name: 'Food & Beverages' },
+//   //   { id: 'handicrafts', name: 'Handicrafts' },
+//   //   { id: 'coffee', name: 'Coffee & Tea' },
+//   //   { id: 'snacks', name: 'Snacks' },
+//   //   { id: 'home', name: 'Home Decor' },
+//   // ];
 
-//   // Sample available products from various shops
-//   const availableProducts = [
-//     {
-//       id: '1',
-//       name: 'Artisanal Coffee Beans',
-//       description: 'Premium locally sourced coffee beans from the highlands',
-//       value: '₱350',
-//       category: 'coffee',
-//       image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60',
-//       shop: {
-//         name: 'Madge Coffee',
-//         image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
-//         rating: 4.8,
-//         location: 'Iloilo City'
-//       },
-//       tradeFor: ['Handicrafts', 'Snacks', 'Home Decor'],
-//       isAvailable: true
-//     },
-//     {
-//       id: '2',
-//       name: 'Handwoven Basket',
-//       description: 'Traditional handwoven native basket made from local materials',
-//       value: '₱180',
-//       category: 'handicrafts',
-//       image: 'https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60',
-//       shop: {
-//         name: 'Native Crafts',
-//         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-//         rating: 4.6,
-//         location: 'Guimaras'
-//       },
-//       tradeFor: ['Coffee & Tea', 'Food Items'],
-//       isAvailable: true
-//     },
-//     {
-//       id: '3',
-//       name: 'Biscocho Original',
-//       description: 'Crispy, buttery toasted bread with sugar coating',
-//       value: '₱60',
-//       category: 'snacks',
-//       image: 'https://images.unsplash.com/photo-1517705008128-361805f42e86?w=300&auto=format&fit=crop&q=60',
-//       shop: {
-//         name: 'Iloilo Biscocho Haus',
-//         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-//         rating: 4.7,
-//         location: 'Iloilo City'
-//       },
-//       tradeFor: ['Coffee & Tea', 'Other Snacks'],
-//       isAvailable: true
-//     },
-//     {
-//       id: '4',
-//       name: 'Barako Coffee Blend',
-//       description: 'Strong and aromatic Batangas Barako coffee blend',
-//       value: '₱280',
-//       category: 'coffee',
-//       image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=300&auto=format&fit=crop&q=60',
-//       shop: {
-//         name: 'Coffee Origins',
-//         image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
-//         rating: 4.9,
-//         location: 'Bacolod'
-//       },
-//       tradeFor: ['Handicrafts', 'Home Decor', 'Specialty Foods'],
-//       isAvailable: true
-//     },
-//     {
-//       id: '5',
-//       name: 'Handmade Ceramic Mug',
-//       description: 'Artisanal ceramic mug with traditional designs',
-//       value: '₱220',
-//       category: 'home',
-//       image: 'https://images.unsplash.com/photo-1570211776045-af3a51026f4b?w=300&auto=format&fit=crop&q=60',
-//       shop: {
-//         name: 'Clay Creations',
-//         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-//         rating: 4.5,
-//         location: 'Antique'
-//       },
-//       tradeFor: ['Coffee & Tea', 'Snacks', 'Other Handicrafts'],
-//       isAvailable: true
-//     },
-//     {
-//       id: '6',
-//       name: 'Piaya Original',
-//       description: 'Sweet unleavened flatbread with muscovado filling',
-//       value: '₱120',
-//       category: 'snacks',
-//       image: 'https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60',
-//       shop: {
-//         name: 'Iloilo Delights',
-//         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-//         rating: 4.8,
-//         location: 'Iloilo City'
-//       },
-//       tradeFor: ['Coffee & Tea', 'Other Local Snacks'],
-//       isAvailable: true
-//     },
-//     {
-//       id: '7',
-//       name: 'Native Placemat Set',
-//       description: 'Set of 4 handwoven placemats with traditional patterns',
-//       value: '₱200',
-//       category: 'home',
-//       image: 'https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60',
-//       shop: {
-//         name: 'Native Crafts',
-//         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
-//         rating: 4.6,
-//         location: 'Guimaras'
-//       },
-//       tradeFor: ['Coffee & Tea', 'Food Items', 'Snacks'],
-//       isAvailable: true
-//     },
-//     {
-//       id: '8',
-//       name: 'Specialty Tea Collection',
-//       description: 'Assorted local herbal teas from the region',
-//       value: '₱180',
-//       category: 'coffee',
-//       image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&auto=format&fit=crop&q=60',
-//       shop: {
-//         name: 'Tea Haven',
-//         image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
-//         rating: 4.7,
-//         location: 'Iloilo City'
-//       },
-//       tradeFor: ['Handicrafts', 'Home Decor', 'Coffee'],
-//       isAvailable: true
+//   const fetchCategory = async () => {
+//   try {
+//     const response = await axios.get(`${API_URL}/api/v1/Category/biznest_api`);
+//     // Append fetched categories while keeping the default "All"
+//     setCategories([{ id: 'all', name: "All" }, ...response.data]);
+    
+//   } catch (error) {
+//     console.error("Error fetching product:", error);
+//   } finally {
+//     setRefreshing(false);
+//   }
+// };
+
+
+//   const [userProducts, setUserProducts] = useState([]);
+  
+//   const fetchUserProducts = async () => {
+//     try {
+//       const response = await axiosInstance.get(trade_api);
+//       setUserProducts(response.data);
+//     } catch (error) {
+//       console.error("Error fetching products:", error);
 //     }
-//   ];
+//   };
 
-//   // Mock trade data
+//   // const userProducts = [
+//   //   {
+//   //     id: "u1",
+//   //     name: "Hablon Wallet",
+//   //     image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&auto=format&fit=crop&q=60",
+//   //     value: "₱250",
+//   //   },
+//   //   {
+//   //     id: "u2",
+//   //     name: "Barako Coffee",
+//   //     image: "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60",
+//   //     value: "₱350",
+//   //   },
+//   //   {
+//   //     id: "u3",
+//   //     name: "Piaya Original",
+//   //     image: "https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60",
+//   //     value: "₱120",
+//   //   },
+//   //   {
+//   //     id: "u4",
+//   //     name: "Handwoven Basket",
+//   //     image: "https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60",
+//   //     value: "₱180",
+//   //   },
+//   // ];
+
+//   // const availableProducts = [
+//   //   {
+//   //     id: '1',
+//   //     name: 'Artisanal Coffee Beans',
+//   //     description: 'Premium locally sourced coffee beans from the highlands',
+//   //     value: '₱350',
+//   //     category: 'coffee',
+//   //     image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60',
+//   //     shop: {
+//   //       name: 'Madge Coffee',
+//   //       image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
+//   //       rating: 4.8,
+//   //       location: 'Iloilo City'
+//   //     },
+//   //     tradeFor: ['Handicrafts', 'Snacks', 'Home Decor'],
+//   //     isAvailable: true
+//   //   },
+//   //   {
+//   //     id: '2',
+//   //     name: 'Handwoven Basket',
+//   //     description: 'Traditional handwoven native basket made from local materials',
+//   //     value: '₱180',
+//   //     category: 'handicrafts',
+//   //     image: 'https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60',
+//   //     shop: {
+//   //       name: 'Native Crafts',
+//   //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+//   //       rating: 4.6,
+//   //       location: 'Guimaras'
+//   //     },
+//   //     tradeFor: ['Coffee & Tea', 'Food Items'],
+//   //     isAvailable: true
+//   //   },
+//   //   {
+//   //     id: '3',
+//   //     name: 'Biscocho Original',
+//   //     description: 'Crispy, buttery toasted bread with sugar coating',
+//   //     value: '₱60',
+//   //     category: 'snacks',
+//   //     image: 'https://images.unsplash.com/photo-1517705008128-361805f42e86?w=300&auto=format&fit=crop&q=60',
+//   //     shop: {
+//   //       name: 'Iloilo Biscocho Haus',
+//   //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+//   //       rating: 4.7,
+//   //       location: 'Iloilo City'
+//   //     },
+//   //     tradeFor: ['Coffee & Tea', 'Other Snacks'],
+//   //     isAvailable: true
+//   //   },
+//   //   {
+//   //     id: '4',
+//   //     name: 'Barako Coffee Blend',
+//   //     description: 'Strong and aromatic Batangas Barako coffee blend',
+//   //     value: '₱280',
+//   //     category: 'coffee',
+//   //     image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=300&auto=format&fit=crop&q=60',
+//   //     shop: {
+//   //       name: 'Coffee Origins',
+//   //       image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
+//   //       rating: 4.9,
+//   //       location: 'Bacolod'
+//   //     },
+//   //     tradeFor: ['Handicrafts', 'Home Decor', 'Specialty Foods'],
+//   //     isAvailable: true
+//   //   },
+//   //   {
+//   //     id: '5',
+//   //     name: 'Handmade Ceramic Mug',
+//   //     description: 'Artisanal ceramic mug with traditional designs',
+//   //     value: '₱220',
+//   //     category: 'home',
+//   //     image: 'https://images.unsplash.com/photo-1570211776045-af3a51026f4b?w=300&auto=format&fit=crop&q=60',
+//   //     shop: {
+//   //       name: 'Clay Creations',
+//   //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+//   //       rating: 4.5,
+//   //       location: 'Antique'
+//   //     },
+//   //     tradeFor: ['Coffee & Tea', 'Snacks', 'Other Handicrafts'],
+//   //     isAvailable: true
+//   //   },
+//   //   {
+//   //     id: '6',
+//   //     name: 'Piaya Original',
+//   //     description: 'Sweet unleavened flatbread with muscovado filling',
+//   //     value: '₱120',
+//   //     category: 'snacks',
+//   //     image: 'https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60',
+//   //     shop: {
+//   //       name: 'Iloilo Delights',
+//   //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+//   //       rating: 4.8,
+//   //       location: 'Iloilo City'
+//   //     },
+//   //     tradeFor: ['Coffee & Tea', 'Other Local Snacks'],
+//   //     isAvailable: true
+//   //   },
+//   //   {
+//   //     id: '7',
+//   //     name: 'Native Placemat Set',
+//   //     description: 'Set of 4 handwoven placemats with traditional patterns',
+//   //     value: '₱200',
+//   //     category: 'home',
+//   //     image: 'https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60',
+//   //     shop: {
+//   //       name: 'Native Crafts',
+//   //       image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+//   //       rating: 4.6,
+//   //       location: 'Guimaras'
+//   //     },
+//   //     tradeFor: ['Coffee & Tea', 'Food Items', 'Snacks'],
+//   //     isAvailable: true
+//   //   },
+//   //   {
+//   //     id: '8',
+//   //     name: 'Specialty Tea Collection',
+//   //     description: 'Assorted local herbal teas from the region',
+//   //     value: '₱180',
+//   //     category: 'coffee',
+//   //     image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&auto=format&fit=crop&q=60',
+//   //     shop: {
+//   //       name: 'Tea Haven',
+//   //       image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
+//   //       rating: 4.7,
+//   //       location: 'Iloilo City'
+//   //     },
+//   //     tradeFor: ['Handicrafts', 'Home Decor', 'Coffee'],
+//   //     isAvailable: true
+//   //   }
+//   // ];
+
+//   const [availableProducts, setAvailableProducts] = useState([]);
+
+//     const fetchAvailableProducts = async () => {
+//     try {
+//       const response = await axios.get(`${API_URL}/api/v1/seller/Tradable Products/tradable_products`);
+//       setAvailableProducts(response.data);
+//     } catch (error) {
+//       console.error("Error fetching products:", error);
+//     }
+//   };
+// // const fetchAvailableProducts = async () => {
+// //   try {
+// //     const response = await axios.get(trade_api);
+// //     const data = response.data;
+
+// //     // Transform backend data to match frontend shape
+// //     const transformed = data.map((item) => ({
+// //       id: item.id.toString(),
+// //       name: item.name,
+// //       description: item.description,
+// //       value: item.value,
+// //       category: item.category, // this is category id from backend
+// //       image: item.image,
+// //       shop: {
+// //         name: item.shop?.name || "Unknown Shop",
+// //         image: item.shop?.image || "https://via.placeholder.com/150",
+// //         rating: item.shop?.rating || 0,
+// //         location: item.shop?.location || "Unknown Location",
+// //       },
+// //       tradeFor: item.tradeFor || [], // from backend note array
+// //       isAvailable: true,
+// //     }));
+
+// //     setAvailableProducts(transformed);
+// //   } catch (error) {
+// //     console.error("Error fetching available products:", error);
+// //   }
+// // };
+
+
+// const [tradesFromBackend, setTradesFromBackend] = useState([]);
+
+// // const fetchTrades = async () => {
+// //   try {
+// //     const response = await axios.get(`${API_URL}/api/v1/seller/Trade/trade`);
+// //     // transform backend data to match frontend format
+// //     const transformed = response.data.map((trade) => ({
+// //       id: trade.id.toString(),
+// //       from: trade.from_seller.name, // or trade.from_seller.f_name + " " + trade.from_seller.l_name
+// //       recipient: trade.to_seller.name,
+// //       status: trade.status,
+// //       itemsOffered: [{
+// //         name: trade.offered_product.name,
+// //         value: trade.offered_product.value, // or price
+// //         image: trade.offered_product.image,
+// //       }],
+// //       itemsRequested: [{
+// //         name: trade.requested_product.name,
+// //         price: trade.requested_product.value, // or price
+// //         image: trade.requested_product.image,
+// //       }],
+// //       message: trade.message,
+// //     }));
+// //     setTradesFromBackend(transformed);
+// //   } catch (error) {
+// //     console.error("Error fetching trades:", error);
+// //   }
+// // };
+
+//   const fetchTrades = async () => {
+//     try {
+//       const response = await axiosInstance.get(`/api/v1/seller/Trade/trade`);
+//       setTradesFromBackend(response.data);
+//     } catch (error) {
+//       console.error("Error fetching products:", error);
+//     }
+//   };
+
+
 //   const mockTradeOffers = [
 //     {
 //       id: 'offer1',
@@ -2022,17 +393,31 @@ export default TradeScreen;
 //   ];
 
 //   useEffect(() => {
+//   fetchUserProducts();
+//   fetchCategory();
+//   fetchAvailableProducts();
+//   fetchTrades();
+
 //     if (initMockData) {
 //       initMockData();
 //     }
 //   }, []);
 
-//   // Use mock data if context data is empty
-//   const displayTradeOffers = tradeOffers.length > 0 ? tradeOffers : mockTradeOffers;
-//   const displayActiveTrades = activeTrades.length > 0 ? activeTrades : mockActiveTrades;
-//   const displayTradeHistory = tradeHistory.length > 0 ? tradeHistory : mockTradeHistory;
+//   // const displayTradeOffers = tradeOffers.length > 0 ? tradeOffers : mockTradeOffers;
+//   // const displayActiveTrades = activeTrades.length > 0 ? activeTrades : mockActiveTrades;
+//   // const displayTradeHistory = tradeHistory.length > 0 ? tradeHistory : mockTradeHistory;
+//   const displayTradeOffers = tradeOffers.length > 0 
+//   ? tradeOffers 
+//   : tradesFromBackend.filter(trade => trade.status === "pending");
 
-//   // Filter products based on search and category
+// const displayActiveTrades = activeTrades.length > 0 
+//   ? activeTrades 
+//   : tradesFromBackend.filter(trade => trade.status === "active");
+
+// const displayTradeHistory = tradeHistory.length > 0 
+//   ? tradeHistory 
+//   : tradesFromBackend.filter(trade => trade.status === "completed");
+
 //   const filteredProducts = availableProducts.filter(product => {
 //     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 //                          product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -2041,42 +426,87 @@ export default TradeScreen;
 //     return matchesSearch && matchesCategory && product.isAvailable;
 //   });
 
-//   const handleCreateTrade = () => {
-//     if (!selectedUserProduct || !selectedShopProduct) {
-//       Alert.alert(
-//         "Missing Information",
-//         "Please select both products to trade"
-//       );
-//       return;
-//     }
+//   // const handleCreateTrade = () => {
+//   //   if (!selectedUserProduct || !selectedShopProduct) {
+//   //     Alert.alert(
+//   //       "Missing Information",
+//   //       "Please select both products to trade"
+//   //     );
+//   //     return;
+//   //   }
 
-//     const newTrade = {
-//       id: `trade-${Date.now()}`,
-//       shop: {
-//         name: selectedShopProduct.shop,
-//         image: selectedShopProduct.shopImage,
-//         rating: 4.5,
-//       },
-//       userProduct: selectedUserProduct,
-//       shopProduct: selectedShopProduct,
-//       notes,
-//       status: "pending",
-//       createdAt: new Date().toISOString(),
-//     };
+//   //   const newTrade = {
+//   //     id: `trade-${Date.now()}`,
+//   //     shop: {
+//   //       name: selectedShopProduct.shop,
+//   //       image: selectedShopProduct.shopImage,
+//   //       rating: 4.5,
+//   //     },
+//   //     userProduct: selectedUserProduct,
+//   //     shopProduct: selectedShopProduct,
+//   //     notes,
+//   //     status: "pending",
+//   //     createdAt: new Date().toISOString(),
+//   //   };
 
-//     if (createTradeOffer) {
-//       createTradeOffer(newTrade);
-//     }
+//   //   if (createTradeOffer) {
+//   //     createTradeOffer(newTrade);
+//   //   }
 
-//     setIsCreateModalVisible(false);
-//     resetSelection();
+//   //   setIsCreateModalVisible(false);
+//   //   resetSelection();
 
-//     Alert.alert(
-//       "Trade Offer Created",
-//       "Your trade offer has been sent successfully!",
-//       [{ text: "OK" }]
-//     );
+//   //   Alert.alert(
+//   //     "Trade Offer Created",
+//   //     "Your trade offer has been sent successfully!",
+//   //     [{ text: "OK" }]
+//   //   );
+//   // };
+
+//   const handleCreateTrade = async () => {
+//   if (!selectedUserProduct || !selectedShopProduct) {
+//     Alert.alert("Missing Information", "Please select both products to trade");
+//     return;
+//   }
+
+//   // Prepare payload for backend
+//   const payload = {
+//     from_seller_id: selectedUserProduct.seller_id, // you need seller_id from your product object
+//     to_seller_id: selectedShopProduct.seller_id,   // likewise
+//     offered_product_id: selectedUserProduct.product_id,
+//     requested_product_id: selectedShopProduct.product_id,
+//     message: notes,
 //   };
+//   // console.log("Trade Payload:", payload);
+
+//   try {
+//     const response = await axiosInstance.post(`/api/v1/seller/Trade/trade`, payload);
+    
+//     if (response.status === 201) {
+//       // Optional: add trade to local state
+//       const createdTrade = response.data.trade;
+//       if (createTradeOffer) createTradeOffer(createdTrade);
+//       fetchTrades(); // Refresh trades from backend
+//       setIsCreateModalVisible(false);
+//       resetSelection();
+
+//       Alert.alert(
+//         "Trade Offer Created",
+//         "Your trade offer has been sent successfully!",
+//         [{ text: "OK" }]
+//       );
+//     } else {
+//       Alert.alert("Error", "Failed to create trade offer.");
+//     }
+//   } catch (error) {
+//     console.error("Error creating trade offer:", error);
+//     Alert.alert("Error", "Something went wrong while creating trade offer.");
+//   }
+// };
+
+
+
+
 
 //   const resetSelection = () => {
 //     setSelectedUserProduct(null);
@@ -2086,7 +516,6 @@ export default TradeScreen;
 
 //   const handleInitiateTrade = (product) => {
 //     setIsCreateModalVisible(true);
-//     // Pre-select the shop product when initiating trade from browse
 //     const shopProduct = {
 //       id: product.id,
 //       name: product.name,
@@ -2094,9 +523,40 @@ export default TradeScreen;
 //       price: product.value,
 //       shop: product.shop.name,
 //       shopImage: product.shop.image,
+//       seller_id: product.shop.seller_id,
+//       product_id: product.product_id,
 //     };
 //     setSelectedShopProduct(shopProduct);
 //   };
+
+
+//   const handleTradeAction = async (tradeId, action) => {
+//   try {
+//     const response = await axiosInstance.put(`/api/v1/seller/Trade/trade`, {
+//       trade_id: tradeId,
+//       action: action,
+//     });
+//     if (response.status === 200) {
+//       let message = "";
+//       if (action === "accept") message = "Trade Accepted";
+//       if (action === "reject") message = "Trade Declined";
+//       if (action === "complete") message = "Trade Completed";
+
+//       Alert.alert(message, `Trade has been ${action}!`);
+//       fetchTrades();
+
+//     }
+//   } catch (error) {
+//     console.error("Error updating trade:", error);
+//     Alert.alert("Error", "Could not update trade.");
+//   }
+// };
+
+// // Usage
+// // handleTradeAction(tradeId, "accept");
+// // handleTradeAction(tradeId, "reject");
+// // handleTradeAction(tradeId, "complete");
+
 
 //   const handleAcceptTrade = (tradeId) => {
 //     if (acceptTrade) {
@@ -2240,13 +700,13 @@ export default TradeScreen;
 //         <View style={styles.actions}>
 //           <TouchableOpacity
 //             style={[styles.button, styles.declineButton]}
-//             onPress={() => handleRejectTrade(trade.id)}
+//             onPress={() => handleTradeAction(trade.id, "reject")}
 //           >
 //             <Text style={styles.declineText}>Decline</Text>
 //           </TouchableOpacity>
 //           <TouchableOpacity
 //             style={[styles.button, styles.acceptButton]}
-//             onPress={() => handleAcceptTrade(trade.id)}
+//             onPress={() => handleTradeAction(trade.id, "accept")}
 //           >
 //             <Text style={styles.acceptText}>Accept</Text>
 //           </TouchableOpacity>
@@ -2257,7 +717,7 @@ export default TradeScreen;
 //         <View style={styles.actions}>
 //           <TouchableOpacity
 //             style={[styles.button, styles.completeButton]}
-//             onPress={() => handleCompleteTrade(trade.id)}
+//             onPress={() => handleTradeAction(trade.id, "complete")}
 //           >
 //             <Text style={styles.completeText}>Mark Complete</Text>
 //           </TouchableOpacity>
@@ -2266,70 +726,20 @@ export default TradeScreen;
 //     </View>
 //   );
 
-//   const handleScroll = (event) => {
-//     const offsetY = event.nativeEvent.contentOffset.y;
-//     if (offsetY > 50 && showHeader) {
-//       setShowHeader(false);
-//     } else if (offsetY <= 50 && !showHeader) {
-//       setShowHeader(true);
+//   const handleScroll = Animated.event(
+//     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+//     { 
+//       useNativeDriver: true,
+//       listener: (event) => {
+//         const currentScrollY = event.nativeEvent.contentOffset.y;
+//         scrollDirection.current = currentScrollY > lastScrollY.current ? 'down' : 'up';
+//         lastScrollY.current = currentScrollY;
+//       }
 //     }
-//   };
+//   );
 
 //   const renderBrowseContent = () => (
 //     <View style={styles.browseContainer}>
-//       {/* Search and Categories Section */}
-//       {showHeader && (
-//         <View style={styles.searchSection}>
-//           {/* Search Bar */}
-//           <View style={styles.searchContainer}>
-//             <Feather name="search" size={20} color="#64748b" style={styles.searchIcon} />
-//             <TextInput
-//               style={styles.searchInput}
-//               placeholder="Search products, shops, or categories..."
-//               value={searchQuery}
-//               onChangeText={setSearchQuery}
-//             />
-//             {searchQuery.length > 0 && (
-//               <TouchableOpacity 
-//                 onPress={() => setSearchQuery('')}
-//                 style={styles.clearButton}
-//               >
-//                 <Feather name="x" size={20} color="#64748b" />
-//               </TouchableOpacity>
-//             )}
-//           </View>
-
-//           {/* Categories */}
-//           <View style={styles.categoriesWrapper}>
-//             <ScrollView 
-//               horizontal 
-//               showsHorizontalScrollIndicator={false}
-//               style={styles.categoriesContainer}
-//               contentContainerStyle={styles.categoriesContent}
-//             >
-//               {categories.map(category => (
-//                 <TouchableOpacity
-//                   key={category.id}
-//                   style={[
-//                     styles.categoryChip,
-//                     selectedCategory === category.id && styles.selectedCategoryChip
-//                   ]}
-//                   onPress={() => setSelectedCategory(category.id)}
-//                 >
-//                   <Text style={[
-//                     styles.categoryText,
-//                     selectedCategory === category.id && styles.selectedCategoryText
-//                   ]}>
-//                     {category.name}
-//                   </Text>
-//                 </TouchableOpacity>
-//               ))}
-//             </ScrollView>
-//           </View>
-//         </View>
-//       )}
-
-//       {/* Products Grid */}
 //       {filteredProducts.length === 0 ? (
 //         <View style={styles.emptyState}>
 //           <Feather name="package" size={64} color="#cbd5e1" />
@@ -2342,15 +752,12 @@ export default TradeScreen;
 //           </Text>
 //         </View>
 //       ) : (
-//         <FlatList
+//         <AnimatedFlatList
 //           data={filteredProducts}
 //           renderItem={renderProductItem}
 //           keyExtractor={item => item.id}
 //           showsVerticalScrollIndicator={false}
-//           contentContainerStyle={[
-//             styles.gridContent,
-//             !showHeader && styles.gridContentNoHeader
-//           ]}
+//           contentContainerStyle={styles.gridContent}
 //           numColumns={2}
 //           onScroll={handleScroll}
 //           scrollEventThrottle={16}
@@ -2410,11 +817,16 @@ export default TradeScreen;
 
 //     if (activeTab !== "browse") {
 //       return (
-//         <ScrollView style={styles.tradesContainer} showsVerticalScrollIndicator={false}>
+//         <AnimatedScrollView 
+//           style={styles.tradesContainer} 
+//           showsVerticalScrollIndicator={false}
+//           onScroll={handleScroll}
+//           scrollEventThrottle={16}
+//         >
 //           <View style={styles.tradesList}>
 //             {data.map((trade) => renderTradeCard({ trade, tab: activeTab }))}
 //           </View>
-//         </ScrollView>
+//         </AnimatedScrollView>
 //       );
 //     }
 //   };
@@ -2436,8 +848,15 @@ export default TradeScreen;
 
 //   return (
 //     <SafeAreaView style={styles.container}>
-//       {/* Header */}
-//       {showHeader && (
+//       {/* Header that will completely hide when scrolling down */}
+//       <Animated.View 
+//         style={[
+//           styles.headerContainer,
+//           {
+//             transform: [{ translateY: headerTranslateY }],
+//           }
+//         ]}
+//       >
 //         <View style={styles.header}>
 //           <TouchableOpacity 
 //             onPress={() => navigation.goBack()}
@@ -2458,10 +877,7 @@ export default TradeScreen;
 //             <Feather name="plus" size={20} color="#FFF" />
 //           </TouchableOpacity>
 //         </View>
-//       )}
 
-//       {/* Tabs */}
-//       {showHeader && (
 //         <View style={styles.tabs}>
 //           {[
 //             { key: "browse", label: "Browse", icon: "grid" },
@@ -2490,17 +906,60 @@ export default TradeScreen;
 //             </TouchableOpacity>
 //           ))}
 //         </View>
-//       )}
 
-//       {/* Content */}
-//       <View style={[
-//         styles.content,
-//         !showHeader && styles.contentNoHeader
-//       ]}>
+//         <View style={styles.searchSection}>
+//           <View style={styles.searchContainer}>
+//             <Feather name="search" size={20} color="#64748b" style={styles.searchIcon} />
+//             <TextInput
+//               style={styles.searchInput}
+//               placeholder="Search products, shops, or categories..."
+//               value={searchQuery}
+//               onChangeText={setSearchQuery}
+//             />
+//             {searchQuery.length > 0 && (
+//               <TouchableOpacity 
+//                 onPress={() => setSearchQuery('')}
+//                 style={styles.clearButton}
+//               >
+//                 <Feather name="x" size={20} color="#64748b" />
+//               </TouchableOpacity>
+//             )}
+//           </View>
+
+//           <View style={styles.categoriesWrapper}>
+//             <ScrollView 
+//               horizontal 
+//               showsHorizontalScrollIndicator={false}
+//               style={styles.categoriesContainer}
+//               contentContainerStyle={styles.categoriesContent}
+//             >
+//               {categories.map(category => (
+//                 <TouchableOpacity
+//                   key={category.id}
+//                   style={[
+//                     styles.categoryChip,
+//                     selectedCategory === category.id && styles.selectedCategoryChip
+//                   ]}
+//                   onPress={() => setSelectedCategory(category.id)}
+//                 >
+//                   <Text style={[
+//                     styles.categoryText,
+//                     selectedCategory === category.id && styles.selectedCategoryText
+//                   ]}>
+//                     {category.name}
+//                   </Text>
+//                 </TouchableOpacity>
+//               ))}
+//             </ScrollView>
+//           </View>
+//         </View>
+//       </Animated.View>
+
+//       {/* Content with proper spacing */}
+//       <View style={styles.content}>
 //         {renderContent()}
 //       </View>
 
-//       {/* Create Trade Modal */}
 //       <Modal
 //         visible={isCreateModalVisible}
 //         animationType="slide"
@@ -2511,7 +970,6 @@ export default TradeScreen;
 //         }}
 //       >
 //         <SafeAreaView style={styles.modalContainer}>
-//           {/* Modal Header */}
 //           <View style={styles.modalHeader}>
 //             <TouchableOpacity
 //               onPress={() => {
@@ -2527,7 +985,6 @@ export default TradeScreen;
 //           </View>
 
 //           <ScrollView style={styles.modalContent}>
-//             {/* Your Products Section */}
 //             <Text style={styles.sectionTitle}>Select Your Product</Text>
 //             <Text style={styles.sectionDescription}>
 //               Choose which product you want to trade
@@ -2565,7 +1022,6 @@ export default TradeScreen;
 //               ))}
 //             </ScrollView>
 
-//             {/* Shop Products Section */}
 //             <Text style={styles.sectionTitle}>Select Product to Receive</Text>
 //             <Text style={styles.sectionDescription}>
 //               Choose which product you want in return
@@ -2592,7 +1048,6 @@ export default TradeScreen;
 //               </Text>
 //             )}
 
-//             {/* Notes Section */}
 //             <Text style={styles.sectionTitle}>Add Note (Optional)</Text>
 //             <TextInput
 //               style={styles.notesInput}
@@ -2604,7 +1059,6 @@ export default TradeScreen;
 //               onChangeText={setNotes}
 //             />
 
-//             {/* Trade Summary */}
 //             {(selectedUserProduct || selectedShopProduct) && (
 //               <View style={styles.tradeSummary}>
 //                 <Text style={styles.summaryTitle}>Trade Summary</Text>
@@ -2650,7 +1104,6 @@ export default TradeScreen;
 //             )}
 //           </ScrollView>
 
-//           {/* Modal Footer */}
 //           <View style={styles.modalFooter}>
 //             <TouchableOpacity
 //               style={[
@@ -2674,6 +1127,19 @@ export default TradeScreen;
 //   container: {
 //     flex: 1,
 //     backgroundColor: "#ffffff",
+//   },
+//   headerContainer: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     zIndex: 1000,
+//     backgroundColor: '#ffffff',
+//     shadowColor: '#000',
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 3,
+//     elevation: 4,
 //   },
 //   header: {
 //     flexDirection: "row",
@@ -2746,16 +1212,6 @@ export default TradeScreen;
 //     color: "#2563eb",
 //     fontWeight: "600",
 //   },
-//   content: {
-//     flex: 1,
-//   },
-//   contentNoHeader: {
-//     marginTop: 0,
-//   },
-//   // Browse Tab Styles
-//   browseContainer: {
-//     flex: 1,
-//   },
 //   searchSection: {
 //     backgroundColor: '#ffffff',
 //     paddingBottom: 8,
@@ -2797,9 +1253,9 @@ export default TradeScreen;
 //   },
 //   categoryChip: {
 //     paddingHorizontal: 16,
-//     paddingVertical: 6,
+//     paddingVertical: 8,
 //     borderRadius: 20,
-//     backgroundColor: '#f1f5f9',
+//     backgroundColor: '#f8fafc',
 //     borderWidth: 1,
 //     borderColor: '#e2e8f0',
 //   },
@@ -2815,28 +1271,42 @@ export default TradeScreen;
 //   selectedCategoryText: {
 //     color: '#ffffff',
 //   },
-//   // Grid Layout Styles
-//   gridContent: {
-//     padding: 8,
-//     paddingTop: 8,
+//   content: {
+//     marginTop: Platform.OS === 'android' ? 140 : 180,
+//     flex: 1,
 //   },
-//   gridContentNoHeader: {
-//     paddingTop: 8,
+//   // FIXED: Remove paddingTop from containers and use contentContainerStyle instead
+//   browseContainer: {
+//     flex: 1,
+//     backgroundColor: '#f8fafc',
+//   },
+//   gridContent: {
+//     // marginTop: Platform.OS === 'android' ? 140 : 0,
+//     paddingBottom: 200,
+//     paddingTop: 180, // This creates space for the header
+//     padding: 8,
+//   },
+//   tradesContainer: {
+//     flex: 1,
+//     backgroundColor: '#f8fafc',
+//   },
+//   tradesList: {
+//     paddingTop: 180, // This creates space for the header
+//     padding: 16,
 //   },
 //   productCard: {
 //     flex: 1,
 //     backgroundColor: '#ffffff',
+//     marginBottom: 12, // vertical spacing between rows
+//     marginHorizontal: 8, //
 //     borderRadius: 12,
 //     margin: 8,
 //     padding: 12,
-//     borderWidth: 1,
-//     borderColor: '#f1f5f9',
 //     shadowColor: '#000',
-//     shadowOffset: { width: 0, height: 1 },
-//     shadowOpacity: 0.05,
-//     shadowRadius: 3,
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 4,
 //     elevation: 2,
-//     maxWidth: (screenWidth - 32) / 2,
 //   },
 //   productImage: {
 //     width: '100%',
@@ -2852,7 +1322,6 @@ export default TradeScreen;
 //     fontWeight: '600',
 //     color: '#0f172a',
 //     marginBottom: 4,
-//     lineHeight: 18,
 //   },
 //   productDescription: {
 //     fontSize: 12,
@@ -2876,18 +1345,19 @@ export default TradeScreen;
 //   },
 //   shopName: {
 //     fontSize: 12,
-//     fontWeight: '600',
+//     fontWeight: '500',
 //     color: '#0f172a',
-//     marginBottom: 2,
 //   },
 //   shopRating: {
 //     flexDirection: 'row',
 //     alignItems: 'center',
+//     marginTop: 2,
 //   },
 //   ratingText: {
 //     fontSize: 10,
-//     color: '#64748b',
-//     marginLeft: 4,
+//     color: '#f59e0b',
+//     marginLeft: 2,
+//     marginRight: 4,
 //   },
 //   shopLocation: {
 //     fontSize: 10,
@@ -2897,9 +1367,9 @@ export default TradeScreen;
 //     marginBottom: 8,
 //   },
 //   productValue: {
-//     fontSize: 16,
+//     fontSize: 14,
 //     fontWeight: '700',
-//     color: '#2563eb',
+//     color: '#059669',
 //     marginBottom: 4,
 //   },
 //   tradeForContainer: {
@@ -2907,12 +1377,12 @@ export default TradeScreen;
 //     flexWrap: 'wrap',
 //   },
 //   tradeForLabel: {
-//     fontSize: 11,
-//     color: '#64748b',
+//     fontSize: 10,
 //     fontWeight: '500',
+//     color: '#64748b',
 //   },
 //   tradeForItems: {
-//     fontSize: 11,
+//     fontSize: 10,
 //     color: '#0f172a',
 //     flex: 1,
 //   },
@@ -2922,24 +1392,131 @@ export default TradeScreen;
 //     justifyContent: 'center',
 //     backgroundColor: '#2563eb',
 //     paddingVertical: 8,
-//     borderRadius: 6,
-//     gap: 4,
+//     borderRadius: 8,
+//     marginTop: 'auto',
 //   },
 //   tradeButtonText: {
 //     color: '#ffffff',
 //     fontSize: 12,
 //     fontWeight: '600',
+//     marginLeft: 4,
+//   },
+//   tradeCard: {
+//     backgroundColor: '#ffffff',
+//     borderRadius: 12,
+//     padding: 16,
+//     marginBottom: 12,
+//     shadowColor: '#000',
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 4,
+//     elevation: 2,
+//   },
+//   tradeHeader: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     marginBottom: 12,
+//   },
+//   tradeStatus: {
+//     paddingHorizontal: 8,
+//     paddingVertical: 4,
+//     borderRadius: 6,
+//     fontSize: 12,
+//     fontWeight: '500',
+//   },
+//   tradeItems: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     marginBottom: 12,
+//   },
+//   item: {
+//     flex: 1,
+//   },
+//   itemLabel: {
+//     fontSize: 12,
+//     color: '#64748b',
+//     marginBottom: 4,
+//   },
+//   itemWithImage: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   itemImage: {
+//     width: 40,
+//     height: 40,
+//     borderRadius: 6,
+//     marginRight: 8,
+//   },
+//   itemName: {
+//     fontSize: 14,
+//     fontWeight: '500',
+//     color: '#0f172a',
+//   },
+//   itemValue: {
+//     fontSize: 12,
+//     color: '#059669',
+//     fontWeight: '600',
+//   },
+//   exchangeIcon: {
+//     marginHorizontal: 12,
+//   },
+//   tradeMessage: {
+//     fontSize: 14,
+//     fontStyle: 'italic',
+//     color: '#64748b',
+//     marginBottom: 12,
+//     paddingHorizontal: 8,
+//   },
+//   actions: {
+//     flexDirection: 'row',
+//     gap: 8,
+//   },
+//   button: {
+//     flex: 1,
+//     paddingVertical: 10,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//   },
+//   declineButton: {
+//     backgroundColor: '#fef2f2',
+//     borderWidth: 1,
+//     borderColor: '#fecaca',
+//   },
+//   acceptButton: {
+//     backgroundColor: '#f0f9ff',
+//     borderWidth: 1,
+//     borderColor: '#bae6fd',
+//   },
+//   completeButton: {
+//     backgroundColor: '#f0fdf4',
+//     borderWidth: 1,
+//     borderColor: '#bbf7d0',
+//   },
+//   declineText: {
+//     color: '#dc2626',
+//     fontWeight: '600',
+//   },
+//   acceptText: {
+//     color: '#2563eb',
+//     fontWeight: '600',
+//   },
+//   completeText: {
+//     color: '#059669',
+//     fontWeight: '600',
 //   },
 //   emptyState: {
 //     flex: 1,
-//     alignItems: 'center',
 //     justifyContent: 'center',
-//     paddingHorizontal: 40,
+//     alignItems: 'center',
+//     paddingHorizontal: 48,
+//     paddingTop: 180, // Space for header
 //   },
 //   emptyStateTitle: {
 //     fontSize: 18,
 //     fontWeight: '600',
-//     color: '#0f172a',
+//     color: '#475569',
 //     marginTop: 16,
 //     marginBottom: 8,
 //     textAlign: 'center',
@@ -2949,160 +1526,39 @@ export default TradeScreen;
 //     color: '#64748b',
 //     textAlign: 'center',
 //     lineHeight: 20,
-//   },
-//   // Trades List Styles
-//   tradesContainer: {
-//     flex: 1,
-//   },
-//   tradesList: {
-//     gap: 12,
-//     padding: 16,
-//   },
-//   tradeCard: {
-//     backgroundColor: "#ffffff",
-//     borderRadius: 16,
-//     padding: 16,
-//     borderWidth: 1,
-//     borderColor: "#f1f5f9",
-//     shadowColor: "#000",
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.05,
-//     shadowRadius: 8,
-//     elevation: 2,
-//   },
-//   tradeHeader: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//     marginBottom: 12,
-//   },
-//   shopName: {
-//     fontSize: 16,
-//     fontWeight: "600",
-//     color: "#0f172a",
-//   },
-//   tradeStatus: {
-//     fontSize: 12,
-//     fontWeight: "500",
-//     paddingHorizontal: 8,
-//     paddingVertical: 4,
-//     borderRadius: 6,
-//   },
-//   tradeItems: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     marginBottom: 12,
-//   },
-//   item: {
-//     flex: 1,
-//   },
-//   itemLabel: {
-//     fontSize: 12,
-//     color: "#64748b",
-//     marginBottom: 8,
-//     fontWeight: "500",
-//   },
-//   itemWithImage: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//   },
-//   itemImage: {
-//     width: 40,
-//     height: 40,
-//     borderRadius: 8,
-//     marginRight: 12,
-//   },
-//   itemName: {
-//     fontSize: 14,
-//     fontWeight: "500",
-//     color: "#0f172a",
-//     marginBottom: 2,
-//   },
-//   itemValue: {
-//     fontSize: 14,
-//     fontWeight: "600",
-//     color: "#2563eb",
-//   },
-//   exchangeIcon: {
-//     marginHorizontal: 12,
-//   },
-//   tradeMessage: {
-//     fontSize: 14,
-//     color: "#475569",
-//     fontStyle: "italic",
-//     backgroundColor: "#f8fafc",
-//     padding: 12,
-//     borderRadius: 8,
-//     marginBottom: 12,
-//   },
-//   actions: {
-//     flexDirection: "row",
-//     justifyContent: "flex-end",
-//     gap: 8,
-//   },
-//   button: {
-//     paddingHorizontal: 16,
-//     paddingVertical: 8,
-//     borderRadius: 8,
-//     borderWidth: 1,
-//   },
-//   declineButton: {
-//     borderColor: "#fecaca",
-//     backgroundColor: "#fef2f2",
-//   },
-//   declineText: {
-//     color: "#dc2626",
-//     fontWeight: "500",
-//   },
-//   acceptButton: {
-//     borderColor: "#bbf7d0",
-//     backgroundColor: "#f0fdf4",
-//   },
-//   acceptText: {
-//     color: "#059669",
-//     fontWeight: "500",
-//   },
-//   completeButton: {
-//     borderColor: "#bbf7d0",
-//     backgroundColor: "#f0fdf4",
-//   },
-//   completeText: {
-//     color: "#059669",
-//     fontWeight: "500",
+//     marginBottom: 24,
 //   },
 //   createTradeButton: {
-//     backgroundColor: "#2563eb",
+//     backgroundColor: '#2563eb',
 //     paddingHorizontal: 24,
 //     paddingVertical: 12,
 //     borderRadius: 8,
 //   },
 //   createTradeButtonText: {
-//     color: "#ffffff",
-//     fontSize: 16,
-//     fontWeight: "600",
+//     color: '#ffffff',
+//     fontSize: 14,
+//     fontWeight: '600',
 //   },
-//   // Modal Styles
 //   modalContainer: {
 //     flex: 1,
-//     backgroundColor: "#ffffff",
+//     backgroundColor: '#ffffff',
 //   },
 //   modalHeader: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     justifyContent: "space-between",
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
 //     paddingHorizontal: 20,
 //     paddingVertical: 16,
 //     borderBottomWidth: 1,
-//     borderBottomColor: "#f1f5f9",
+//     borderBottomColor: '#f1f5f9',
 //   },
 //   modalCloseButton: {
-//     width: 40,
-//     alignItems: "flex-start",
+//     width: 24,
 //   },
 //   modalTitle: {
 //     fontSize: 18,
-//     fontWeight: "600",
-//     color: "#0f172a",
+//     fontWeight: '600',
+//     color: '#0f172a',
 //   },
 //   modalContent: {
 //     flex: 1,
@@ -3110,73 +1566,72 @@ export default TradeScreen;
 //   },
 //   sectionTitle: {
 //     fontSize: 18,
-//     fontWeight: "600",
-//     color: "#0f172a",
-//     marginBottom: 8,
+//     fontWeight: '600',
+//     color: '#0f172a',
+//     marginBottom: 4,
 //   },
 //   sectionDescription: {
 //     fontSize: 14,
-//     color: "#64748b",
+//     color: '#64748b',
 //     marginBottom: 16,
 //   },
 //   productsScroll: {
 //     marginBottom: 24,
 //   },
 //   modalProductCard: {
-//     width: 160,
-//     marginRight: 12,
-//     padding: 12,
-//     backgroundColor: "#f8fafc",
+//     width: 140,
+//     backgroundColor: '#f8fafc',
 //     borderRadius: 12,
+//     padding: 12,
+//     marginRight: 12,
 //     borderWidth: 2,
-//     borderColor: "#f1f5f9",
-//     position: "relative",
+//     borderColor: 'transparent',
 //   },
 //   selectedProductCard: {
-//     borderColor: "#2563eb",
-//     backgroundColor: "#f0f9ff",
+//     borderColor: '#2563eb',
+//     backgroundColor: '#f0f9ff',
 //   },
 //   modalProductImage: {
-//     width: "100%",
-//     height: 100,
+//     width: '100%',
+//     height: 80,
 //     borderRadius: 8,
 //     marginBottom: 8,
 //   },
 //   modalProductInfo: {
-//     flex: 1,
+//     alignItems: 'center',
 //   },
 //   modalProductName: {
 //     fontSize: 14,
-//     fontWeight: "600",
-//     color: "#0f172a",
+//     fontWeight: '500',
+//     color: '#0f172a',
+//     textAlign: 'center',
 //     marginBottom: 4,
 //   },
 //   modalProductPrice: {
-//     fontSize: 16,
-//     fontWeight: "700",
-//     color: "#2563eb",
-//     marginBottom: 2,
+//     fontSize: 14,
+//     fontWeight: '600',
+//     color: '#059669',
 //   },
 //   selectedBadge: {
-//     position: "absolute",
+//     position: 'absolute',
 //     top: 8,
 //     right: 8,
-//     width: 24,
-//     height: 24,
-//     borderRadius: 12,
-//     backgroundColor: "#2563eb",
-//     justifyContent: "center",
-//     alignItems: "center",
+//     backgroundColor: '#2563eb',
+//     width: 20,
+//     height: 20,
+//     borderRadius: 10,
+//     justifyContent: 'center',
+//     alignItems: 'center',
 //   },
 //   preSelectedProduct: {
 //     flexDirection: 'row',
 //     alignItems: 'center',
 //     backgroundColor: '#f0fdf4',
-//     padding: 16,
 //     borderRadius: 12,
-//     borderWidth: 2,
+//     padding: 16,
+//     marginBottom: 24,
+//     borderWidth: 1,
 //     borderColor: '#bbf7d0',
-//     marginBottom: 16,
 //   },
 //   preSelectedImage: {
 //     width: 60,
@@ -3194,57 +1649,58 @@ export default TradeScreen;
 //     marginBottom: 4,
 //   },
 //   preSelectedPrice: {
-//     fontSize: 18,
-//     fontWeight: '700',
+//     fontSize: 14,
+//     fontWeight: '600',
 //     color: '#059669',
 //     marginBottom: 2,
 //   },
 //   preSelectedShop: {
-//     fontSize: 14,
+//     fontSize: 12,
 //     color: '#64748b',
 //   },
 //   noProductSelected: {
 //     fontSize: 14,
-//     color: '#64748b',
+//     color: '#94a3b8',
 //     fontStyle: 'italic',
 //     textAlign: 'center',
-//     padding: 20,
+//     paddingVertical: 32,
 //     backgroundColor: '#f8fafc',
 //     borderRadius: 8,
-//     marginBottom: 16,
+//     marginBottom: 24,
 //   },
 //   notesInput: {
 //     borderWidth: 1,
-//     borderColor: "#e2e8f0",
+//     borderColor: '#e2e8f0',
 //     borderRadius: 8,
 //     padding: 12,
 //     fontSize: 16,
-//     color: "#0f172a",
+//     color: '#0f172a',
 //     minHeight: 80,
-//     textAlignVertical: "top",
+//     textAlignVertical: 'top',
 //     marginBottom: 24,
 //   },
 //   tradeSummary: {
-//     backgroundColor: "#f8fafc",
+//     backgroundColor: '#f8fafc',
 //     borderRadius: 12,
 //     padding: 16,
-//     marginBottom: 24,
+//     borderWidth: 1,
+//     borderColor: '#e2e8f0',
 //   },
 //   summaryTitle: {
 //     fontSize: 16,
-//     fontWeight: "600",
-//     color: "#0f172a",
+//     fontWeight: '600',
+//     color: '#0f172a',
 //     marginBottom: 12,
 //   },
 //   summaryContent: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     justifyContent: "space-between",
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
 //   },
 //   summaryItem: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
 //     flex: 1,
-//     flexDirection: "row",
-//     alignItems: "center",
 //   },
 //   summaryImage: {
 //     width: 50,
@@ -3254,14 +1710,14 @@ export default TradeScreen;
 //   },
 //   summaryName: {
 //     fontSize: 14,
-//     fontWeight: "500",
-//     color: "#0f172a",
-//     marginBottom: 2,
+//     fontWeight: '500',
+//     color: '#0f172a',
+//     marginBottom: 4,
 //   },
 //   summaryValue: {
 //     fontSize: 14,
-//     fontWeight: "600",
-//     color: "#2563eb",
+//     fontWeight: '600',
+//     color: '#059669',
 //   },
 //   summaryIcon: {
 //     marginHorizontal: 16,
@@ -3269,22 +1725,2644 @@ export default TradeScreen;
 //   modalFooter: {
 //     padding: 20,
 //     borderTopWidth: 1,
-//     borderTopColor: "#f1f5f9",
+//     borderTopColor: '#f1f5f9',
 //   },
 //   createButton: {
-//     backgroundColor: "#2563eb",
+//     backgroundColor: '#2563eb',
 //     paddingVertical: 16,
 //     borderRadius: 12,
-//     alignItems: "center",
+//     alignItems: 'center',
 //   },
 //   createButtonDisabled: {
-//     backgroundColor: "#cbd5e1",
+//     backgroundColor: '#cbd5e1',
 //   },
 //   createButtonText: {
-//     color: "#ffffff",
+//     color: '#ffffff',
 //     fontSize: 16,
-//     fontWeight: "600",
+//     fontWeight: '600',
 //   },
 // });
 
 // export default TradeScreen;
+
+
+
+// // import React, { useContext, useState, useEffect, useRef } from "react";
+// // import {
+// //   View,
+// //   Text,
+// //   StyleSheet,
+// //   ScrollView,
+// //   TouchableOpacity,
+// //   SafeAreaView,
+// //   Modal,
+// //   Image,
+// //   TextInput,
+// //   Alert,
+// //   FlatList,
+// //   Dimensions,
+// // } from "react-native";
+// // import { Feather } from "@expo/vector-icons";
+// // import { TradeContext } from "./TradeComponent/TradeContext";
+// // import { useNavigation } from "@react-navigation/native";
+
+// // const { width: screenWidth } = Dimensions.get('window');
+
+// // const TradeScreen = () => {
+// //   const tradeContext = useContext(TradeContext);
+// //   const navigation = useNavigation();
+
+// //   const {
+// //     activeTrades = [],
+// //     tradeHistory = [],
+// //     tradeOffers = [],
+// //     initMockData,
+// //     createTradeOffer,
+// //     acceptTrade,
+// //     rejectTrade,
+// //     completeTrade,
+// //   } = tradeContext || {};
+
+// //   const [activeTab, setActiveTab] = useState("browse");
+// //   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+// //   const [selectedUserProduct, setSelectedUserProduct] = useState(null);
+// //   const [selectedShopProduct, setSelectedShopProduct] = useState(null);
+// //   const [notes, setNotes] = useState("");
+// //   const [searchQuery, setSearchQuery] = useState('');
+// //   const [selectedCategory, setSelectedCategory] = useState('all');
+// //   const [showHeader, setShowHeader] = useState(true);
+
+// //   // Categories for filtering
+// //   const categories = [
+// //     { id: 'all', name: 'All Products' },
+// //     { id: 'food', name: 'Food & Beverages' },
+// //     { id: 'handicrafts', name: 'Handicrafts' },
+// //     { id: 'coffee', name: 'Coffee & Tea' },
+// //     { id: 'snacks', name: 'Snacks' },
+// //     { id: 'home', name: 'Home Decor' },
+// //   ];
+
+// //   const userProducts = [
+// //     {
+// //       id: "u1",
+// //       name: "Hablon Wallet",
+// //       image:
+// //         "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&auto=format&fit=crop&q=60",
+// //       value: "₱250",
+// //     },
+// //     {
+// //       id: "u2",
+// //       name: "Barako Coffee",
+// //       image:
+// //         "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60",
+// //       value: "₱350",
+// //     },
+// //     {
+// //       id: "u3",
+// //       name: "Piaya Original",
+// //       image:
+// //         "https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60",
+// //       value: "₱120",
+// //     },
+// //     {
+// //       id: "u4",
+// //       name: "Handwoven Basket",
+// //       image:
+// //         "https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60",
+// //       value: "₱180",
+// //     },
+// //   ];
+
+// //   // Sample available products from various shops
+// //   const availableProducts = [
+// //     {
+// //       id: '1',
+// //       name: 'Artisanal Coffee Beans',
+// //       description: 'Premium locally sourced coffee beans from the highlands',
+// //       value: '₱350',
+// //       category: 'coffee',
+// //       image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60',
+// //       shop: {
+// //         name: 'Madge Coffee',
+// //         image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
+// //         rating: 4.8,
+// //         location: 'Iloilo City'
+// //       },
+// //       tradeFor: ['Handicrafts', 'Snacks', 'Home Decor'],
+// //       isAvailable: true
+// //     },
+// //     {
+// //       id: '2',
+// //       name: 'Handwoven Basket',
+// //       description: 'Traditional handwoven native basket made from local materials',
+// //       value: '₱180',
+// //       category: 'handicrafts',
+// //       image: 'https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60',
+// //       shop: {
+// //         name: 'Native Crafts',
+// //         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+// //         rating: 4.6,
+// //         location: 'Guimaras'
+// //       },
+// //       tradeFor: ['Coffee & Tea', 'Food Items'],
+// //       isAvailable: true
+// //     },
+// //     {
+// //       id: '3',
+// //       name: 'Biscocho Original',
+// //       description: 'Crispy, buttery toasted bread with sugar coating',
+// //       value: '₱60',
+// //       category: 'snacks',
+// //       image: 'https://images.unsplash.com/photo-1517705008128-361805f42e86?w=300&auto=format&fit=crop&q=60',
+// //       shop: {
+// //         name: 'Iloilo Biscocho Haus',
+// //         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+// //         rating: 4.7,
+// //         location: 'Iloilo City'
+// //       },
+// //       tradeFor: ['Coffee & Tea', 'Other Snacks'],
+// //       isAvailable: true
+// //     },
+// //     {
+// //       id: '4',
+// //       name: 'Barako Coffee Blend',
+// //       description: 'Strong and aromatic Batangas Barako coffee blend',
+// //       value: '₱280',
+// //       category: 'coffee',
+// //       image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=300&auto=format&fit=crop&q=60',
+// //       shop: {
+// //         name: 'Coffee Origins',
+// //         image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
+// //         rating: 4.9,
+// //         location: 'Bacolod'
+// //       },
+// //       tradeFor: ['Handicrafts', 'Home Decor', 'Specialty Foods'],
+// //       isAvailable: true
+// //     },
+// //     {
+// //       id: '5',
+// //       name: 'Handmade Ceramic Mug',
+// //       description: 'Artisanal ceramic mug with traditional designs',
+// //       value: '₱220',
+// //       category: 'home',
+// //       image: 'https://images.unsplash.com/photo-1570211776045-af3a51026f4b?w=300&auto=format&fit=crop&q=60',
+// //       shop: {
+// //         name: 'Clay Creations',
+// //         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+// //         rating: 4.5,
+// //         location: 'Antique'
+// //       },
+// //       tradeFor: ['Coffee & Tea', 'Snacks', 'Other Handicrafts'],
+// //       isAvailable: true
+// //     },
+// //     {
+// //       id: '6',
+// //       name: 'Piaya Original',
+// //       description: 'Sweet unleavened flatbread with muscovado filling',
+// //       value: '₱120',
+// //       category: 'snacks',
+// //       image: 'https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60',
+// //       shop: {
+// //         name: 'Iloilo Delights',
+// //         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+// //         rating: 4.8,
+// //         location: 'Iloilo City'
+// //       },
+// //       tradeFor: ['Coffee & Tea', 'Other Local Snacks'],
+// //       isAvailable: true
+// //     },
+// //     {
+// //       id: '7',
+// //       name: 'Native Placemat Set',
+// //       description: 'Set of 4 handwoven placemats with traditional patterns',
+// //       value: '₱200',
+// //       category: 'home',
+// //       image: 'https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60',
+// //       shop: {
+// //         name: 'Native Crafts',
+// //         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&auto=format&fit=crop&q=60',
+// //         rating: 4.6,
+// //         location: 'Guimaras'
+// //       },
+// //       tradeFor: ['Coffee & Tea', 'Food Items', 'Snacks'],
+// //       isAvailable: true
+// //     },
+// //     {
+// //       id: '8',
+// //       name: 'Specialty Tea Collection',
+// //       description: 'Assorted local herbal teas from the region',
+// //       value: '₱180',
+// //       category: 'coffee',
+// //       image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&auto=format&fit=crop&q=60',
+// //       shop: {
+// //         name: 'Tea Haven',
+// //         image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&auto=format&fit=crop&q=60',
+// //         rating: 4.7,
+// //         location: 'Iloilo City'
+// //       },
+// //       tradeFor: ['Handicrafts', 'Home Decor', 'Coffee'],
+// //       isAvailable: true
+// //     }
+// //   ];
+
+// //   // Mock trade data
+// //   const mockTradeOffers = [
+// //     {
+// //       id: 'offer1',
+// //       from: "Madge Coffee",
+// //       status: "pending",
+// //       itemsOffered: [{
+// //         name: "Artisanal Coffee Beans",
+// //         value: "₱350",
+// //         image: "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60"
+// //       }],
+// //       itemsRequested: [{
+// //         name: "Hablon Wallet",
+// //         price: "₱250",
+// //         image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&auto=format&fit=crop&q=60"
+// //       }],
+// //       message: "Would love to trade our premium coffee beans for your handmade wallet!"
+// //     }
+// //   ];
+
+// //   const mockActiveTrades = [
+// //     {
+// //       id: 'active1',
+// //       recipient: "Native Crafts",
+// //       status: "active",
+// //       itemsOffered: [{
+// //         name: "Barako Coffee",
+// //         value: "₱350",
+// //         image: "https://images.unsplash.com/photo-1587734195503-904fca47e0e9?w=300&auto=format&fit=crop&q=60"
+// //       }],
+// //       itemsRequested: [{
+// //         name: "Handwoven Basket",
+// //         price: "₱180",
+// //         image: "https://images.unsplash.com/photo-1586023492125-27a3ceef34b3?w=300&auto=format&fit=crop&q=60"
+// //       }]
+// //     }
+// //   ];
+
+// //   const mockTradeHistory = [
+// //     {
+// //       id: 'history1',
+// //       recipient: "Iloilo Biscocho Haus",
+// //       status: "completed",
+// //       itemsOffered: [{
+// //         name: "Piaya Original",
+// //         value: "₱120",
+// //         image: "https://images.unsplash.com/photo-1555507036-ab794f27d2e9?w=300&auto=format&fit=crop&q=60"
+// //       }],
+// //       itemsRequested: [{
+// //         name: "Biscocho Original",
+// //         price: "₱60",
+// //         image: "https://images.unsplash.com/photo-1517705008128-361805f42e86?w=300&auto=format&fit=crop&q=60"
+// //       }]
+// //     }
+// //   ];
+
+// //   useEffect(() => {
+// //     if (initMockData) {
+// //       initMockData();
+// //     }
+// //   }, []);
+
+// //   // Use mock data if context data is empty
+// //   const displayTradeOffers = tradeOffers.length > 0 ? tradeOffers : mockTradeOffers;
+// //   const displayActiveTrades = activeTrades.length > 0 ? activeTrades : mockActiveTrades;
+// //   const displayTradeHistory = tradeHistory.length > 0 ? tradeHistory : mockTradeHistory;
+
+// //   // Filter products based on search and category
+// //   const filteredProducts = availableProducts.filter(product => {
+// //     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+// //                          product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+// //                          product.shop.name.toLowerCase().includes(searchQuery.toLowerCase());
+// //     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+// //     return matchesSearch && matchesCategory && product.isAvailable;
+// //   });
+
+// //   const handleCreateTrade = () => {
+// //     if (!selectedUserProduct || !selectedShopProduct) {
+// //       Alert.alert(
+// //         "Missing Information",
+// //         "Please select both products to trade"
+// //       );
+// //       return;
+// //     }
+
+// //     const newTrade = {
+// //       id: `trade-${Date.now()}`,
+// //       shop: {
+// //         name: selectedShopProduct.shop,
+// //         image: selectedShopProduct.shopImage,
+// //         rating: 4.5,
+// //       },
+// //       userProduct: selectedUserProduct,
+// //       shopProduct: selectedShopProduct,
+// //       notes,
+// //       status: "pending",
+// //       createdAt: new Date().toISOString(),
+// //     };
+
+// //     if (createTradeOffer) {
+// //       createTradeOffer(newTrade);
+// //     }
+
+// //     setIsCreateModalVisible(false);
+// //     resetSelection();
+
+// //     Alert.alert(
+// //       "Trade Offer Created",
+// //       "Your trade offer has been sent successfully!",
+// //       [{ text: "OK" }]
+// //     );
+// //   };
+
+// //   const resetSelection = () => {
+// //     setSelectedUserProduct(null);
+// //     setSelectedShopProduct(null);
+// //     setNotes("");
+// //   };
+
+// //   const handleInitiateTrade = (product) => {
+// //     setIsCreateModalVisible(true);
+// //     // Pre-select the shop product when initiating trade from browse
+// //     const shopProduct = {
+// //       id: product.id,
+// //       name: product.name,
+// //       image: product.image,
+// //       price: product.value,
+// //       shop: product.shop.name,
+// //       shopImage: product.shop.image,
+// //     };
+// //     setSelectedShopProduct(shopProduct);
+// //   };
+
+// //   const handleAcceptTrade = (tradeId) => {
+// //     if (acceptTrade) {
+// //       acceptTrade(tradeId);
+// //     }
+// //     Alert.alert("Trade Accepted", "You have accepted the trade offer!");
+// //   };
+
+// //   const handleRejectTrade = (tradeId) => {
+// //     if (rejectTrade) {
+// //       rejectTrade(tradeId);
+// //     }
+// //     Alert.alert("Trade Declined", "You have declined the trade offer.");
+// //   };
+
+// //   const handleCompleteTrade = (tradeId) => {
+// //     if (completeTrade) {
+// //       completeTrade(tradeId);
+// //     }
+// //     Alert.alert("Trade Completed", "The trade has been marked as complete!");
+// //   };
+
+// //   const renderProductItem = ({ item }) => (
+// //     <TouchableOpacity 
+// //       style={styles.productCard}
+// //       onPress={() => handleInitiateTrade(item)}
+// //     >
+// //       <Image source={{ uri: item.image }} style={styles.productImage} />
+// //       <View style={styles.productInfo}>
+// //         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+// //         <Text style={styles.productDescription} numberOfLines={2}>
+// //           {item.description}
+// //         </Text>
+        
+// //         <View style={styles.shopInfo}>
+// //           <Image source={{ uri: item.shop.image }} style={styles.shopImage} />
+// //           <View style={styles.shopDetails}>
+// //             <Text style={styles.shopName} numberOfLines={1}>{item.shop.name}</Text>
+// //             <View style={styles.shopRating}>
+// //               <Feather name="star" size={12} color="#f59e0b" />
+// //               <Text style={styles.ratingText}>{item.shop.rating}</Text>
+// //               <Text style={styles.shopLocation}>• {item.shop.location}</Text>
+// //             </View>
+// //           </View>
+// //         </View>
+
+// //         <View style={styles.productDetails}>
+// //           <Text style={styles.productValue}>{item.value}</Text>
+// //           <View style={styles.tradeForContainer}>
+// //             <Text style={styles.tradeForLabel}>Trade for: </Text>
+// //             <Text style={styles.tradeForItems} numberOfLines={1}>
+// //               {item.tradeFor.join(', ')}
+// //             </Text>
+// //           </View>
+// //         </View>
+
+// //         <TouchableOpacity
+// //           style={styles.tradeButton}
+// //           onPress={() => handleInitiateTrade(item)}
+// //         >
+// //           <Feather name="repeat" size={16} color="#FFF" />
+// //           <Text style={styles.tradeButtonText}>Trade</Text>
+// //         </TouchableOpacity>
+// //       </View>
+// //     </TouchableOpacity>
+// //   );
+
+// //   const renderTradeCard = ({ trade, tab }) => (
+// //     <View key={trade.id} style={styles.tradeCard}>
+// //       <View style={styles.tradeHeader}>
+// //         <Text style={styles.shopName}>
+// //           {tab === "offers" ? trade.from : trade.recipient}
+// //         </Text>
+// //         <Text
+// //           style={[
+// //             styles.tradeStatus,
+// //             {
+// //               backgroundColor:
+// //                 trade.status === "pending"
+// //                   ? "#fef3c7"
+// //                   : trade.status === "active"
+// //                   ? "#dbeafe"
+// //                   : "#dcfce7",
+// //             },
+// //           ]}
+// //         >
+// //           {trade.status?.charAt(0).toUpperCase() + trade.status?.slice(1)}
+// //         </Text>
+// //       </View>
+
+// //       <View style={styles.tradeItems}>
+// //         <View style={styles.item}>
+// //           <Text style={styles.itemLabel}>You give:</Text>
+// //           <View style={styles.itemWithImage}>
+// //             <Image
+// //               source={{ uri: trade.itemsOffered?.[0]?.image }}
+// //               style={styles.itemImage}
+// //             />
+// //             <View>
+// //               <Text style={styles.itemName}>
+// //                 {trade.itemsOffered?.[0]?.name}
+// //               </Text>
+// //               <Text style={styles.itemValue}>
+// //                 {trade.itemsOffered?.[0]?.value}
+// //               </Text>
+// //             </View>
+// //           </View>
+// //         </View>
+
+// //         <Feather
+// //           name="repeat"
+// //           size={16}
+// //           color="#94a3b8"
+// //           style={styles.exchangeIcon}
+// //         />
+
+// //         <View style={styles.item}>
+// //           <Text style={styles.itemLabel}>You get:</Text>
+// //           <View style={styles.itemWithImage}>
+// //             <Image
+// //               source={{ uri: trade.itemsRequested?.[0]?.image }}
+// //               style={styles.itemImage}
+// //             />
+// //             <View>
+// //               <Text style={styles.itemName}>
+// //                 {trade.itemsRequested?.[0]?.name}
+// //               </Text>
+// //               <Text style={styles.itemValue}>
+// //                 {trade.itemsRequested?.[0]?.price}
+// //               </Text>
+// //             </View>
+// //           </View>
+// //         </View>
+// //       </View>
+
+// //       {trade.message && (
+// //         <Text style={styles.tradeMessage}>"{trade.message}"</Text>
+// //       )}
+
+// //       {tab === "offers" && (
+// //         <View style={styles.actions}>
+// //           <TouchableOpacity
+// //             style={[styles.button, styles.declineButton]}
+// //             onPress={() => handleRejectTrade(trade.id)}
+// //           >
+// //             <Text style={styles.declineText}>Decline</Text>
+// //           </TouchableOpacity>
+// //           <TouchableOpacity
+// //             style={[styles.button, styles.acceptButton]}
+// //             onPress={() => handleAcceptTrade(trade.id)}
+// //           >
+// //             <Text style={styles.acceptText}>Accept</Text>
+// //           </TouchableOpacity>
+// //         </View>
+// //       )}
+
+// //       {tab === "active" && (
+// //         <View style={styles.actions}>
+// //           <TouchableOpacity
+// //             style={[styles.button, styles.completeButton]}
+// //             onPress={() => handleCompleteTrade(trade.id)}
+// //           >
+// //             <Text style={styles.completeText}>Mark Complete</Text>
+// //           </TouchableOpacity>
+// //         </View>
+// //       )}
+// //     </View>
+// //   );
+
+// //   const handleScroll = (event) => {
+// //     const offsetY = event.nativeEvent.contentOffset.y;
+// //     if (offsetY > 50 && showHeader) {
+// //       setShowHeader(false);
+// //     } else if (offsetY <= 50 && !showHeader) {
+// //       setShowHeader(true);
+// //     }
+// //   };
+
+// //   const renderBrowseContent = () => (
+// //     <View style={styles.browseContainer}>
+// //       {/* Search and Categories Section */}
+// //       {showHeader && (
+// //         <View style={styles.searchSection}>
+// //           {/* Search Bar */}
+// //           <View style={styles.searchContainer}>
+// //             <Feather name="search" size={20} color="#64748b" style={styles.searchIcon} />
+// //             <TextInput
+// //               style={styles.searchInput}
+// //               placeholder="Search products, shops, or categories..."
+// //               value={searchQuery}
+// //               onChangeText={setSearchQuery}
+// //             />
+// //             {searchQuery.length > 0 && (
+// //               <TouchableOpacity 
+// //                 onPress={() => setSearchQuery('')}
+// //                 style={styles.clearButton}
+// //               >
+// //                 <Feather name="x" size={20} color="#64748b" />
+// //               </TouchableOpacity>
+// //             )}
+// //           </View>
+
+// //           {/* Categories */}
+// //           <View style={styles.categoriesWrapper}>
+// //             <ScrollView 
+// //               horizontal 
+// //               showsHorizontalScrollIndicator={false}
+// //               style={styles.categoriesContainer}
+// //               contentContainerStyle={styles.categoriesContent}
+// //             >
+// //               {categories.map(category => (
+// //                 <TouchableOpacity
+// //                   key={category.id}
+// //                   style={[
+// //                     styles.categoryChip,
+// //                     selectedCategory === category.id && styles.selectedCategoryChip
+// //                   ]}
+// //                   onPress={() => setSelectedCategory(category.id)}
+// //                 >
+// //                   <Text style={[
+// //                     styles.categoryText,
+// //                     selectedCategory === category.id && styles.selectedCategoryText
+// //                   ]}>
+// //                     {category.name}
+// //                   </Text>
+// //                 </TouchableOpacity>
+// //               ))}
+// //             </ScrollView>
+// //           </View>
+// //         </View>
+// //       )}
+
+// //       {/* Products Grid */}
+// //       {filteredProducts.length === 0 ? (
+// //         <View style={styles.emptyState}>
+// //           <Feather name="package" size={64} color="#cbd5e1" />
+// //           <Text style={styles.emptyStateTitle}>No Products Found</Text>
+// //           <Text style={styles.emptyStateText}>
+// //             {searchQuery || selectedCategory !== 'all' 
+// //               ? 'Try adjusting your search or filters'
+// //               : 'No products available for trade at the moment'
+// //             }
+// //           </Text>
+// //         </View>
+// //       ) : (
+// //         <FlatList
+// //           data={filteredProducts}
+// //           renderItem={renderProductItem}
+// //           keyExtractor={item => item.id}
+// //           showsVerticalScrollIndicator={false}
+// //           contentContainerStyle={[
+// //             styles.gridContent,
+// //             !showHeader && styles.gridContentNoHeader
+// //           ]}
+// //           numColumns={2}
+// //           onScroll={handleScroll}
+// //           scrollEventThrottle={16}
+// //         />
+// //       )}
+// //     </View>
+// //   );
+
+// //   const renderContent = () => {
+// //     let data = [];
+// //     let emptyMessage = "";
+
+// //     switch (activeTab) {
+// //       case "browse":
+// //         return renderBrowseContent();
+// //       case "offers":
+// //         data = displayTradeOffers;
+// //         emptyMessage = "No trade offers available";
+// //         break;
+// //       case "active":
+// //         data = displayActiveTrades;
+// //         emptyMessage = "No active trades";
+// //         break;
+// //       case "history":
+// //         data = displayTradeHistory;
+// //         emptyMessage = "No trade history";
+// //         break;
+// //       default:
+// //         data = [];
+// //     }
+
+// //     if (data.length === 0 && activeTab !== "browse") {
+// //       return (
+// //         <View style={styles.emptyState}>
+// //           <Feather name="shopping-bag" size={64} color="#cbd5e1" />
+// //           <Text style={styles.emptyStateTitle}>{emptyMessage}</Text>
+// //           <Text style={styles.emptyStateText}>
+// //             {activeTab === "offers"
+// //               ? "When shops send you trade offers, they will appear here."
+// //               : activeTab === "active"
+// //               ? "Your ongoing trades will appear here."
+// //               : "Your completed trades will appear here."}
+// //           </Text>
+// //           {activeTab === "offers" && (
+// //             <TouchableOpacity
+// //               style={styles.createTradeButton}
+// //               onPress={() => setIsCreateModalVisible(true)}
+// //             >
+// //               <Text style={styles.createTradeButtonText}>
+// //                 Create Your First Trade
+// //               </Text>
+// //             </TouchableOpacity>
+// //           )}
+// //         </View>
+// //       );
+// //     }
+
+// //     if (activeTab !== "browse") {
+// //       return (
+// //         <ScrollView style={styles.tradesContainer} showsVerticalScrollIndicator={false}>
+// //           <View style={styles.tradesList}>
+// //             {data.map((trade) => renderTradeCard({ trade, tab: activeTab }))}
+// //           </View>
+// //         </ScrollView>
+// //       );
+// //     }
+// //   };
+
+// //   const getTabCount = (tab) => {
+// //     switch (tab) {
+// //       case "browse":
+// //         return "";
+// //       case "offers":
+// //         return displayTradeOffers.length;
+// //       case "active":
+// //         return displayActiveTrades.length;
+// //       case "history":
+// //         return displayTradeHistory.length;
+// //       default:
+// //         return 0;
+// //     }
+// //   };
+
+// //   return (
+// //     <SafeAreaView style={styles.container}>
+// //       {/* Header */}
+// //       {showHeader && (
+// //         <View style={styles.header}>
+// //           <TouchableOpacity 
+// //             onPress={() => navigation.goBack()}
+// //             style={styles.backButton}
+// //           >
+// //             <Feather name="arrow-left" size={24} color="#0f172a" />
+// //           </TouchableOpacity>
+// //           <View style={styles.headerContent}>
+// //             <Text style={styles.title}>Trade Center</Text>
+// //             <Text style={styles.subtitle}>
+// //               Exchange products with local shops
+// //             </Text>
+// //           </View>
+// //           <TouchableOpacity
+// //             style={styles.newTradeButton}
+// //             onPress={() => setIsCreateModalVisible(true)}
+// //           >
+// //             <Feather name="plus" size={20} color="#FFF" />
+// //           </TouchableOpacity>
+// //         </View>
+// //       )}
+
+// //       {/* Tabs */}
+// //       {showHeader && (
+// //         <View style={styles.tabs}>
+// //           {[
+// //             { key: "browse", label: "Browse", icon: "grid" },
+// //             { key: "offers", label: "Offers", icon: "gift" },
+// //             { key: "active", label: "Active", icon: "refresh-cw" },
+// //             { key: "history", label: "History", icon: "check-circle" },
+// //           ].map((tab) => (
+// //             <TouchableOpacity
+// //               key={tab.key}
+// //               style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+// //               onPress={() => setActiveTab(tab.key)}
+// //             >
+// //               <Feather
+// //                 name={tab.icon}
+// //                 size={16}
+// //                 color={activeTab === tab.key ? "#2563eb" : "#64748b"}
+// //               />
+// //               <Text
+// //                 style={[
+// //                   styles.tabText,
+// //                   activeTab === tab.key && styles.activeTabText,
+// //                 ]}
+// //               >
+// //                 {tab.label} {getTabCount(tab.key) && `(${getTabCount(tab.key)})`}
+// //               </Text>
+// //             </TouchableOpacity>
+// //           ))}
+// //         </View>
+// //       )}
+
+// //       {/* Content */}
+// //       <View style={[
+// //         styles.content,
+// //         !showHeader && styles.contentNoHeader
+// //       ]}>
+// //         {renderContent()}
+// //       </View>
+
+// //       {/* Create Trade Modal */}
+// //       <Modal
+// //         visible={isCreateModalVisible}
+// //         animationType="slide"
+// //         presentationStyle="pageSheet"
+// //         onRequestClose={() => {
+// //           setIsCreateModalVisible(false);
+// //           resetSelection();
+// //         }}
+// //       >
+// //         <SafeAreaView style={styles.modalContainer}>
+// //           {/* Modal Header */}
+// //           <View style={styles.modalHeader}>
+// //             <TouchableOpacity
+// //               onPress={() => {
+// //                 setIsCreateModalVisible(false);
+// //                 resetSelection();
+// //               }}
+// //               style={styles.modalCloseButton}
+// //             >
+// //               <Feather name="x" size={24} color="#0f172a" />
+// //             </TouchableOpacity>
+// //             <Text style={styles.modalTitle}>Create Trade Offer</Text>
+// //             <View style={styles.modalCloseButton} />
+// //           </View>
+
+// //           <ScrollView style={styles.modalContent}>
+// //             {/* Your Products Section */}
+// //             <Text style={styles.sectionTitle}>Select Your Product</Text>
+// //             <Text style={styles.sectionDescription}>
+// //               Choose which product you want to trade
+// //             </Text>
+
+// //             <ScrollView
+// //               horizontal
+// //               showsHorizontalScrollIndicator={false}
+// //               style={styles.productsScroll}
+// //             >
+// //               {userProducts.map((product) => (
+// //                 <TouchableOpacity
+// //                   key={product.id}
+// //                   style={[
+// //                     styles.modalProductCard,
+// //                     selectedUserProduct?.id === product.id &&
+// //                       styles.selectedProductCard,
+// //                   ]}
+// //                   onPress={() => setSelectedUserProduct(product)}
+// //                 >
+// //                   <Image
+// //                     source={{ uri: product.image }}
+// //                     style={styles.modalProductImage}
+// //                   />
+// //                   <View style={styles.modalProductInfo}>
+// //                     <Text style={styles.modalProductName}>{product.name}</Text>
+// //                     <Text style={styles.modalProductPrice}>{product.value}</Text>
+// //                   </View>
+// //                   {selectedUserProduct?.id === product.id && (
+// //                     <View style={styles.selectedBadge}>
+// //                       <Feather name="check" size={16} color="#FFF" />
+// //                     </View>
+// //                   )}
+// //                 </TouchableOpacity>
+// //               ))}
+// //             </ScrollView>
+
+// //             {/* Shop Products Section */}
+// //             <Text style={styles.sectionTitle}>Select Product to Receive</Text>
+// //             <Text style={styles.sectionDescription}>
+// //               Choose which product you want in return
+// //             </Text>
+
+// //             {selectedShopProduct && (
+// //               <View style={styles.preSelectedProduct}>
+// //                 <Image
+// //                   source={{ uri: selectedShopProduct.image }}
+// //                   style={styles.preSelectedImage}
+// //                 />
+// //                 <View style={styles.preSelectedInfo}>
+// //                   <Text style={styles.preSelectedName}>{selectedShopProduct.name}</Text>
+// //                   <Text style={styles.preSelectedPrice}>{selectedShopProduct.price}</Text>
+// //                   <Text style={styles.preSelectedShop}>{selectedShopProduct.shop}</Text>
+// //                 </View>
+// //                 <Feather name="check" size={20} color="#059669" />
+// //               </View>
+// //             )}
+
+// //             {!selectedShopProduct && (
+// //               <Text style={styles.noProductSelected}>
+// //                 Select a product from the Browse tab to trade for
+// //               </Text>
+// //             )}
+
+// //             {/* Notes Section */}
+// //             <Text style={styles.sectionTitle}>Add Note (Optional)</Text>
+// //             <TextInput
+// //               style={styles.notesInput}
+// //               placeholder="Add a message to the shop owner..."
+// //               placeholderTextColor="#94a3b8"
+// //               multiline
+// //               numberOfLines={3}
+// //               value={notes}
+// //               onChangeText={setNotes}
+// //             />
+
+// //             {/* Trade Summary */}
+// //             {(selectedUserProduct || selectedShopProduct) && (
+// //               <View style={styles.tradeSummary}>
+// //                 <Text style={styles.summaryTitle}>Trade Summary</Text>
+// //                 <View style={styles.summaryContent}>
+// //                   <View style={styles.summaryItem}>
+// //                     <Image
+// //                       source={{ uri: selectedUserProduct?.image }}
+// //                       style={styles.summaryImage}
+// //                     />
+// //                     <View>
+// //                       <Text style={styles.summaryName}>
+// //                         You give: {selectedUserProduct?.name}
+// //                       </Text>
+// //                       <Text style={styles.summaryValue}>
+// //                         {selectedUserProduct?.value}
+// //                       </Text>
+// //                     </View>
+// //                   </View>
+
+// //                   <Feather
+// //                     name="repeat"
+// //                     size={20}
+// //                     color="#2563eb"
+// //                     style={styles.summaryIcon}
+// //                   />
+
+// //                   <View style={styles.summaryItem}>
+// //                     <Image
+// //                       source={{ uri: selectedShopProduct?.image }}
+// //                       style={styles.summaryImage}
+// //                     />
+// //                     <View>
+// //                       <Text style={styles.summaryName}>
+// //                         You get: {selectedShopProduct?.name}
+// //                       </Text>
+// //                       <Text style={styles.summaryValue}>
+// //                         {selectedShopProduct?.price}
+// //                       </Text>
+// //                     </View>
+// //                   </View>
+// //                 </View>
+// //               </View>
+// //             )}
+// //           </ScrollView>
+
+// //           {/* Modal Footer */}
+// //           <View style={styles.modalFooter}>
+// //             <TouchableOpacity
+// //               style={[
+// //                 styles.createButton,
+// //                 (!selectedUserProduct || !selectedShopProduct) &&
+// //                   styles.createButtonDisabled,
+// //               ]}
+// //               onPress={handleCreateTrade}
+// //               disabled={!selectedUserProduct || !selectedShopProduct}
+// //             >
+// //               <Text style={styles.createButtonText}>Create Trade Offer</Text>
+// //             </TouchableOpacity>
+// //           </View>
+// //         </SafeAreaView>
+// //       </Modal>
+// //     </SafeAreaView>
+// //   );
+// // };
+
+// // const styles = StyleSheet.create({
+// //   container: {
+// //     flex: 1,
+// //     backgroundColor: "#ffffff",
+// //   },
+// //   header: {
+// //     flexDirection: "row",
+// //     alignItems: "center",
+// //     justifyContent: "space-between",
+// //     paddingHorizontal: 20,
+// //     paddingTop: 20,
+// //     paddingBottom: 16,
+// //     backgroundColor: "#ffffff",
+// //     borderBottomWidth: 1,
+// //     borderBottomColor: "#f1f5f9",
+// //   },
+// //   backButton: {
+// //     padding: 4,
+// //     marginRight: 8,
+// //   },
+// //   headerContent: {
+// //     flex: 1,
+// //   },
+// //   title: {
+// //     fontSize: 28,
+// //     fontWeight: "700",
+// //     color: "#0f172a",
+// //     marginBottom: 4,
+// //   },
+// //   subtitle: {
+// //     fontSize: 16,
+// //     color: "#64748b",
+// //     fontWeight: "400",
+// //   },
+// //   newTradeButton: {
+// //     backgroundColor: "#2563eb",
+// //     width: 44,
+// //     height: 44,
+// //     borderRadius: 22,
+// //     justifyContent: "center",
+// //     alignItems: "center",
+// //     shadowColor: "#2563eb",
+// //     shadowOffset: { width: 0, height: 4 },
+// //     shadowOpacity: 0.2,
+// //     shadowRadius: 8,
+// //     elevation: 4,
+// //   },
+// //   tabs: {
+// //     flexDirection: "row",
+// //     backgroundColor: "#ffffff",
+// //     paddingHorizontal: 20,
+// //     borderBottomWidth: 1,
+// //     borderBottomColor: "#f1f5f9",
+// //   },
+// //   tab: {
+// //     flex: 1,
+// //     flexDirection: "row",
+// //     alignItems: "center",
+// //     justifyContent: "center",
+// //     paddingVertical: 12,
+// //     marginHorizontal: 2,
+// //     borderRadius: 8,
+// //   },
+// //   activeTab: {
+// //     backgroundColor: "#f8fafc",
+// //   },
+// //   tabText: {
+// //     fontSize: 12,
+// //     fontWeight: "500",
+// //     color: "#64748b",
+// //     marginLeft: 4,
+// //   },
+// //   activeTabText: {
+// //     color: "#2563eb",
+// //     fontWeight: "600",
+// //   },
+// //   content: {
+// //     flex: 1,
+// //   },
+// //   contentNoHeader: {
+// //     marginTop: 0,
+// //   },
+// //   // Browse Tab Styles
+// //   browseContainer: {
+// //     flex: 1,
+// //   },
+// //   searchSection: {
+// //     backgroundColor: '#ffffff',
+// //     paddingBottom: 8,
+// //   },
+// //   searchContainer: {
+// //     flexDirection: 'row',
+// //     alignItems: 'center',
+// //     margin: 16,
+// //     paddingHorizontal: 16,
+// //     paddingVertical: 12,
+// //     backgroundColor: '#f8fafc',
+// //     borderRadius: 12,
+// //     borderWidth: 1,
+// //     borderColor: '#e2e8f0',
+// //   },
+// //   searchIcon: {
+// //     marginRight: 12,
+// //   },
+// //   searchInput: {
+// //     flex: 1,
+// //     fontSize: 16,
+// //     color: '#0f172a',
+// //     paddingVertical: 4,
+// //   },
+// //   clearButton: {
+// //     padding: 4,
+// //     marginLeft: 8,
+// //   },
+// //   categoriesWrapper: {
+// //     maxHeight: 50,
+// //     marginBottom: 8,
+// //   },
+// //   categoriesContainer: {
+// //     marginHorizontal: 16,
+// //   },
+// //   categoriesContent: {
+// //     paddingRight: 16,
+// //     gap: 8,
+// //   },
+// //   categoryChip: {
+// //     paddingHorizontal: 16,
+// //     paddingVertical: 6,
+// //     borderRadius: 20,
+// //     backgroundColor: '#f1f5f9',
+// //     borderWidth: 1,
+// //     borderColor: '#e2e8f0',
+// //   },
+// //   selectedCategoryChip: {
+// //     backgroundColor: '#2563eb',
+// //     borderColor: '#2563eb',
+// //   },
+// //   categoryText: {
+// //     fontSize: 14,
+// //     fontWeight: '500',
+// //     color: '#64748b',
+// //   },
+// //   selectedCategoryText: {
+// //     color: '#ffffff',
+// //   },
+// //   // Grid Layout Styles
+// //   gridContent: {
+// //     padding: 8,
+// //     paddingTop: 8,
+// //   },
+// //   gridContentNoHeader: {
+// //     paddingTop: 8,
+// //   },
+// //   productCard: {
+// //     flex: 1,
+// //     backgroundColor: '#ffffff',
+// //     borderRadius: 12,
+// //     margin: 8,
+// //     padding: 12,
+// //     borderWidth: 1,
+// //     borderColor: '#f1f5f9',
+// //     shadowColor: '#000',
+// //     shadowOffset: { width: 0, height: 1 },
+// //     shadowOpacity: 0.05,
+// //     shadowRadius: 3,
+// //     elevation: 2,
+// //     maxWidth: (screenWidth - 32) / 2,
+// //   },
+// //   productImage: {
+// //     width: '100%',
+// //     height: 120,
+// //     borderRadius: 8,
+// //     marginBottom: 8,
+// //   },
+// //   productInfo: {
+// //     flex: 1,
+// //   },
+// //   productName: {
+// //     fontSize: 14,
+// //     fontWeight: '600',
+// //     color: '#0f172a',
+// //     marginBottom: 4,
+// //     lineHeight: 18,
+// //   },
+// //   productDescription: {
+// //     fontSize: 12,
+// //     color: '#64748b',
+// //     marginBottom: 8,
+// //     lineHeight: 16,
+// //   },
+// //   shopInfo: {
+// //     flexDirection: 'row',
+// //     alignItems: 'center',
+// //     marginBottom: 8,
+// //   },
+// //   shopImage: {
+// //     width: 24,
+// //     height: 24,
+// //     borderRadius: 12,
+// //     marginRight: 8,
+// //   },
+// //   shopDetails: {
+// //     flex: 1,
+// //   },
+// //   shopName: {
+// //     fontSize: 12,
+// //     fontWeight: '600',
+// //     color: '#0f172a',
+// //     marginBottom: 2,
+// //   },
+// //   shopRating: {
+// //     flexDirection: 'row',
+// //     alignItems: 'center',
+// //   },
+// //   ratingText: {
+// //     fontSize: 10,
+// //     color: '#64748b',
+// //     marginLeft: 4,
+// //   },
+// //   shopLocation: {
+// //     fontSize: 10,
+// //     color: '#64748b',
+// //   },
+// //   productDetails: {
+// //     marginBottom: 8,
+// //   },
+// //   productValue: {
+// //     fontSize: 16,
+// //     fontWeight: '700',
+// //     color: '#2563eb',
+// //     marginBottom: 4,
+// //   },
+// //   tradeForContainer: {
+// //     flexDirection: 'row',
+// //     flexWrap: 'wrap',
+// //   },
+// //   tradeForLabel: {
+// //     fontSize: 11,
+// //     color: '#64748b',
+// //     fontWeight: '500',
+// //   },
+// //   tradeForItems: {
+// //     fontSize: 11,
+// //     color: '#0f172a',
+// //     flex: 1,
+// //   },
+// //   tradeButton: {
+// //     flexDirection: 'row',
+// //     alignItems: 'center',
+// //     justifyContent: 'center',
+// //     backgroundColor: '#2563eb',
+// //     paddingVertical: 8,
+// //     borderRadius: 6,
+// //     gap: 4,
+// //   },
+// //   tradeButtonText: {
+// //     color: '#ffffff',
+// //     fontSize: 12,
+// //     fontWeight: '600',
+// //   },
+// //   emptyState: {
+// //     flex: 1,
+// //     alignItems: 'center',
+// //     justifyContent: 'center',
+// //     paddingHorizontal: 40,
+// //   },
+// //   emptyStateTitle: {
+// //     fontSize: 18,
+// //     fontWeight: '600',
+// //     color: '#0f172a',
+// //     marginTop: 16,
+// //     marginBottom: 8,
+// //     textAlign: 'center',
+// //   },
+// //   emptyStateText: {
+// //     fontSize: 14,
+// //     color: '#64748b',
+// //     textAlign: 'center',
+// //     lineHeight: 20,
+// //   },
+// //   // Trades List Styles
+// //   tradesContainer: {
+// //     flex: 1,
+// //   },
+// //   tradesList: {
+// //     gap: 12,
+// //     padding: 16,
+// //   },
+// //   tradeCard: {
+// //     backgroundColor: "#ffffff",
+// //     borderRadius: 16,
+// //     padding: 16,
+// //     borderWidth: 1,
+// //     borderColor: "#f1f5f9",
+// //     shadowColor: "#000",
+// //     shadowOffset: { width: 0, height: 2 },
+// //     shadowOpacity: 0.05,
+// //     shadowRadius: 8,
+// //     elevation: 2,
+// //   },
+// //   tradeHeader: {
+// //     flexDirection: "row",
+// //     justifyContent: "space-between",
+// //     alignItems: "center",
+// //     marginBottom: 12,
+// //   },
+// //   shopName: {
+// //     fontSize: 16,
+// //     fontWeight: "600",
+// //     color: "#0f172a",
+// //   },
+// //   tradeStatus: {
+// //     fontSize: 12,
+// //     fontWeight: "500",
+// //     paddingHorizontal: 8,
+// //     paddingVertical: 4,
+// //     borderRadius: 6,
+// //   },
+// //   tradeItems: {
+// //     flexDirection: "row",
+// //     alignItems: "center",
+// //     marginBottom: 12,
+// //   },
+// //   item: {
+// //     flex: 1,
+// //   },
+// //   itemLabel: {
+// //     fontSize: 12,
+// //     color: "#64748b",
+// //     marginBottom: 8,
+// //     fontWeight: "500",
+// //   },
+// //   itemWithImage: {
+// //     flexDirection: "row",
+// //     alignItems: "center",
+// //   },
+// //   itemImage: {
+// //     width: 40,
+// //     height: 40,
+// //     borderRadius: 8,
+// //     marginRight: 12,
+// //   },
+// //   itemName: {
+// //     fontSize: 14,
+// //     fontWeight: "500",
+// //     color: "#0f172a",
+// //     marginBottom: 2,
+// //   },
+// //   itemValue: {
+// //     fontSize: 14,
+// //     fontWeight: "600",
+// //     color: "#2563eb",
+// //   },
+// //   exchangeIcon: {
+// //     marginHorizontal: 12,
+// //   },
+// //   tradeMessage: {
+// //     fontSize: 14,
+// //     color: "#475569",
+// //     fontStyle: "italic",
+// //     backgroundColor: "#f8fafc",
+// //     padding: 12,
+// //     borderRadius: 8,
+// //     marginBottom: 12,
+// //   },
+// //   actions: {
+// //     flexDirection: "row",
+// //     justifyContent: "flex-end",
+// //     gap: 8,
+// //   },
+// //   button: {
+// //     paddingHorizontal: 16,
+// //     paddingVertical: 8,
+// //     borderRadius: 8,
+// //     borderWidth: 1,
+// //   },
+// //   declineButton: {
+// //     borderColor: "#fecaca",
+// //     backgroundColor: "#fef2f2",
+// //   },
+// //   declineText: {
+// //     color: "#dc2626",
+// //     fontWeight: "500",
+// //   },
+// //   acceptButton: {
+// //     borderColor: "#bbf7d0",
+// //     backgroundColor: "#f0fdf4",
+// //   },
+// //   acceptText: {
+// //     color: "#059669",
+// //     fontWeight: "500",
+// //   },
+// //   completeButton: {
+// //     borderColor: "#bbf7d0",
+// //     backgroundColor: "#f0fdf4",
+// //   },
+// //   completeText: {
+// //     color: "#059669",
+// //     fontWeight: "500",
+// //   },
+// //   createTradeButton: {
+// //     backgroundColor: "#2563eb",
+// //     paddingHorizontal: 24,
+// //     paddingVertical: 12,
+// //     borderRadius: 8,
+// //   },
+// //   createTradeButtonText: {
+// //     color: "#ffffff",
+// //     fontSize: 16,
+// //     fontWeight: "600",
+// //   },
+// //   // Modal Styles
+// //   modalContainer: {
+// //     flex: 1,
+// //     backgroundColor: "#ffffff",
+// //   },
+// //   modalHeader: {
+// //     flexDirection: "row",
+// //     alignItems: "center",
+// //     justifyContent: "space-between",
+// //     paddingHorizontal: 20,
+// //     paddingVertical: 16,
+// //     borderBottomWidth: 1,
+// //     borderBottomColor: "#f1f5f9",
+// //   },
+// //   modalCloseButton: {
+// //     width: 40,
+// //     alignItems: "flex-start",
+// //   },
+// //   modalTitle: {
+// //     fontSize: 18,
+// //     fontWeight: "600",
+// //     color: "#0f172a",
+// //   },
+// //   modalContent: {
+// //     flex: 1,
+// //     padding: 20,
+// //   },
+// //   sectionTitle: {
+// //     fontSize: 18,
+// //     fontWeight: "600",
+// //     color: "#0f172a",
+// //     marginBottom: 8,
+// //   },
+// //   sectionDescription: {
+// //     fontSize: 14,
+// //     color: "#64748b",
+// //     marginBottom: 16,
+// //   },
+// //   productsScroll: {
+// //     marginBottom: 24,
+// //   },
+// //   modalProductCard: {
+// //     width: 160,
+// //     marginRight: 12,
+// //     padding: 12,
+// //     backgroundColor: "#f8fafc",
+// //     borderRadius: 12,
+// //     borderWidth: 2,
+// //     borderColor: "#f1f5f9",
+// //     position: "relative",
+// //   },
+// //   selectedProductCard: {
+// //     borderColor: "#2563eb",
+// //     backgroundColor: "#f0f9ff",
+// //   },
+// //   modalProductImage: {
+// //     width: "100%",
+// //     height: 100,
+// //     borderRadius: 8,
+// //     marginBottom: 8,
+// //   },
+// //   modalProductInfo: {
+// //     flex: 1,
+// //   },
+// //   modalProductName: {
+// //     fontSize: 14,
+// //     fontWeight: "600",
+// //     color: "#0f172a",
+// //     marginBottom: 4,
+// //   },
+// //   modalProductPrice: {
+// //     fontSize: 16,
+// //     fontWeight: "700",
+// //     color: "#2563eb",
+// //     marginBottom: 2,
+// //   },
+// //   selectedBadge: {
+// //     position: "absolute",
+// //     top: 8,
+// //     right: 8,
+// //     width: 24,
+// //     height: 24,
+// //     borderRadius: 12,
+// //     backgroundColor: "#2563eb",
+// //     justifyContent: "center",
+// //     alignItems: "center",
+// //   },
+// //   preSelectedProduct: {
+// //     flexDirection: 'row',
+// //     alignItems: 'center',
+// //     backgroundColor: '#f0fdf4',
+// //     padding: 16,
+// //     borderRadius: 12,
+// //     borderWidth: 2,
+// //     borderColor: '#bbf7d0',
+// //     marginBottom: 16,
+// //   },
+// //   preSelectedImage: {
+// //     width: 60,
+// //     height: 60,
+// //     borderRadius: 8,
+// //     marginRight: 12,
+// //   },
+// //   preSelectedInfo: {
+// //     flex: 1,
+// //   },
+// //   preSelectedName: {
+// //     fontSize: 16,
+// //     fontWeight: '600',
+// //     color: '#0f172a',
+// //     marginBottom: 4,
+// //   },
+// //   preSelectedPrice: {
+// //     fontSize: 18,
+// //     fontWeight: '700',
+// //     color: '#059669',
+// //     marginBottom: 2,
+// //   },
+// //   preSelectedShop: {
+// //     fontSize: 14,
+// //     color: '#64748b',
+// //   },
+// //   noProductSelected: {
+// //     fontSize: 14,
+// //     color: '#64748b',
+// //     fontStyle: 'italic',
+// //     textAlign: 'center',
+// //     padding: 20,
+// //     backgroundColor: '#f8fafc',
+// //     borderRadius: 8,
+// //     marginBottom: 16,
+// //   },
+// //   notesInput: {
+// //     borderWidth: 1,
+// //     borderColor: "#e2e8f0",
+// //     borderRadius: 8,
+// //     padding: 12,
+// //     fontSize: 16,
+// //     color: "#0f172a",
+// //     minHeight: 80,
+// //     textAlignVertical: "top",
+// //     marginBottom: 24,
+// //   },
+// //   tradeSummary: {
+// //     backgroundColor: "#f8fafc",
+// //     borderRadius: 12,
+// //     padding: 16,
+// //     marginBottom: 24,
+// //   },
+// //   summaryTitle: {
+// //     fontSize: 16,
+// //     fontWeight: "600",
+// //     color: "#0f172a",
+// //     marginBottom: 12,
+// //   },
+// //   summaryContent: {
+// //     flexDirection: "row",
+// //     alignItems: "center",
+// //     justifyContent: "space-between",
+// //   },
+// //   summaryItem: {
+// //     flex: 1,
+// //     flexDirection: "row",
+// //     alignItems: "center",
+// //   },
+// //   summaryImage: {
+// //     width: 50,
+// //     height: 50,
+// //     borderRadius: 8,
+// //     marginRight: 12,
+// //   },
+// //   summaryName: {
+// //     fontSize: 14,
+// //     fontWeight: "500",
+// //     color: "#0f172a",
+// //     marginBottom: 2,
+// //   },
+// //   summaryValue: {
+// //     fontSize: 14,
+// //     fontWeight: "600",
+// //     color: "#2563eb",
+// //   },
+// //   summaryIcon: {
+// //     marginHorizontal: 16,
+// //   },
+// //   modalFooter: {
+// //     padding: 20,
+// //     borderTopWidth: 1,
+// //     borderTopColor: "#f1f5f9",
+// //   },
+// //   createButton: {
+// //     backgroundColor: "#2563eb",
+// //     paddingVertical: 16,
+// //     borderRadius: 12,
+// //     alignItems: "center",
+// //   },
+// //   createButtonDisabled: {
+// //     backgroundColor: "#cbd5e1",
+// //   },
+// //   createButtonText: {
+// //     color: "#ffffff",
+// //     fontSize: 16,
+// //     fontWeight: "600",
+// //   },
+// // });
+
+// // export default TradeScreen;
+
+
+import React, { useContext, useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+  Modal,
+  Image,
+  TextInput,
+  Alert,
+  FlatList,
+  Dimensions,
+  Platform,
+  StatusBar,
+  ActivityIndicator,
+  KeyboardAvoidingView
+} from "react-native";
+import { Feather, Ionicons } from "@expo/vector-icons";
+import { TradeContext } from "./TradeComponent/TradeContext"; // Keep your context import
+import { useNavigation } from "@react-navigation/native";
+import axiosInstance from '@api/axiosInstance';
+import API_URL from "../../api/api_urls";
+
+const { width: screenWidth } = Dimensions.get('window');
+const COLORS = {
+  primary: "#1E293B", // Dark Blue from your dashboard
+  secondary: "#2563EB", // Bright Blue for actions
+  background: "#F8FAFC", // Light Gray background
+  surface: "#FFFFFF",
+  text: "#1E293B",
+  subtext: "#64748B",
+  border: "#E2E8F0",
+  success: "#10B981",
+  warning: "#F59E0B",
+  danger: "#EF4444",
+};
+
+const TradeScreen = () => {
+  const tradeContext = useContext(TradeContext);
+  const navigation = useNavigation();
+
+  // Context Data (Fallbacks for safety)
+  const {
+    activeTrades = [],
+    tradeHistory = [],
+    tradeOffers = [],
+    createTradeOffer,
+    acceptTrade,
+    rejectTrade,
+    completeTrade,
+  } = tradeContext || {};
+
+  // State
+  const [activeTab, setActiveTab] = useState("browse");
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  
+  // Selection State
+  const [selectedUserProduct, setSelectedUserProduct] = useState(null);
+  const [selectedShopProduct, setSelectedShopProduct] = useState(null);
+  const [notes, setNotes] = useState("");
+  
+  // Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [categories, setCategories] = useState([]);
+  
+  // Data State
+  const [userProducts, setUserProducts] = useState([]);
+  const [availableProducts, setAvailableProducts] = useState([]);
+  const [tradesFromBackend, setTradesFromBackend] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // --- API Calls ---
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
+
+  const fetchInitialData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchCategory(),
+      fetchUserProducts(),
+      fetchAvailableProducts(),
+      fetchTrades(),
+    ]);
+    setLoading(false);
+  };
+
+  const fetchCategory = async () => {
+    try {
+      const response = await axiosInstance.get(`${API_URL}/api/v1/Category/biznest_api`);
+      setCategories([{ id: 'all', name: "All" }, ...response.data]);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  const fetchUserProducts = async () => {
+    try {
+      const response = await axiosInstance.get("/api/v1/seller/Seller Trade/seller_trade");
+      setUserProducts(response.data);
+    } catch (error) {
+      console.error("Error fetching user products:", error);
+    }
+  };
+
+  const fetchAvailableProducts = async () => {
+    try {
+      const response = await axiosInstance.get(`${API_URL}/api/v1/seller/Tradable Products/tradable_products`);
+      setAvailableProducts(response.data);
+    } catch (error) {
+      console.error("Error fetching tradable products:", error);
+    }
+  };
+
+  const fetchTrades = async () => {
+    try {
+      const response = await axiosInstance.get(`/api/v1/seller/Trade/trade`);
+      setTradesFromBackend(response.data);
+    } catch (error) {
+      console.error("Error fetching trades:", error);
+    }
+  };
+
+  // --- Helpers ---
+
+  // Merge Context + Backend Data
+  const displayTradeOffers = tradeOffers.length > 0 
+    ? tradeOffers 
+    : tradesFromBackend.filter(trade => trade.status === "pending");
+
+  const displayActiveTrades = activeTrades.length > 0 
+    ? activeTrades 
+    : tradesFromBackend.filter(trade => trade.status === "active");
+
+  const displayTradeHistory = tradeHistory.length > 0 
+    ? tradeHistory 
+    : tradesFromBackend.filter(trade => trade.status === "completed" || trade.status === "rejected");
+
+  const filteredProducts = availableProducts.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         product.shop.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  // --- Actions ---
+
+  const handleInitiateTrade = (product) => {
+    setIsCreateModalVisible(true);
+    const shopProduct = {
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      price: product.value,
+      shop: product.shop.name,
+      shopImage: product.shop.image,
+      seller_id: product.shop.seller_id,
+      product_id: product.product_id,
+    };
+    setSelectedShopProduct(shopProduct);
+  };
+
+  const handleCreateTrade = async () => {
+    if (!selectedUserProduct || !selectedShopProduct) {
+      Alert.alert("Missing Information", "Please select both products to trade");
+      return;
+    }
+
+    const payload = {
+      from_seller_id: selectedUserProduct.seller_id, 
+      to_seller_id: selectedShopProduct.seller_id,
+      offered_product_id: selectedUserProduct.product_id,
+      requested_product_id: selectedShopProduct.product_id,
+      message: notes,
+    };
+
+    try {
+      const response = await axiosInstance.post(`/api/v1/seller/Trade/trade`, payload);
+      if (response.status === 201) {
+        if (createTradeOffer) createTradeOffer(response.data.trade);
+        fetchTrades();
+        setIsCreateModalVisible(false);
+        resetSelection();
+        Alert.alert("Success", "Trade offer sent successfully!");
+      }
+    } catch (error) {
+      console.error("Error creating trade:", error);
+      Alert.alert("Error", "Failed to send trade offer.");
+    }
+  };
+
+  const handleTradeAction = async (tradeId, action) => {
+    try {
+      const response = await axiosInstance.put(`/api/v1/seller/Trade/trade`, {
+        trade_id: tradeId,
+        action: action,
+      });
+      if (response.status === 200) {
+        Alert.alert("Success", `Trade has been ${action}ed!`);
+        fetchTrades();
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing trade:`, error);
+      Alert.alert("Error", `Could not ${action} trade.`);
+    }
+  };
+
+  const resetSelection = () => {
+    setSelectedUserProduct(null);
+    setSelectedShopProduct(null);
+    setNotes("");
+  };
+
+  // --- Render Items ---
+
+  const renderProductItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.productCard}
+      activeOpacity={0.8}
+      onPress={() => handleInitiateTrade(item)}
+    >
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="cover" />
+        <View style={styles.priceBadge}>
+          <Text style={styles.priceText}>{item.value}</Text>
+        </View>
+      </View>
+
+      <View style={styles.cardContent}>
+        <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+        
+        <View style={styles.shopRow}>
+          <Image source={{ uri: item.shop.image }} style={styles.shopAvatarSmall} />
+          <Text style={styles.shopNameSmall} numberOfLines={1}>{item.shop.name}</Text>
+        </View>
+
+        <View style={styles.tradingForContainer}>
+          <Text style={styles.tradingLabel}>Wants:</Text>
+          <Text style={styles.tradingValue} numberOfLines={1}>
+            {item.tradeFor.join(', ') || "Any items"}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleInitiateTrade(item)}
+        >
+          <Text style={styles.actionButtonText}>Trade</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderTradeCard = ({ trade, type }) => {
+    // Helper for status styling
+    const getStatusStyle = (status) => {
+      switch(status) {
+        case 'pending': return { bg: '#FEF3C7', text: '#D97706' }; // Yellow
+        case 'active': return { bg: '#DBEAFE', text: '#2563EB' }; // Blue
+        case 'completed': return { bg: '#DCFCE7', text: '#059669' }; // Green
+        case 'rejected': return { bg: '#FEE2E2', text: '#DC2626' }; // Red
+        default: return { bg: '#F1F5F9', text: '#64748B' };
+      }
+    };
+    const statusStyle = getStatusStyle(trade.status);
+
+    return (
+      <View style={styles.tradeCard}>
+        {/* Card Header */}
+        <View style={styles.tradeHeader}>
+          <View style={styles.partnerInfo}>
+             <Text style={styles.partnerLabel}>Trading with</Text>
+             <Text style={styles.partnerName}>
+               {type === "offers" ? trade.from : trade.recipient}
+             </Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+            <Text style={[styles.statusText, { color: statusStyle.text }]}>
+              {trade.status.charAt(0).toUpperCase() + trade.status.slice(1)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        {/* Exchange Area */}
+        <View style={styles.exchangeContainer}>
+          {/* You Give */}
+          <View style={styles.exchangeSide}>
+            <Text style={styles.exchangeLabel}>You Give</Text>
+            <View style={styles.exchangeItem}>
+              <Image source={{ uri: trade.itemsOffered?.[0]?.image }} style={styles.exchangeImage} />
+              <Text style={styles.exchangeItemName} numberOfLines={1}>
+                {trade.itemsOffered?.[0]?.name}
+              </Text>
+              <Text style={styles.exchangeItemValue}>{trade.itemsOffered?.[0]?.value}</Text>
+            </View>
+          </View>
+
+          {/* Icon */}
+          <View style={styles.exchangeArrow}>
+             <Feather name="arrow-right-circle" size={24} color={COLORS.subtext} />
+          </View>
+
+          {/* You Get */}
+          <View style={styles.exchangeSide}>
+            <Text style={styles.exchangeLabel}>You Get</Text>
+            <View style={styles.exchangeItem}>
+              <Image source={{ uri: trade.itemsRequested?.[0]?.image }} style={styles.exchangeImage} />
+              <Text style={styles.exchangeItemName} numberOfLines={1}>
+                {trade.itemsRequested?.[0]?.name}
+              </Text>
+              <Text style={styles.exchangeItemValue}>{trade.itemsRequested?.[0]?.price}</Text>
+            </View>
+          </View>
+        </View>
+
+        {trade.message ? (
+          <View style={styles.messageBox}>
+            <Text style={styles.messageText}>"{trade.message}"</Text>
+          </View>
+        ) : null}
+
+        {/* Actions */}
+        {type === "offers" && (
+          <View style={styles.cardActions}>
+            <TouchableOpacity 
+              style={[styles.cardBtn, styles.btnDecline]} 
+              onPress={() => handleTradeAction(trade.id, "reject")}
+            >
+              <Text style={styles.btnTextDecline}>Decline</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.cardBtn, styles.btnAccept]} 
+              onPress={() => handleTradeAction(trade.id, "accept")}
+            >
+              <Text style={styles.btnTextAccept}>Accept Trade</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {type === "active" && (
+           <View style={styles.cardActions}>
+             <TouchableOpacity 
+               style={[styles.cardBtn, styles.btnComplete]} 
+               onPress={() => handleTradeAction(trade.id, "complete")}
+             >
+               <Feather name="check" size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+               <Text style={styles.btnTextComplete}>Mark as Complete</Text>
+             </TouchableOpacity>
+           </View>
+        )}
+      </View>
+    );
+  };
+
+  // --- Main Render ---
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      
+      {/* 1. Header Section (Fixed) */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Feather name="chevron-left" size={28} color={COLORS.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Trade Center</Text>
+          <TouchableOpacity style={styles.addButton} onPress={() => setIsCreateModalVisible(true)}>
+             <Feather name="plus" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Search Bar (Only visible in Browse) */}
+        {activeTab === "browse" && (
+          <View style={styles.searchContainer}>
+            <Feather name="search" size={20} color={COLORS.subtext} />
+            <TextInput 
+              style={styles.searchInput}
+              placeholder="Search products..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor={COLORS.subtext}
+            />
+          </View>
+        )}
+
+        {/* Tabs */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.tabsContainer}
+        >
+          {[
+            { key: "browse", label: "Browse Market" },
+            { key: "offers", label: "Offers", count: displayTradeOffers.length },
+            { key: "active", label: "Active", count: displayActiveTrades.length },
+            { key: "history", label: "History" },
+          ].map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+                {tab.label}
+              </Text>
+              {tab.count > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{tab.count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* 2. Content Section */}
+      <View style={styles.contentContainer}>
+        {loading ? (
+          <ActivityIndicator size="large" color={COLORS.secondary} style={{ marginTop: 50 }} />
+        ) : (
+          <>
+            {activeTab === "browse" ? (
+              <FlatList
+                data={filteredProducts}
+                renderItem={renderProductItem}
+                keyExtractor={(item) => item.id.toString()}
+                numColumns={2}
+                columnWrapperStyle={styles.columnWrapper}
+                contentContainerStyle={styles.listPadding}
+                showsVerticalScrollIndicator={false}
+                ListHeaderComponent={
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                    {categories.map((cat) => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[styles.catChip, selectedCategory === cat.id && styles.activeCatChip]}
+                        onPress={() => setSelectedCategory(cat.id)}
+                      >
+                        <Text style={[styles.catText, selectedCategory === cat.id && styles.activeCatText]}>
+                          {cat.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                }
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Feather name="box" size={48} color={COLORS.border} />
+                    <Text style={styles.emptyText}>No products found.</Text>
+                  </View>
+                }
+              />
+            ) : (
+              <ScrollView contentContainerStyle={styles.listPadding}>
+                {(activeTab === "offers" ? displayTradeOffers :
+                  activeTab === "active" ? displayActiveTrades : 
+                  displayTradeHistory).map(trade => renderTradeCard({ trade, type: activeTab }))}
+                
+                {(activeTab === "offers" && displayTradeOffers.length === 0) && (
+                  <View style={styles.emptyState}>
+                    <Feather name="inbox" size={48} color={COLORS.border} />
+                    <Text style={styles.emptyText}>No new trade offers.</Text>
+                  </View>
+                )}
+                 {(activeTab === "active" && displayActiveTrades.length === 0) && (
+                  <View style={styles.emptyState}>
+                    <Feather name="activity" size={48} color={COLORS.border} />
+                    <Text style={styles.emptyText}>No active trades.</Text>
+                  </View>
+                )}
+              </ScrollView>
+            )}
+          </>
+        )}
+      </View>
+
+      {/* 3. Create Trade Modal */}
+      <Modal
+        visible={isCreateModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setIsCreateModalVisible(false)}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>New Trade Offer</Text>
+            <TouchableOpacity onPress={() => setIsCreateModalVisible(false)}>
+              <Feather name="x" size={24} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            {/* Step 1: My Item */}
+            <Text style={styles.stepLabel}>1. Select your item to trade</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalScroll}>
+              {userProducts.map((prod) => (
+                <TouchableOpacity
+                  key={prod.id}
+                  style={[styles.modalItem, selectedUserProduct?.id === prod.id && styles.modalItemSelected]}
+                  onPress={() => setSelectedUserProduct(prod)}
+                >
+                  <Image source={{ uri: prod.image }} style={styles.modalItemImage} />
+                  <Text style={styles.modalItemName} numberOfLines={1}>{prod.name}</Text>
+                  <Text style={styles.modalItemPrice}>{prod.value}</Text>
+                  {selectedUserProduct?.id === prod.id && (
+                     <View style={styles.checkBadge}><Feather name="check" color="#FFF" size={12} /></View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Step 2: Their Item */}
+            <Text style={styles.stepLabel}>2. Item you want</Text>
+            {selectedShopProduct ? (
+              <View style={styles.selectedTargetItem}>
+                 <Image source={{ uri: selectedShopProduct.image }} style={styles.targetImage} />
+                 <View style={{ flex: 1 }}>
+                    <Text style={styles.targetName}>{selectedShopProduct.name}</Text>
+                    <Text style={styles.targetShop}>from {selectedShopProduct.shop}</Text>
+                 </View>
+                 <TouchableOpacity onPress={() => setSelectedShopProduct(null)}>
+                    <Feather name="edit-2" size={18} color={COLORS.secondary} />
+                 </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.noTargetItem}>
+                <Text style={styles.noTargetText}>Please select a product from the "Browse" tab first to start a trade.</Text>
+              </View>
+            )}
+
+            {/* Step 3: Note */}
+            <Text style={styles.stepLabel}>3. Add a message</Text>
+            <TextInput 
+              style={styles.noteInput}
+              placeholder="Hi, I'd like to trade my item for yours..."
+              multiline
+              numberOfLines={3}
+              value={notes}
+              onChangeText={setNotes}
+            />
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+             <TouchableOpacity 
+              style={[styles.mainButton, (!selectedUserProduct || !selectedShopProduct) && styles.disabledBtn]} 
+              onPress={handleCreateTrade}
+              disabled={!selectedUserProduct || !selectedShopProduct}
+             >
+               <Text style={styles.mainButtonText}>Send Offer</Text>
+             </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  // Header
+  header: {
+    backgroundColor: "#FFFFFF",
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+  addButton: {
+    backgroundColor: COLORS.secondary,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  // Search
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 12,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    color: COLORS.text,
+  },
+
+  // Tabs
+  tabsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: 'transparent',
+  },
+  activeTab: {
+    backgroundColor: '#EFF6FF',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.subtext,
+  },
+  activeTabText: {
+    color: COLORS.secondary,
+  },
+  badge: {
+    backgroundColor: COLORS.danger,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    marginLeft: 6,
+    height: 18,
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  // Content
+  contentContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+  },
+  listPadding: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+
+  // Categories
+  categoryScroll: {
+    marginBottom: 16,
+  },
+  catChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginRight: 8,
+  },
+  activeCatChip: {
+    backgroundColor: COLORS.secondary,
+    borderColor: COLORS.secondary,
+  },
+  catText: {
+    fontSize: 13,
+    color: COLORS.subtext,
+    fontWeight: '500',
+  },
+  activeCatText: {
+    color: '#FFF',
+  },
+
+  // Product Card
+  productCard: {
+    width: (screenWidth - 48) / 2,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  imageContainer: {
+    height: 140,
+    width: '100%',
+    backgroundColor: '#E2E8F0',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  priceBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  priceText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  cardContent: {
+    padding: 10,
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  shopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  shopAvatarSmall: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 4,
+  },
+  shopNameSmall: {
+    fontSize: 11,
+    color: COLORS.subtext,
+    flex: 1,
+  },
+  tradingForContainer: {
+    backgroundColor: '#F1F5F9',
+    padding: 6,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  tradingLabel: {
+    fontSize: 10,
+    color: COLORS.subtext,
+    marginBottom: 2,
+  },
+  tradingValue: {
+    fontSize: 11,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+  actionButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // Trade Card
+  tradeCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  tradeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  partnerInfo: {
+    flex: 1,
+  },
+  partnerLabel: {
+    fontSize: 11,
+    color: COLORS.subtext,
+  },
+  partnerName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginBottom: 12,
+  },
+  exchangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  exchangeSide: {
+    flex: 1,
+  },
+  exchangeLabel: {
+    fontSize: 11,
+    color: COLORS.subtext,
+    marginBottom: 6,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  exchangeItem: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  exchangeImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    marginBottom: 6,
+    backgroundColor: '#E2E8F0',
+  },
+  exchangeItemName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  exchangeItemValue: {
+    fontSize: 11,
+    color: COLORS.success,
+    fontWeight: '700',
+  },
+  exchangeArrow: {
+    paddingHorizontal: 10,
+  },
+  messageBox: {
+    backgroundColor: '#FFFBEB',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F59E0B',
+  },
+  messageText: {
+    fontSize: 13,
+    color: '#B45309',
+    fontStyle: 'italic',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  cardBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  btnDecline: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  btnTextDecline: {
+    color: '#DC2626',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  btnAccept: {
+    backgroundColor: COLORS.secondary,
+  },
+  btnTextAccept: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  btnComplete: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  btnTextComplete: {
+    color: '#059669',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+
+  // Modal
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  stepLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  modalScroll: {
+    marginBottom: 20,
+  },
+  modalItem: {
+    width: 100,
+    marginRight: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    padding: 4,
+  },
+  modalItemSelected: {
+    borderColor: COLORS.secondary,
+    backgroundColor: '#EFF6FF',
+  },
+  modalItemImage: {
+    width: '100%',
+    height: 80,
+    borderRadius: 6,
+    marginBottom: 6,
+    backgroundColor: '#E2E8F0',
+  },
+  modalItemName: {
+    fontSize: 11,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  modalItemPrice: {
+    fontSize: 11,
+    color: COLORS.success,
+    fontWeight: '700',
+  },
+  checkBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 10,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedTargetItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 20,
+  },
+  targetImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  targetName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  targetShop: {
+    fontSize: 12,
+    color: COLORS.subtext,
+  },
+  noTargetItem: {
+    padding: 16,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  noTargetText: {
+    color: '#EF4444',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  noteInput: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    height: 100,
+    textAlignVertical: 'top',
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 20,
+  },
+  modalFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  mainButton: {
+    backgroundColor: COLORS.secondary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  disabledBtn: {
+    backgroundColor: '#94A3B8',
+  },
+  mainButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 60,
+  },
+  emptyText: {
+    color: COLORS.subtext,
+    fontSize: 14,
+    marginTop: 12,
+  },
+});
+
+export default TradeScreen;
